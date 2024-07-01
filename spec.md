@@ -57,7 +57,7 @@ The pretty printed version uses unicode ∀, ∃ and has nice boxes indicating t
 The compiler should implement the following functionalities:
 
 ```
-First logic compiler
+Natual deduction proof compiler
 Usage: ndpc [OPTION] [FILE]...
 
 Arguments:

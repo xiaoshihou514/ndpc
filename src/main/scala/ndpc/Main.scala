@@ -9,7 +9,7 @@ object Main {
             case Array() | Array("--help", _*) =>
                 println(
                   """
-                  First logic compiler
+                  Natural deduction proof compiler
                      Usage: ndpc [OPTION] [FILE]...
 
                   Arguments:
