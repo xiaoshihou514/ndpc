@@ -1,7 +1,7 @@
 package ndpc
 import ndpc.Checker.check
 import ndpc.Renderer.compile
-import ndpc.Formatter.format
+import ndpc.Assembler.format
 
 object Main {
     def main(args: Array[String]): Unit = {

@@ -1,5 +1,5 @@
 package ndpc
 
-object Renderer {
+object Assembler {
     def compile(input: List[String]): Int = ???
 }
