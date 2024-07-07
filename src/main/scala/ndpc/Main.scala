@@ -1,4 +1,5 @@
 package ndpc
+
 import ndpc.Checker.check
 import ndpc.CheckOpts
 import ndpc.Assembler.compile
