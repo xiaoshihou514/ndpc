@@ -1,4 +1,3 @@
-.metals
-.bloop
-target
+.scala-build
 .bsp
+.metals
