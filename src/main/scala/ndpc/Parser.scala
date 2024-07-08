@@ -8,10 +8,10 @@ import parsley.debug._
 import ndpc.syntax.Formula._
 
 object FormulaParser {
+    // utils
     val spc = many(' ')
-    // LTerm
     val keywords = Set('(', ')', ' ', '.', ',')
-    val ident = some(satisfy(!keywords.contains(_)))
+    val ident = some(satisfy(!keywords.contains(_))).map(_.mkString)
     def args[A](one: Parsley[A], sep: Char): Parsley[List[A]] =
         '(' ~> spc ~>
             // 0 arity
@@ -21,13 +21,14 @@ object FormulaParser {
                     (c: A, cs: List[A]) => c :: cs
                 })
 
-    val variable = ident.map { (cs: List[Char]) => LTerm.Variable(cs.mkString) }
+    // LTerm
+    val variable = ident.map(LTerm.Variable.apply)
     lazy val funcAp: Parsley[LTerm.FuncAp] =
         (
           ident <~ spc <~> args(lterm, ',')
-        ).map { (res: (List[Char], List[LTerm])) =>
+        ).map { (res: (String, List[LTerm])) =>
             LTerm.FuncAp(
-              Function(res._1.mkString, res._2.length),
+              Function(res._1, res._2.length),
               res._2
             )
         }
@@ -35,7 +36,7 @@ object FormulaParser {
     // funcAp needs to have a higher precedence to work properly
     lazy val lterm = atomic(funcAp) <|> variable
 
-    LFormula
+    // LFormula
     lazy val predAp: Parsley[LFormula.PredAp] =
         ((ident <~ spc).map(_.mkString) <~> args(lterm, ','))
             .map { (res: (String, List[LTerm])) =>
@@ -67,7 +68,16 @@ object FormulaParser {
         .map { (res: (LFormula[_], LFormula[_])) =>
             LFormula.Equiv(res._1, res._2)
         }
-    lazy val forall = ???
+    lazy val forall =
+        (("forall" ~> spc ~> some(ident <~ spc) <~ '.') <~> lformula)
+            .map { (res: (List[String], LFormula[_])) =>
+                LFormula.Forall(res._1, res._2)
+            }
+    lazy val exists =
+        (("exists" ~> spc ~> some(ident <~ spc) <~ '.') <~> lformula)
+            .map { (res: (List[String], LFormula[_])) =>
+                LFormula.Exists(res._1, res._2)
+            }
     lazy val lformula: Parsley[LFormula[_]] = ???
 }
 
