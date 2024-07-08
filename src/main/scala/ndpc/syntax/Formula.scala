@@ -1,15 +1,17 @@
 package ndpc.syntax
 
 object Formula {
-    case class Function(name: String, arity: Int, sort: Vector[String])
-    case class Predicate(name: String, arity: Int, sort: Vector[String])
+    case class Function(name: String, arity: Int)
+    case class Predicate(name: String, arity: Int)
     // Definition 4.2 (term)
     // Fix a signature L.
     enum LTerm:
         // 1. Any constant in L is an L-term.
-        case Constant(name: String, sort: String)
         // 2. Any variable is an L-term.
-        case Variable(name: String, sort: String)
+        // here we just consider variable since
+        //  1. it's hard to differentiate the semantics during parsing
+        //  2. it's not too useful for use to differentiate the two
+        case Variable(name: String)
         // 3. If f is an n-ary function symbol in L, and t1...tn are L-terms, then f (t1...tn) is an L-term.
         case FuncAp(f: Function, xs: List[LTerm])
         // 4. Nothing else is an L-term.
@@ -46,13 +48,11 @@ object Formula {
         // 5. If 𝝓 is an L-formula and x a variable, then (∀x 𝝓) and (∃x 𝝓) are L-formulas.
         case Forall[A](
             vars: List[String],
-            sorts: List[String],
             body: LFormula[A]
         ) extends LFormula[Forall[A]]
 
         case Exists[A](
             vars: List[String],
-            sorts: List[String],
             body: LFormula[A]
         ) extends LFormula[Exists[A]]
 

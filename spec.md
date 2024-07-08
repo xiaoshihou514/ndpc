@@ -76,6 +76,7 @@ To facilitate using this toy compiler, we will also provide a cross platform gui
 ### Lexing
 
 It's possible to do lexing within the parser, but since we are implementing a formatting module, this will come in handy afterwards. This module should have the methods that would remove comments and trim redundant spaces.
+idea: parse into an ast that contains comments, we then adjust the spaces accordingly.
 
 ### Parsing
 
