@@ -98,4 +98,8 @@ class ParserSpec extends UnitSpec {
               .get === nested3
         )
     }
+
+    "A predAp" should "be a predicate applied to multiple lterms" in {
+        // TODO
+    }
 }

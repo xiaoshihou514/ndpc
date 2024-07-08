@@ -95,4 +95,4 @@ This should just be pretty printing to a file.
 
 ## The GUI
 
-Plan?: Rust + [iced](https://iced.rs/), should live in another repo
+cpp + Imgui

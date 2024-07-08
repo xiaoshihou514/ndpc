@@ -19,18 +19,17 @@ object Formula {
     // Definition 4.3 (formula)
     enum LFormula[T]:
         // 1. If R is an n-ary predicate symbol in L, and t1...tn are
+        // L-terms, then R(t1...tn) is an atomic L-formula.
         case PredAp(p: Predicate, xs: List[LTerm]) extends LFormula[PredAp]
 
-        // L-terms, then R(t1...tn) is an atomic L-formula.
+        // 2. If t, t' are L-terms then t = t' is an atomic L-formula.
         case Eq(left: LTerm, right: LTerm) extends LFormula[Eq]
 
-        // 2. If t, t' are L-terms then t = t' is an atomic L-formula.
-        case Truth extends LFormula[true]
-
         // 3. ⊤ and ⊥ are atomic L-formulas.
+        case Truth extends LFormula[true]
         case Falsity extends LFormula[false]
 
-        // 4. If 𝝓, φ are L-formulas then so are (𝝓 ∧ φ), (𝝓 ∨ φ), (𝝓 → φ), and (𝝓 ↔ φ).
+        // 4. If 𝝓, φ are L-formulas then so are ¬𝝓, (𝝓 ∧ φ), (𝝓 ∨ φ), (𝝓 → φ), and (𝝓 ↔ φ).
         case Not[A](pf: LFormula[A]) extends LFormula[Not[A]]
 
         case And[A, B](left: LFormula[A], right: LFormula[B])
