@@ -7,7 +7,6 @@ import parsley.syntax.character.{charLift, stringLift}
 import parsley.debug._
 
 import ndpc.Formula._
-import ndpc.Rule.{LF, LF_}
 
 object FormulaParser {
     // utils
@@ -39,7 +38,7 @@ object FormulaParser {
             )
         }
 
-    // funcAp needs to have a higher precedence to work properly
+    // funcAp needs to have a higher precedence (or the function name is parsed as a variable!)
     lazy val lterm = atomic(funcAp) <|> variable
 
     // LFormula
@@ -86,7 +85,15 @@ object FormulaParser {
             .map { (res: (List[String], LF_)) =>
                 LFormula.Exists(res._1, res._2)
             }
-    lazy val lformula: Parsley[LF_] = ???
+    lazy val lformula: Parsley[LF_] =
+        truth <|>
+            falsity <|>
+            atomic(forall) <|>
+            atomic(exists) <|>
+            atomic(equ) <|>
+            atomic(predAp) <|>
+            atomic(not) <|>
+            atomic(connectives)
 }
 
 object Parser {

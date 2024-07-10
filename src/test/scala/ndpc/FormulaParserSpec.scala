@@ -3,10 +3,10 @@ package ndpc
 import ndpc.FormulaParser._
 import ndpc.Formula._
 
-// just to save some typing
 given Conversion[String, LTerm.Variable] with
     def apply(s: String): LTerm.Variable = LTerm.Variable(s)
-def F = Function
+def Fn = Function
+def P = Predicate
 
 class ParserSpec extends UnitSpec {
     "spaces" should "match zero or more spaces" in {
@@ -22,21 +22,21 @@ class ParserSpec extends UnitSpec {
 
     "A function application" should "be a function followed by (, some lterms and a )" in {
         val example = LTerm.FuncAp(
-          F("foo", 3),
+          Fn("foo", 3),
           List("x", "y", "z")
         )
         assert(funcAp.parse("foo(x, y, z)").get === example)
         assert(funcAp.parse("foo  (x , y,z  )").get === example)
         val nested1 = LTerm.FuncAp(
-          F("bar", 1),
+          Fn("bar", 1),
           List(example)
         )
         val nested2 = LTerm.FuncAp(
-          F("bar", 2),
+          Fn("bar", 2),
           List(example, ("kk"))
         )
         val nested3 = LTerm.FuncAp(
-          F("baz", 6),
+          Fn("baz", 6),
           List(nested2, "h", "j", "k", "l", nested1)
         )
         assert(funcAp.parse("bar (foo(x,y,z))").get === nested1)
@@ -54,21 +54,21 @@ class ParserSpec extends UnitSpec {
         assert(lterm.parse("par").get === LTerm.Variable("par"))
         assert(lterm.parse("sley").get === LTerm.Variable("sley"))
         val example = LTerm.FuncAp(
-          F("foo", 3),
+          Fn("foo", 3),
           List("x", "y", "z")
         )
         assert(lterm.parse("foo(x, y, z)").get === example)
         assert(lterm.parse("foo  (x , y,z  )").get === example)
         val nested1 = LTerm.FuncAp(
-          F("bar", 1),
+          Fn("bar", 1),
           List(example)
         )
         val nested2 = LTerm.FuncAp(
-          F("bar", 2),
+          Fn("bar", 2),
           List(example, ("kk"))
         )
         val nested3 = LTerm.FuncAp(
-          F("baz", 6),
+          Fn("baz", 6),
           List(nested2, "h", "j", "k", "l", nested1)
         )
         assert(lterm.parse("bar (foo(x,y,z))").get === nested1)
@@ -84,16 +84,16 @@ class ParserSpec extends UnitSpec {
 
     "A predAp" should "be a predicate applied to multiple lterms" in {
         val example1 = LFormula.PredAp(
-          Predicate("foo", 3),
+          P("foo", 3),
           List("x", "y", "z")
         )
         assert(predAp.parse("foo ( x, y, z )").get === example1)
         // assert(lformula.parse("foo ( x, y, z )").get === example1)
         val example2 = LFormula.PredAp(
-          Predicate("foo", 2),
+          P("foo", 2),
           List(
             LTerm.FuncAp(
-              F("bar", 2),
+              Fn("bar", 2),
               List("ss", "l")
             ),
             "w"
@@ -102,14 +102,14 @@ class ParserSpec extends UnitSpec {
         assert(predAp.parse("foo( bar(ss,l), w)").get === example2)
         // assert(lformula.parse("foo( bar(ss,l), w)").get === example2)
         val example3 = LFormula.PredAp(
-          Predicate("foo", 2),
+          P("foo", 2),
           List(
             LTerm.FuncAp(
-              F("bar", 2),
+              Fn("bar", 2),
               List(
                 "ss",
                 LTerm.FuncAp(
-                  F("wacc", 4),
+                  Fn("wacc", 4),
                   List("w", "a", "c", "c")
                 )
               )
@@ -128,7 +128,7 @@ class ParserSpec extends UnitSpec {
         //       .get === example3
         // )
         val sugar = LFormula.PredAp(
-          Predicate("foo", 0),
+          P("foo", 0),
           List()
         )
         assert(predAp.parse("foo^bar").get === sugar)
@@ -142,7 +142,7 @@ class ParserSpec extends UnitSpec {
         val example2 = LFormula.Eq(
           "x",
           LTerm.FuncAp(
-            F("wuu", 2),
+            Fn("wuu", 2),
             List("a", "wa")
           )
         )
@@ -150,14 +150,14 @@ class ParserSpec extends UnitSpec {
         // assert(lformula.parse("x=  wuu (  a, wa)").get === example2)
         val example3 = LFormula.Eq(
           LTerm.FuncAp(
-            F("jkjk", 0),
+            Fn("jkjk", 0),
             List()
           ),
           LTerm.FuncAp(
-            F("u", 1),
+            Fn("u", 1),
             List(
               LTerm.FuncAp(
-                F("qo", 2),
+                Fn("qo", 2),
                 List("j", "w")
               )
             )
@@ -175,6 +175,22 @@ class ParserSpec extends UnitSpec {
     }
 
     "Logical connectives" should "be ~p, p^q, p/q, p->q, p<->q" in {
-        // TODO
+        val not1 = LFormula.Not(
+          LFormula.PredAp(
+            P("sph", 0),
+            List()
+          )
+        )
+        assert(FormulaParser.not.parse("~     sph").get === not1)
+        val not2 = LFormula.Not(
+          LFormula.Eq(
+            "x",
+            LTerm.FuncAp(
+              Fn("wuu", 2),
+              List("a", "wa")
+            )
+          )
+        )
+        assert(FormulaParser.not.parse("~(x=wuu(a,wa))").get === not2)
     }
 }

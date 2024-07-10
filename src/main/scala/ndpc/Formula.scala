@@ -55,5 +55,6 @@ object Formula {
             body: LFormula[A]
         ) extends LFormula[Exists[A]]
 
-        // 6. Nothing else is an L-formula.
+    type LF[A] = LFormula[A]
+    type LF_ = LFormula[_]
 }

@@ -1,9 +1,7 @@
 package ndpc
-import ndpc.Formula.LFormula
+import ndpc.Formula._
 
 object Rule {
-    type LF[A] = LFormula[A]
-    type LF_ = LFormula[_]
     enum Rule:
         case Intro(i: Introduction)
         case Elim(e: Elimination)
