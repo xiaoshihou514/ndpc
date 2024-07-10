@@ -160,4 +160,11 @@ class ParserSpec extends UnitSpec {
         assert(equ.parse("jkjk ()= u(qo(j,w))").get === example3)
         // assert(lformula.parse("jkjk ()= u(qo(j,w))").get === example3)
     }
+
+    "Truth and falsity" should "be a single char T/F" in {
+        assert(truth.parse("T ^").get === LFormula.Truth)
+        assert(falsity.parse("F(some reason)").get === LFormula.Falsity)
+        assert(truth.parse("TasVar").isFailure)
+        assert(falsity.parse("Fstart").isFailure)
+    }
 }

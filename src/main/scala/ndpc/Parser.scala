@@ -1,6 +1,6 @@
 package ndpc
 
-import parsley.Parsley, Parsley.{many, some, atomic}
+import parsley.Parsley, Parsley.{many, some, atomic, lookAhead}
 import parsley.character.{satisfy, char}
 import parsley.syntax.character.{charLift, stringLift}
 import parsley.debug._
@@ -49,8 +49,12 @@ object FormulaParser {
         (lterm <~> (spc ~> '=' ~> spc) ~> lterm).map { (res: (LTerm, LTerm)) =>
             LFormula.Eq(res._1, res._2)
         }
-    val truth = 'T'.map(_ => LFormula.Truth)
-    val falsity = 'F'.map(_ => LFormula.Falsity)
+    val truth = ('T' <~ lookAhead(satisfy(keywords.contains(_)))).map(_ =>
+        LFormula.Truth
+    )
+    val falsity = ('F' <~ lookAhead(satisfy(keywords.contains(_)))).map(_ =>
+        LFormula.Falsity
+    )
     lazy val not = ('~' ~> spc ~> lformula).map(LFormula.Not.apply)
     lazy val and = (lformula <~> (spc ~> '^' ~> spc ~> lformula))
         .map { (res: (LFormula[_], LFormula[_])) =>
