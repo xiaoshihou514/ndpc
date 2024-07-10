@@ -10,9 +10,9 @@ import ndpc.syntax.Formula._
 object FormulaParser {
     // utils
     val spc = many(' ')
-    val keywords = Set('(', ')', ' ', '.', ',')
+    val keywords = Set('(', ')', ' ', '.', ',', '~')
     val ident = some(satisfy(!keywords.contains(_))).map(_.mkString)
-    def args[A](one: Parsley[A], sep: Char): Parsley[List[A]] =
+    def args[A](one: Parsley[A]): Parsley[List[A]] =
         '(' ~> spc ~>
             // 0 arity
             (')'.map(_ => List[A]()) <|>
@@ -25,7 +25,7 @@ object FormulaParser {
     val variable = ident.map(LTerm.Variable.apply)
     lazy val funcAp: Parsley[LTerm.FuncAp] =
         (
-          ident <~ spc <~> args(lterm, ',')
+          ident <~ spc <~> args(lterm)
         ).map { (res: (String, List[LTerm])) =>
             LTerm.FuncAp(
               Function(res._1, res._2.length),
@@ -38,7 +38,7 @@ object FormulaParser {
 
     // LFormula
     lazy val predAp: Parsley[LFormula.PredAp] =
-        ((ident <~ spc).map(_.mkString) <~> args(lterm, ','))
+        ((ident <~ spc).map(_.mkString) <~> args(lterm))
             .map { (res: (String, List[LTerm])) =>
                 LFormula.PredAp(
                   Predicate(res._1, res._2.length),
@@ -49,8 +49,8 @@ object FormulaParser {
         (lterm <~> (spc ~> '=' ~> spc) ~> lterm).map { (res: (LTerm, LTerm)) =>
             LFormula.Eq(res._1, res._2)
         }
-    val truth = 'T'
-    val falsity = 'F'
+    val truth = 'T'.map(_ => LFormula.Truth)
+    val falsity = 'F'.map(_ => LFormula.Falsity)
     lazy val not = ('~' ~> spc ~> lformula).map(LFormula.Not.apply)
     lazy val and = (lformula <~> (spc ~> '^' ~> spc ~> lformula))
         .map { (res: (LFormula[_], LFormula[_])) =>
@@ -78,7 +78,18 @@ object FormulaParser {
             .map { (res: (List[String], LFormula[_])) =>
                 LFormula.Exists(res._1, res._2)
             }
-    lazy val lformula: Parsley[LFormula[_]] = ???
+    lazy val lformula: Parsley[LFormula[_]] =
+        atomic(predAp) <|>
+            atomic(eq) <|>
+            truth <|>
+            falsity <|>
+            not <|>
+            atomic(and) <|>
+            atomic(or) <|>
+            atomic(implies) <|>
+            atomic(equiv) <|>
+            forall <|>
+            exists
 }
 
 object Parser {
