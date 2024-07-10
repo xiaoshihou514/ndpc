@@ -96,3 +96,13 @@ This should just be pretty printing to a file.
 ## The GUI
 
 cpp + Imgui
+lives [here](https://github.com/xiaoshihou514/aristotle)
+
+## What to do
+- make the lformula parser work
+- rule parser
+- parser for whole document
+- go throught jamie's tutorial to refine our parsers
+- implement lexer
+- implement checker
+- implement compiler

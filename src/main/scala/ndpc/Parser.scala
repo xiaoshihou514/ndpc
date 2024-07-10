@@ -4,6 +4,7 @@ import parsley.Parsley
 import parsley.Parsley.{many, some, atomic, lookAhead, pure}
 import parsley.character.{satisfy, char}
 import parsley.syntax.character.{charLift, stringLift}
+import parsley.combinator.sepBy
 import parsley.debug._
 
 import ndpc.Formula._
@@ -15,22 +16,13 @@ object FormulaParser {
         Set('(', ')', ' ', '.', ',', '~', '=', '^', '/', '<', '-', '>')
     def isKeyword = keywords.contains(_)
     val ident = some(satisfy(!isKeyword(_))).map(_.mkString)
-    // format: off
-    def args[A](one: Parsley[A]): Parsley[List[A]] =
-        '(' ~> spc ~>
-        // 0 arity
-        (')'.as(List[A]()) <|>
-        // 1+ arity
-        (one <~> many(spc ~> ',' ~> spc ~> one <~ spc) <~ ')').map {
-            (c: A, cs: List[A]) => c :: cs
-        })
-    // format: on
 
     // LTerm
     val variable = ident.map(LTerm.Variable.apply)
+    val args = '(' ~> spc ~> sepBy(lterm, spc ~> ',' <~ spc) <~ ')'
     lazy val funcAp: Parsley[LTerm.FuncAp] =
         (
-          ident <~ spc <~> args(lterm)
+          ident <~ spc <~> args
         ).map { (res: (String, List[LTerm])) =>
             LTerm.FuncAp(
               Function(res._1, res._2.length),
@@ -48,7 +40,7 @@ object FormulaParser {
     lazy val predAp: Parsley[LFormula.PredAp] =
         (
           (ident <~ spc) <~>
-              (args(lterm) <|> pure(List()))
+              (args <|> pure(List()))
         ).map { (res: (String, List[LTerm])) =>
             LFormula.PredAp(
               Predicate(res._1, res._2.length),
