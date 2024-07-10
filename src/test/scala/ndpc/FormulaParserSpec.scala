@@ -21,21 +21,21 @@ class ParserSpec extends UnitSpec {
 
     "A function application" should "be a function followed by (, some lterms and a )" in {
         val example = LTerm.FuncAp(
-          Function("foo", 3),
+          F("foo", 3),
           List("x", "y", "z")
         )
         assert(funcAp.parse("foo(x, y, z)").get === example)
         assert(funcAp.parse("foo  (x , y,z  )").get === example)
         val nested1 = LTerm.FuncAp(
-          Function("bar", 1),
+          F("bar", 1),
           List(example)
         )
         val nested2 = LTerm.FuncAp(
-          Function("bar", 2),
+          F("bar", 2),
           List(example, ("kk"))
         )
         val nested3 = LTerm.FuncAp(
-          Function("baz", 6),
+          F("baz", 6),
           List(nested2, "h", "j", "k", "l", nested1)
         )
         assert(funcAp.parse("bar (foo(x,y,z))").get === nested1)
@@ -53,21 +53,21 @@ class ParserSpec extends UnitSpec {
         assert(lterm.parse("par").get === LTerm.Variable("par"))
         assert(lterm.parse("sley").get === LTerm.Variable("sley"))
         val example = LTerm.FuncAp(
-          Function("foo", 3),
+          F("foo", 3),
           List("x", "y", "z")
         )
         assert(lterm.parse("foo(x, y, z)").get === example)
         assert(lterm.parse("foo  (x , y,z  )").get === example)
         val nested1 = LTerm.FuncAp(
-          Function("bar", 1),
+          F("bar", 1),
           List(example)
         )
         val nested2 = LTerm.FuncAp(
-          Function("bar", 2),
+          F("bar", 2),
           List(example, ("kk"))
         )
         val nested3 = LTerm.FuncAp(
-          Function("baz", 6),
+          F("baz", 6),
           List(nested2, "h", "j", "k", "l", nested1)
         )
         assert(lterm.parse("bar (foo(x,y,z))").get === nested1)
@@ -87,26 +87,28 @@ class ParserSpec extends UnitSpec {
           List("x", "y", "z")
         )
         assert(predAp.parse("foo ( x, y, z )").get === example1)
+        // assert(lformula.parse("foo ( x, y, z )").get === example1)
         val example2 = LFormula.PredAp(
           Predicate("foo", 2),
           List(
             LTerm.FuncAp(
-              Function("bar", 2),
+              F("bar", 2),
               List("ss", "l")
             ),
             "w"
           )
         )
         assert(predAp.parse("foo( bar(ss,l), w)").get === example2)
+        // assert(lformula.parse("foo( bar(ss,l), w)").get === example2)
         val example3 = LFormula.PredAp(
           Predicate("foo", 2),
           List(
             LTerm.FuncAp(
-              Function("bar", 2),
+              F("bar", 2),
               List(
                 "ss",
                 LTerm.FuncAp(
-                  Function("wacc", 4),
+                  F("wacc", 4),
                   List("w", "a", "c", "c")
                 )
               )
@@ -119,5 +121,43 @@ class ParserSpec extends UnitSpec {
               .parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)")
               .get === example3
         )
+        // assert(
+        //   lformula
+        //       .parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)")
+        //       .get === example3
+        // )
+    }
+
+    "eq" should "be an lterm = an lterm" in {
+        val example1 = LFormula.Eq("a", "bb")
+        assert(equ.parse("a   = bb").get === example1)
+        // assert(lformula.parse("a   = bb").get === example1)
+        val example2 = LFormula.Eq(
+          "x",
+          LTerm.FuncAp(
+            F("wuu", 2),
+            List("a", "wa")
+          )
+        )
+        println(equ.parse("x=  wuu (  a, wa)"))
+        assert(equ.parse("x=  wuu (  a, wa)").get === example2)
+        // assert(lformula.parse("x=  wuu (  a, wa)").get === example2)
+        val example3 = LFormula.Eq(
+          LTerm.FuncAp(
+            F("jkjk", 0),
+            List()
+          ),
+          LTerm.FuncAp(
+            F("u", 1),
+            List(
+              LTerm.FuncAp(
+                F("qo", 2),
+                List("j", "w")
+              )
+            )
+          )
+        )
+        assert(equ.parse("jkjk ()= u(qo(j,w))").get === example3)
+        // assert(lformula.parse("jkjk ()= u(qo(j,w))").get === example3)
     }
 }

@@ -10,7 +10,7 @@ import ndpc.syntax.Formula._
 object FormulaParser {
     // utils
     val spc = many(' ')
-    val keywords = Set('(', ')', ' ', '.', ',', '~')
+    val keywords = Set('(', ')', ' ', '.', ',', '~', '=')
     val ident = some(satisfy(!keywords.contains(_))).map(_.mkString)
     def args[A](one: Parsley[A]): Parsley[List[A]] =
         '(' ~> spc ~>
@@ -45,7 +45,7 @@ object FormulaParser {
                   res._2
                 )
             }
-    val eq =
+    val equ =
         (lterm <~> (spc ~> '=' ~> spc) ~> lterm).map { (res: (LTerm, LTerm)) =>
             LFormula.Eq(res._1, res._2)
         }
@@ -80,7 +80,7 @@ object FormulaParser {
             }
     lazy val lformula: Parsley[LFormula[_]] =
         atomic(predAp) <|>
-            atomic(eq) <|>
+            atomic(equ) <|>
             truth <|>
             falsity <|>
             not <|>
