@@ -1,10 +1,11 @@
 package ndpc
 
 import ndpc.FormulaParser._
-import ndpc.syntax.Formula._
+import ndpc.Formula._
 
-@inline implicit def stringLift(str: String): LTerm.Variable =
-    LTerm.Variable(str)
+// just to save some typing
+given Conversion[String, LTerm.Variable] with
+    def apply(s: String): LTerm.Variable = LTerm.Variable(s)
 def F = Function
 
 class ParserSpec extends UnitSpec {
@@ -126,6 +127,12 @@ class ParserSpec extends UnitSpec {
         //       .parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)")
         //       .get === example3
         // )
+        val sugar = LFormula.PredAp(
+          Predicate("foo", 0),
+          List()
+        )
+        assert(predAp.parse("foo^bar").get === sugar)
+        // assert(lformula.parse("foo^bar").get === sugar)
     }
 
     "eq" should "be an lterm = an lterm" in {
@@ -139,7 +146,6 @@ class ParserSpec extends UnitSpec {
             List("a", "wa")
           )
         )
-        println(equ.parse("x=  wuu (  a, wa)"))
         assert(equ.parse("x=  wuu (  a, wa)").get === example2)
         // assert(lformula.parse("x=  wuu (  a, wa)").get === example2)
         val example3 = LFormula.Eq(
@@ -166,5 +172,9 @@ class ParserSpec extends UnitSpec {
         assert(falsity.parse("F(some reason)").get === LFormula.Falsity)
         assert(truth.parse("TasVar").isFailure)
         assert(falsity.parse("Fstart").isFailure)
+    }
+
+    "Logical connectives" should "be ~p, p^q, p/q, p->q, p<->q" in {
+        // TODO
     }
 }

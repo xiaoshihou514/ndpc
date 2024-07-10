@@ -1,4 +1,4 @@
-package ndpc.syntax
+package ndpc
 
 object Formula {
     case class Function(name: String, arity: Int)

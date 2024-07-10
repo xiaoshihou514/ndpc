@@ -1,25 +1,31 @@
 package ndpc
 
-import parsley.Parsley, Parsley.{many, some, atomic, lookAhead}
+import parsley.Parsley
+import parsley.Parsley.{many, some, atomic, lookAhead, pure}
 import parsley.character.{satisfy, char}
 import parsley.syntax.character.{charLift, stringLift}
 import parsley.debug._
 
-import ndpc.syntax.Formula._
+import ndpc.Formula._
+import ndpc.Rule.{LF, LF_}
 
 object FormulaParser {
     // utils
     val spc = many(' ')
-    val keywords = Set('(', ')', ' ', '.', ',', '~', '=')
-    val ident = some(satisfy(!keywords.contains(_))).map(_.mkString)
+    val keywords =
+        Set('(', ')', ' ', '.', ',', '~', '=', '^', '/', '<', '-', '>')
+    def isKeyword = keywords.contains(_)
+    val ident = some(satisfy(!isKeyword(_))).map(_.mkString)
+    // format: off
     def args[A](one: Parsley[A]): Parsley[List[A]] =
         '(' ~> spc ~>
-            // 0 arity
-            (')'.map(_ => List[A]()) <|>
-                // 1+ arity
-                (one <~> many(spc ~> ',' ~> spc ~> one <~ spc) <~ ')').map {
-                    (c: A, cs: List[A]) => c :: cs
-                })
+        // 0 arity
+        (')'.as(List[A]()) <|>
+        // 1+ arity
+        (one <~> many(spc ~> ',' ~> spc ~> one <~ spc) <~ ')').map {
+            (c: A, cs: List[A]) => c :: cs
+        })
+    // format: on
 
     // LTerm
     val variable = ident.map(LTerm.Variable.apply)
@@ -37,63 +43,50 @@ object FormulaParser {
     lazy val lterm = atomic(funcAp) <|> variable
 
     // LFormula
+    // we introduce a bit of syntax sugar here, if a predicate has arity 0,
+    // you can omit the parenthesis, this makes propositional logic strictly
+    // a subset of first ordet logic in our syntax system.
     lazy val predAp: Parsley[LFormula.PredAp] =
-        ((ident <~ spc).map(_.mkString) <~> args(lterm))
-            .map { (res: (String, List[LTerm])) =>
-                LFormula.PredAp(
-                  Predicate(res._1, res._2.length),
-                  res._2
-                )
-            }
+        (
+          (ident <~ spc) <~>
+              (args(lterm) <|> pure(List()))
+        ).map { (res: (String, List[LTerm])) =>
+            LFormula.PredAp(
+              Predicate(res._1, res._2.length),
+              res._2
+            )
+        }
     val equ =
         (lterm <~> (spc ~> '=' ~> spc) ~> lterm).map { (res: (LTerm, LTerm)) =>
             LFormula.Eq(res._1, res._2)
         }
-    val truth = ('T' <~ lookAhead(satisfy(keywords.contains(_)))).map(_ =>
-        LFormula.Truth
-    )
-    val falsity = ('F' <~ lookAhead(satisfy(keywords.contains(_)))).map(_ =>
-        LFormula.Falsity
-    )
+    val truth =
+        ('T' <~ atomic(lookAhead(satisfy(isKeyword)))).as(LFormula.Truth)
+    val falsity =
+        ('F' <~ atomic(lookAhead(satisfy(isKeyword)))).as(LFormula.Falsity)
     lazy val not = ('~' ~> spc ~> lformula).map(LFormula.Not.apply)
-    lazy val and = (lformula <~> (spc ~> '^' ~> spc ~> lformula))
-        .map { (res: (LFormula[_], LFormula[_])) =>
-            LFormula.And(res._1, res._2)
-        }
-    lazy val or = (lformula <~> (spc ~> '/' ~> spc ~> lformula))
-        .map { (res: (LFormula[_], LFormula[_])) =>
-            LFormula.Or(res._1, res._2)
-        }
-    lazy val implies = (lformula <~> (spc ~> "->" ~> spc ~> lformula))
-        .map { (res: (LFormula[_], LFormula[_])) =>
-            LFormula.Implies(res._1, res._2)
-        }
-    lazy val equiv = (lformula <~> (spc ~> "<->" ~> spc ~> lformula))
-        .map { (res: (LFormula[_], LFormula[_])) =>
-            LFormula.Equiv(res._1, res._2)
-        }
+    // format: off
+    lazy val connectives =
+        (lformula <**>
+            (spc ~> (
+              '^'.as((l: LF_) => (r: LF_) => LFormula.And(l, r)) <|>
+              '/'.as((l: LF_) => (r: LF_) => LFormula.Or(l, r)) <|>
+              "->".as((l: LF_) => (r: LF_) => LFormula.Implies(l, r)) <|>
+              "<->".as((l: LF_) => (r: LF_) => LFormula.Equiv(l, r))
+            ) <~ spc)
+            <*> lformula)
+    // format: on
     lazy val forall =
         (("forall" ~> spc ~> some(ident <~ spc) <~ '.') <~> lformula)
-            .map { (res: (List[String], LFormula[_])) =>
+            .map { (res: (List[String], LF_)) =>
                 LFormula.Forall(res._1, res._2)
             }
     lazy val exists =
         (("exists" ~> spc ~> some(ident <~ spc) <~ '.') <~> lformula)
-            .map { (res: (List[String], LFormula[_])) =>
+            .map { (res: (List[String], LF_)) =>
                 LFormula.Exists(res._1, res._2)
             }
-    lazy val lformula: Parsley[LFormula[_]] =
-        atomic(predAp) <|>
-            atomic(equ) <|>
-            truth <|>
-            falsity <|>
-            not <|>
-            atomic(and) <|>
-            atomic(or) <|>
-            atomic(implies) <|>
-            atomic(equiv) <|>
-            forall <|>
-            exists
+    lazy val lformula: Parsley[LF_] = ???
 }
 
 object Parser {
