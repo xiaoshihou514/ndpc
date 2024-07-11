@@ -4,18 +4,21 @@ import parsley.Parsley
 import parsley.Parsley.{many, some, atomic, lookAhead, pure}
 import parsley.character.{satisfy, char}
 import parsley.syntax.character.{charLift, stringLift}
+import parsley.character.whitespaces as spc
 import parsley.combinator.sepBy
 import parsley.debug._
 
 import ndpc.Formula._
 
+// utils
+val keywords = Set(
+  '(', ')', '[', ']', '<', '>', ' ', '.', ',', '~', '=', '^', '/', '-'
+)
+def isKeyword = keywords.contains(_)
+val ident = some(satisfy(!isKeyword(_))).map(_.mkString)
+def resolve(exprs: List[LF_ | (LF_ => (LF_ => LF_))]): LF_ = ???
+
 object FormulaParser {
-    // utils
-    val spc = many(' ')
-    val keywords =
-        Set('(', ')', ' ', '.', ',', '~', '=', '^', '/', '<', '-', '>')
-    def isKeyword = keywords.contains(_)
-    val ident = some(satisfy(!isKeyword(_))).map(_.mkString)
 
     // LTerm
     val variable = ident.map(LTerm.Variable.apply)
@@ -55,18 +58,9 @@ object FormulaParser {
         ('T' <~ atomic(lookAhead(satisfy(isKeyword)))).as(LFormula.Truth)
     val falsity =
         ('F' <~ atomic(lookAhead(satisfy(isKeyword)))).as(LFormula.Falsity)
-    lazy val not = ('~' ~> spc ~> lformula).map(LFormula.Not.apply)
-    // format: off
-    lazy val connectives =
-        (lformula <**>
-            (spc ~> (
-              '^'.as((l: LF_) => (r: LF_) => LFormula.And(l, r)) <|>
-              '/'.as((l: LF_) => (r: LF_) => LFormula.Or(l, r)) <|>
-              "->".as((l: LF_) => (r: LF_) => LFormula.Implies(l, r)) <|>
-              "<->".as((l: LF_) => (r: LF_) => LFormula.Equiv(l, r))
-            ) <~ spc)
-            <*> lformula)
-    // format: on
+    lazy val not = ???
+    // TODO: parse to IR
+    lazy val connectives = ???
     lazy val forall =
         (("forall" ~> spc ~> some(ident <~ spc) <~ '.') <~> lformula)
             .map { (res: (List[String], LF_)) =>
@@ -77,15 +71,19 @@ object FormulaParser {
             .map { (res: (List[String], LF_)) =>
                 LFormula.Exists(res._1, res._2)
             }
+    // format: off
     lazy val lformula: Parsley[LF_] =
-        truth <|>
-            falsity <|>
-            atomic(forall) <|>
-            atomic(exists) <|>
-            atomic(equ) <|>
-            atomic(predAp) <|>
-            atomic(not) <|>
-            atomic(connectives)
+        // "atoms"
+        atomic(predAp) <|>
+        atomic(truth) <|>
+        atomic(falsity) <|>
+        // "atoms" bracketed
+        ('(' ~> spc ~> lformula <~ spc <~ ')') <|>
+        atomic(forall) <|>
+        atomic(exists) <|>
+        // "atoms" connected by connectives
+        ???
+    // format: on
 }
 
 object Parser {
