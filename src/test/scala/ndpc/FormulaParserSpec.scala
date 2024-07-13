@@ -185,7 +185,7 @@ class ParserSpec extends UnitSpec {
         )
     }
 
-    "An lformula" should "be connectives + atoms / forall(atom) / exists(atom)" in {
+    "An lformula" should "be connectives + lfromula / forall(lformula) / exists(lformula)" in {
         val atomWithBrackets = LFormula.PredAp(
           P("TStartFunc", 3),
           List(
@@ -285,5 +285,54 @@ class ParserSpec extends UnitSpec {
         assert(
           lformula.parse("(p=    q   )^    ( ~  p-> r  )").get === connectives_7
         )
+
+        val forall = LFormula.Forall(
+          List("p", "q"),
+          connectives_7
+        )
+        assert(
+          lformula
+              .parse("forall p q. ((p=    q   )^    ( ~  p-> r  ))")
+              .get === forall
+        )
+
+        val exists = LFormula.Forall(
+          List("𝝓", "φ"),
+          LFormula.Exists(
+            List("A"),
+            LFormula.Or(
+              LFormula.PredAp(
+                P("foo", 3),
+                List("𝝓", "φ", "A")
+              ),
+              LFormula.Exists(
+                List("B"),
+                LFormula.PredAp(
+                  P("bar", 2),
+                  List("𝝓", "B")
+                )
+              )
+            )
+          )
+        )
+        assert(
+          lformula
+              .parse(
+                "forall 𝝓 φ. (exists A. ( foo(𝝓 ,φ ,A) / (exists B. (bar(𝝓, B)))))"
+              )
+              .get === exists
+        )
+
+        val precedence = LFormula.Implies(
+          LFormula.And(
+            LFormula.PredAp(P("a", 0), List()),
+            LFormula.PredAp(P("b", 0), List())
+          ),
+          LFormula.Equiv(
+            LFormula.PredAp(P("a", 0), List()),
+            LFormula.PredAp(P("a", 0), List())
+          )
+        )
+        assert(lformula.parse("a^b->(a<->a)").get === precedence)
     }
 }

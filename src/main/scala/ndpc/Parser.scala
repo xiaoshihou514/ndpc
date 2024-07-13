@@ -4,7 +4,7 @@ import parsley.Parsley
 import parsley.Parsley.{many, some, atomic, lookAhead, pure, eof}
 import parsley.character.{satisfy, char}
 import parsley.syntax.character.{charLift, stringLift}
-import parsley.combinator.sepBy
+import parsley.combinator.{sepBy, sepEndBy}
 import parsley.expr.{precedence, Ops, InfixL, Prefix}
 import parsley.debug._
 
@@ -70,18 +70,23 @@ object FormulaParser {
         ('F' <~ atomic(
           lookAhead(satisfy(isKeyword)) <|> eof
         )) as (LFormula.Falsity)
-    lazy val not = ???
-    lazy val forall =
-        (("forall" ~> spc ~> some(ident <~ some(' ')) <~ '.') <~> lformula)
-            .map { (res: (List[String], LF_)) =>
-                LFormula.Forall(res._1, res._2)
-            }
-    lazy val exists =
-        (("exists" ~> spc ~> some(ident <~ some(' ')) <~ '.') <~> lformula)
-            .map { (res: (List[String], LF_)) =>
-                LFormula.Exists(res._1, res._2)
-            }
     // format: off
+    lazy val forall =
+        (("forall" ~> some(' ') ~>
+            sepEndBy(ident, some(' '))
+            <~ tolerant('.'))
+        <~> lformula)
+        .map { (res: (List[String], LF_)) =>
+            LFormula.Forall(res._1, res._2)
+        }
+    lazy val exists =
+        (("exists" ~> some(' ') ~>
+            sepEndBy(ident, some(' '))
+            <~ tolerant('.'))
+        <~> lformula)
+        .map { (res: (List[String], LF_)) =>
+            LFormula.Exists(res._1, res._2)
+        }
     val atom: Parsley[LF_] =
         atomic(truth) <|>
         atomic(falsity) <|>
