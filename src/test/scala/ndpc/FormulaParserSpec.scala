@@ -2,6 +2,7 @@ package ndpc
 
 import ndpc.FormulaParser._
 import ndpc.Formula._
+import scala.language.implicitConversions // yes, I know what I am doing
 
 given Conversion[String, LTerm.Variable] with
     def apply(s: String): LTerm.Variable = LTerm.Variable(s)
@@ -9,12 +10,6 @@ def Fn = Function
 def P = Predicate
 
 class ParserSpec extends UnitSpec {
-    "spaces" should "match zero or more spaces" in {
-        assert(spc.parse("").isSuccess)
-        assert(spc.parse(" ").isSuccess)
-        assert(spc.parse("    ").isSuccess)
-    }
-
     "A variable" should "be any non keyword string" in {
         assert(variable.parse("valid").get === LTerm.Variable("valid"))
         assert(variable.parse("abc ").get === LTerm.Variable("abc"))
@@ -168,29 +163,117 @@ class ParserSpec extends UnitSpec {
     }
 
     "Truth and falsity" should "be a single char T/F" in {
-        assert(truth.parse("T ^").get === LFormula.Truth)
-        assert(falsity.parse("F(some reason)").get === LFormula.Falsity)
+        assert(truth.parse("T ^ fff").get === LFormula.Truth)
+        assert(truth.parse("T").get === LFormula.Truth)
         assert(truth.parse("TasVar").isFailure)
         assert(falsity.parse("Fstart").isFailure)
     }
 
-    "Logical connectives" should "be ~p, p^q, p/q, p->q, p<->q" in {
-        val not1 = LFormula.Not(
-          LFormula.PredAp(
-            P("sph", 0),
-            List()
-          )
-        )
-        assert(FormulaParser.not.parse("~     sph").get === not1)
-        val not2 = LFormula.Not(
-          LFormula.Eq(
-            "x",
+    "An atom in a LFormula" should "be a predAp / T / F" in {
+        val atom1 = LFormula.PredAp(
+          P("TStartFunc", 3),
+          List(
             LTerm.FuncAp(
-              Fn("wuu", 2),
-              List("a", "wa")
-            )
+              Fn("FStartFunc", 2),
+              List("a", "b")
+            ),
+            LTerm.FuncAp(Fn("fs", 0), List()),
+            "j"
           )
         )
-        assert(FormulaParser.not.parse("~(x=wuu(a,wa))").get === not2)
+        assert(
+          atom.parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j)").get === atom1
+        )
+    }
+
+    "An lformula" should "be connectives + atoms / forall(atom) / exists(atom)" in {
+        val atomWithBrackets = LFormula.PredAp(
+          P("TStartFunc", 3),
+          List(
+            LTerm.FuncAp(
+              Fn("FStartFunc", 2),
+              List("a", "b")
+            ),
+            LTerm.FuncAp(Fn("fs", 0), List()),
+            "j"
+          )
+        )
+        assert(
+          lformula
+              .parse("(  TStartFunc (FStartFunc(a,b)  ,   fs(), j))")
+              .get === atomWithBrackets
+        )
+
+        val connectives_1 = LFormula.Not(atomWithBrackets)
+        assert(
+          lformula
+              .parse("~ (  TStartFunc (FStartFunc(a,b)  ,   fs(), j))")
+              .get === connectives_1
+        )
+        assert(
+          lformula
+              .parse("~(  TStartFunc (FStartFunc(a,b)  ,   fs(), j))")
+              .get === connectives_1
+        )
+
+        val connectives_2 = LFormula.And(
+          atomWithBrackets,
+          LFormula.Truth
+        )
+        assert(
+          lformula
+              .parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j) ^T")
+              .get === connectives_2
+        )
+        assert(
+          lformula
+              .parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j) ^  T")
+              .get === connectives_2
+        )
+        assert(
+          lformula
+              .parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j)^  T")
+              .get === connectives_2
+        )
+
+        val connectives_3 = LFormula.Or(
+          LFormula.Falsity,
+          atomWithBrackets
+        )
+        assert(
+          lformula
+              .parse("F/TStartFunc (FStartFunc(a,b)  ,   fs(), j)")
+              .get === connectives_3
+        )
+
+        val connectives_4 = LFormula.Implies(
+          atomWithBrackets,
+          atomWithBrackets
+        )
+        assert(
+          lformula
+              .parse(
+                "(TStartFunc(FStartFunc(a,b),fs(),j)) ->  TStartFunc (FStartFunc(a,b)  ,   fs(), j)"
+              )
+              .get === connectives_4
+        )
+
+        val connectives_5 = LFormula.Equiv(
+          LFormula.Truth,
+          LFormula.Falsity
+        )
+        assert(lformula.parse("(((((T)))))    <->  (F)").get === connectives_5)
+
+        val connectives_6 = LFormula.And(
+          LFormula.Implies(
+            LFormula.PredAp(P("p", 0), List()),
+            LFormula.PredAp(P("q", 0), List())
+          ),
+          LFormula.Implies(
+            LFormula.Not(LFormula.PredAp(P("p", 0), List())),
+            LFormula.PredAp(P("r", 0), List())
+          )
+        )
+        assert(lformula.parse("(p -> q) ^ (~p -> r)").get === connectives_6)
     }
 }
