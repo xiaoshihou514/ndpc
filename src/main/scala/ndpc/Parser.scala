@@ -85,6 +85,7 @@ object FormulaParser {
     val atom: Parsley[LF_] =
         atomic(truth) <|>
         atomic(falsity) <|>
+        atomic(equ) <|>
         atomic(predAp)
     lazy val lformula: Parsley[LF_] =
         atomic(forall) <|>

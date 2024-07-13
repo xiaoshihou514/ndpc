@@ -83,7 +83,7 @@ class ParserSpec extends UnitSpec {
           List("x", "y", "z")
         )
         assert(predAp.parse("foo ( x, y, z )").get === example1)
-        // assert(lformula.parse("foo ( x, y, z )").get === example1)
+        assert(lformula.parse("foo ( x, y, z )").get === example1)
         val example2 = LFormula.PredAp(
           P("foo", 2),
           List(
@@ -95,7 +95,7 @@ class ParserSpec extends UnitSpec {
           )
         )
         assert(predAp.parse("foo( bar(ss,l), w)").get === example2)
-        // assert(lformula.parse("foo( bar(ss,l), w)").get === example2)
+        assert(lformula.parse("foo( bar(ss,l), w)").get === example2)
         val example3 = LFormula.PredAp(
           P("foo", 2),
           List(
@@ -117,23 +117,22 @@ class ParserSpec extends UnitSpec {
               .parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)")
               .get === example3
         )
-        // assert(
-        //   lformula
-        //       .parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)")
-        //       .get === example3
-        // )
+        assert(
+          lformula
+              .parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)")
+              .get === example3
+        )
         val sugar = LFormula.PredAp(
           P("foo", 0),
           List()
         )
         assert(predAp.parse("foo^bar").get === sugar)
-        // assert(lformula.parse("foo^bar").get === sugar)
     }
 
     "eq" should "be an lterm = an lterm" in {
         val example1 = LFormula.Eq("a", "bb")
         assert(equ.parse("a   = bb").get === example1)
-        // assert(lformula.parse("a   = bb").get === example1)
+        assert(lformula.parse("a   = bb").get === example1)
         val example2 = LFormula.Eq(
           "x",
           LTerm.FuncAp(
@@ -142,7 +141,7 @@ class ParserSpec extends UnitSpec {
           )
         )
         assert(equ.parse("x=  wuu (  a, wa)").get === example2)
-        // assert(lformula.parse("x=  wuu (  a, wa)").get === example2)
+        assert(lformula.parse("x=  wuu (  a, wa)").get === example2)
         val example3 = LFormula.Eq(
           LTerm.FuncAp(
             Fn("jkjk", 0),
@@ -159,7 +158,7 @@ class ParserSpec extends UnitSpec {
           )
         )
         assert(equ.parse("jkjk ()= u(qo(j,w))").get === example3)
-        // assert(lformula.parse("jkjk ()= u(qo(j,w))").get === example3)
+        assert(lformula.parse("jkjk ()= u(qo(j,w))").get === example3)
     }
 
     "Truth and falsity" should "be a single char T/F" in {
@@ -275,5 +274,16 @@ class ParserSpec extends UnitSpec {
           )
         )
         assert(lformula.parse("(p -> q) ^ (~p -> r)").get === connectives_6)
+
+        val connectives_7 = LFormula.And(
+          LFormula.Eq("p", "q"),
+          LFormula.Implies(
+            LFormula.Not(LFormula.PredAp(P("p", 0), List())),
+            LFormula.PredAp(P("r", 0), List())
+          )
+        )
+        assert(
+          lformula.parse("(p=    q   )^    ( ~  p-> r  )").get === connectives_7
+        )
     }
 }
