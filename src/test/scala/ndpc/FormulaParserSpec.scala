@@ -334,5 +334,24 @@ class ParserSpec extends UnitSpec {
           )
         )
         assert(lformula.parse("a^b->(a<->a)").get === precedence)
+
+    }
+
+    "Any LFormula" should "be parsed correctly" in {
+        val `all green dragons can fly` = LFormula.Forall(
+          List("x"),
+          LFormula.Implies(
+            LFormula.And(
+              LFormula.PredAp(P("dragon", 1), List("x")),
+              LFormula.PredAp(P("green", 1), List("x"))
+            ),
+            LFormula.PredAp(P("fly", 1), List("x"))
+          )
+        )
+        assert(
+          lformula
+              .parse("forall x. (dragon(x) ^ green(x) -> fly(x))")
+              .get === `all green dragons can fly`
+        )
     }
 }
