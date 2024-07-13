@@ -1,5 +1,6 @@
-package ndpc
-import ndpc.Formula._
+package ndpc.expr
+
+import ndpc.expr.Formula._
 
 object Rule {
     enum Rule:
@@ -62,8 +63,16 @@ object Rule {
         case LEM
         // Modus Tollens: From 𝝓 → φ and ¬φ, derive ¬𝝓.
         case MT(imp: LF[LFormula.Implies[_, _]], not: LF[LFormula.Not[_]])
+        // Proof by contradiction
         case PC[A](orig: LF_, neg: LF[LFormula.Not[LF_]])
+        // forall a. a = a
         case Refl
+        // a = b ^ expr(a) -> expr(b)
         case EqSub(orig: LF_, eq: LF[LFormula.Eq])
+        // a = b <-> b = a
         case Sym(orig: LF[LFormula.Eq])
+        // given proposition
+        case Given
+        // assumption
+        case Ass
 }

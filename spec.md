@@ -99,9 +99,9 @@ cpp + Imgui
 lives [here](https://github.com/xiaoshihou514/aristotle)
 
 ## What to do
-- make the lformula parser work
-  - since there are assoc issues, connectives should be resolved later
-- rule parser
+
+- rule parser: []
+- sensible errors from parsers
 - parser for whole document
 - go throught jamie's tutorial to refine our parsers
 - implement lexer

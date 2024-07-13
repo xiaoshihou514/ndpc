@@ -1,7 +1,7 @@
 package ndpc
 
-import ndpc.FormulaParser._
-import ndpc.Formula._
+import ndpc.parsers.FormulaParser._
+import ndpc.expr.Formula._
 import scala.language.implicitConversions // yes, I know what I am doing
 
 given Conversion[String, LTerm.Variable] with
