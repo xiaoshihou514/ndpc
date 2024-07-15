@@ -9,7 +9,7 @@ given Conversion[String, LTerm.Variable] with
 def Fn = Function
 def P = Predicate
 
-class ParserSpec extends UnitSpec {
+class FormulaParserSpec extends UnitSpec {
     "A variable" should "be any non keyword string" in {
         assert(variable.parse("valid").get === LTerm.Variable("valid"))
         assert(variable.parse("abc ").get === LTerm.Variable("abc"))
