@@ -24,48 +24,48 @@ class ParserSpec extends UnitSpec {
         // format: off
         val p: Parsley[Scope] = State(0, List(), List(Scope(List()))).makeRef { (state: Ref[State]) =>
             val stmt: Parsley[Stmt] = (
-                many(letter).map(_.mkString).debug("many letters").flatMap { str =>
-                    state.update { s =>
-                        s.copy(lines = s.lines :+ str)
+                state.update(
+                    many(letter).map(_.mkString).debug("many letters").map { str => (s: State) =>
+                            s.copy(lines = s.lines :+ str)
                     }
-                    pure(str)
-                }.debug("many letter fmap") <~ '('.debug("left br") <~> state.get.flatMap { s =>
-                    sepBy(number, ", ").map { xs =>
-                        println(s.lines)
+                ).debug("many letter fmap") ~> '('.debug("left br") ~> state.get.map(_.lines.last) 
+                <~> state.gets {
+                    sepBy(number, ", ").map { xs => (s: State) =>
                         xs.map { (x: Int) => s.lines(x - 1) }
-                    } <~ ')'
-                }.debug("brackets")
+                    }
+                }.debug("brackets") <~ ')'
             ).map { res => Stmt(res._1, res._2) }.debug("stmt")
-            val scope: Parsley[Scope] = 
-                many((
+            val scope: Parsley[Scope] = many(
+                state.update((
                     many(' ').map(_.length) <~> stmt <~ '\n'
-                ).map { res => state.get.flatMap { s =>
+                ).map { res => (s: State) =>
                     val indented = s.level + 4
                     val deindented = s.level - 4
                     res._1 match {
                         case (s.level) => {
                             val sc = s.scope
-                            state.set(s.copy(scope = sc.head.copy(body = sc.head.body :+ res._2) :: sc.tail))
+                            s.copy(scope = sc.head.copy(body = sc.head.body :+ res._2) :: sc.tail)
                         }
                         case (indented) => {
                             // new scope
                             val newScope = Scope(List(res._2))
                             val sc = s.scope
-                            state.set(s.copy(
+                            s.copy(
                                 level = indented,
                                 scope = newScope :: sc.head.copy(body = sc.head.body :+ newScope) :: sc.tail
-                            ))
+                            )
                         } 
                         case (deindented) => {
                             // prev scope
                             val t = s.scope.tail
-                            state.set(s.copy(
+                            s.copy(
                                 level = deindented,
                                 scope = t.head.copy(body = t.head.body :+ res._2) :: t.tail
-                            ))
+                            )
                         }
                     }
-                }}) ~> state.get.map { s => s.scope.head }
+                }
+            )) ~> state.get.map { s => s.scope.head }
             scope
         }
         println(p.parse("boo()\nbar(1)\n"))
