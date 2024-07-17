@@ -8,11 +8,10 @@ class ParserSpec extends UnitSpec {
         import parsley.combinator.sepBy
         import parsley.state.{RefMaker, Ref, StateCombinators}
         import parsley.syntax.character.{charLift, stringLift}
-        import parsley.debug._
 
         sealed trait Pf
         case class Stmt(body: String, ref: List[String]) extends Pf
-        case class Scope(body: List[Pf]) extends Pf
+        case class Scope(var body: List[Pf]) extends Pf
 
         case class State(
             level: Int,
@@ -25,49 +24,45 @@ class ParserSpec extends UnitSpec {
         val p: Parsley[Scope] = State(0, List(), List(Scope(List()))).makeRef { (state: Ref[State]) =>
             val stmt: Parsley[Stmt] = (
                 state.update(
-                    many(letter).map(_.mkString).debug("many letters").map { str => (s: State) =>
+                    many(letter).map(_.mkString).map { str => (s: State) =>
                             s.copy(lines = s.lines :+ str)
                     }
-                ).debug("many letter fmap") ~> '('.debug("left br") ~> state.get.map(_.lines.last) 
+                ) ~> '(' ~> state.get.map(_.lines.last) 
                 <~> state.gets {
                     sepBy(number, ", ").map { xs => (s: State) =>
                         xs.map { (x: Int) => s.lines(x - 1) }
                     }
-                }.debug("brackets") <~ ')'
-            ).map { res => Stmt(res._1, res._2) }.debug("stmt")
+                } <~ ')'
+            ).map { res => Stmt(res._1, res._2) }
             val scope: Parsley[Scope] = many(
                 state.update((
                     many(' ').map(_.length) <~> stmt <~ '\n'
                 ).map { res => (s: State) =>
-                    val indented = s.level + 4
-                    val deindented = s.level - 4
-                    res._1 match {
-                        case (s.level) => {
-                            val sc = s.scope
-                            s.copy(scope = sc.head.copy(body = sc.head.body :+ res._2) :: sc.tail)
-                        }
-                        case (indented) => {
-                            // new scope
-                            val newScope = Scope(List(res._2))
-                            val sc = s.scope
-                            s.copy(
-                                level = indented,
-                                scope = newScope :: sc.head.copy(body = sc.head.body :+ newScope) :: sc.tail
-                            )
-                        } 
-                        case (deindented) => {
-                            // prev scope
-                            val t = s.scope.tail
-                            s.copy(
-                                level = deindented,
-                                scope = t.head.copy(body = t.head.body :+ res._2) :: t.tail
-                            )
-                        }
-                    }
+                    val sc = s.scope
+                    val i = res._1
+                    if i == s.level then
+                        s.copy(scope = sc.head.copy(body = sc.head.body :+ res._2) :: sc.tail)
+                    else if i == s.level + 4 then
+                        val newScope = Scope(List(res._2))
+                        sc.head.body = sc.head.body :+ newScope
+                        s.copy(
+                            level = s.level + 4,
+                            scope = newScope :: sc
+                        )
+                    else if i == s.level - 4 then
+                        // prev scope
+                        val t = sc.tail
+                        t.head.body = t.head.body :+ res._2
+                        s.copy(
+                            level = s.level - 4,
+                            scope = t
+                        )
+                    else
+                        fail()  // TODO: better errors
                 }
-            )) ~> state.get.map { s => s.scope.head }
+            )) ~> state.get.map { s => s.scope.last }
             scope
         }
-        println(p.parse("boo()\nbar(1)\n"))
+        println(p.parse("boo()\nbar(1)\n    baz(1, 2)\nfizz()\nbuzz(4)\n").get)
     }
 }
