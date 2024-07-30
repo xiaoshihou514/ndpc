@@ -60,11 +60,11 @@ object FormulaParser {
     val falsity = symbol.softKeyword("F") as (LFormula.Falsity)
     // format: off
     lazy val forall =
-        (("forall" ~> some(identifier) <~ ".")
-        <~> lformula)
+        (("forall" ~> some(identifier).debug("some idents") <~ ".")
+        <~> lformula.debug("lf in forall"))
         .map { (res: (List[String], LF_)) =>
             LFormula.Forall(res._1, res._2)
-        }
+        }.debug("forall")
     lazy val exists =
         (("exists" ~> some(identifier) <~ ".")
         <~> lformula)

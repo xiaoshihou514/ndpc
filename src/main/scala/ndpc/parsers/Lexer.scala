@@ -2,20 +2,25 @@ package ndpc.parsers
 
 import parsley.Parsley
 import parsley.token.{Lexer, predicate}
-import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc}
+import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc, SpaceDesc}
 
 object Lexer {
     private val ops = Set(
       '(', ')', '[', ']', '<', '>', ' ', '.', ',', '~', '=', '^', '/', '-'
     )
+    private val spaces = Set(' ', '\t')
     private val desc = LexicalDesc.plain.copy(
       nameDesc = NameDesc.plain.copy(
         // let's do basic for now
         identifierStart = predicate.Basic(!ops(_)),
         identifierLetter = predicate.Basic(!ops(_))
       ),
+      // \n is significant!
+      spaceDesc = SpaceDesc.plain.copy(
+        space = predicate.Basic(spaces)
+      ),
       symbolDesc = SymbolDesc.plain.copy(
-        hardKeywords = Set("forall", "exists"),
+        hardKeywords = Set("forall", "exists", "either", "or"),
         // format: off
         hardOperators = Set(
           "^",
@@ -23,8 +28,10 @@ object Lexer {
           "->",
           "<->",
           "~",
+          "--",
           "~~",
           ",",
+          ":",
           ".",
           "(", ")",
           "[", "]",

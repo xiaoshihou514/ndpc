@@ -13,62 +13,94 @@ import ndpc.parsers.Lexer._
 
 object RuleParser {
     private val numbers = tolerant(args(number))
-    private def unary(kw: String, to: BigInt => Rule): Parsley[Rule] = tolerant(
-      (kw ~> tolerant(arg(number)).map(to))
-    )
+    private def unary(
+        kw: String,
+        to: BigInt => Rule[BigInt]
+    ): Parsley[Rule[BigInt]] =
+        tolerant(
+          (kw ~> tolerant(arg(number)).map(to))
+        )
     private def binary(
         kw: String,
-        to: ((BigInt, BigInt)) => Rule
-    ): Parsley[Rule] =
+        to: ((BigInt, BigInt)) => Rule[BigInt]
+    ): Parsley[Rule[BigInt]] =
         tolerant((kw ~> tolerant(args(number))).map { (l: List[BigInt]) =>
             to((l(0), l(1)))
         })
 
-    val rule = "LEM".as(Rule.Derived(Special.LEM)) <|>
-        "refl".as(Rule.Derived(Special.Refl)) <|>
-        "given".as(Rule.Derived(Special.Given)) <|>
-        "ass".as(Rule.Derived(Special.Ass)) <|>
-        "TI".as(Rule.Intro(Introduction.Truth)) <|>
+    val rule = "LEM".as(Rule.Builtin(Special.LEM())) <|>
+        "refl".as(Rule.Builtin(Special.Refl())) <|>
+        "given".as(Rule.Builtin(Special.Given())) <|>
+        "premise".as(Rule.Builtin(Special.Premise())) <|>
+        "ass".as(Rule.Builtin(Special.Ass())) <|>
+        "TI".as(Rule.Intro(Introduction.Truth())) <|>
+        // forall I const
+        atomic(
+          "forall" ~> some(' ') ~> 'I' ~> some(' ') ~> "const".as(
+            Rule.Builtin(Special.ForallIConst())
+          )
+        ) <|>
         binary(
           "MT",
-          Special.MT.apply.tupled.andThen(Rule.Derived.apply)
+          Special.MT[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
         ) <|>
         binary(
           "PC",
-          Special.PC.apply.tupled.andThen(Rule.Derived.apply)
+          Special.PC[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
         ) <|>
         binary(
           "=sub",
-          Special.EqSub.apply.tupled.andThen(Rule.Derived.apply)
+          Special.EqSub[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
         ) <|>
-        unary("sym", Special.Sym.apply.andThen(Rule.Derived.apply)) <|>
+        unary(
+          "sym",
+          Special.Sym[BigInt].apply.andThen(Rule.Builtin[BigInt].apply)
+        ) <|>
         unary(
           "tick",
-          Special.Tick.apply.andThen(Rule.Derived.apply)
+          Special.Tick[BigInt].apply.andThen(Rule.Builtin[BigInt].apply)
         ) <|>
         atomic(
           binary(
             "^I",
-            Introduction.And.apply.tupled.andThen(Rule.Intro.apply)
+            Introduction
+                .And[BigInt]
+                .apply
+                .tupled
+                .andThen(Rule.Intro[BigInt].apply)
           )
         ) <|>
-        unary("^E", Elimination.And.apply.andThen(Rule.Elim.apply)) <|>
+        unary(
+          "^E",
+          Elimination.And[BigInt].apply.andThen(Rule.Elim[BigInt].apply)
+        ) <|>
         atomic(
           binary(
             "->I",
-            Introduction.Implies.apply.tupled.andThen(Rule.Intro.apply)
+            Introduction
+                .Implies[BigInt]
+                .apply
+                .tupled
+                .andThen(Rule.Intro[BigInt].apply)
           )
         ) <|>
         binary(
           "->E",
-          Elimination.Implies.apply.tupled.andThen(Rule.Elim.apply)
+          Elimination
+              .Implies[BigInt]
+              .apply
+              .tupled
+              .andThen(Rule.Elim[BigInt].apply)
         ) <|>
         atomic(
-          unary("/I", Introduction.Or.apply.andThen(Rule.Intro.apply))
+          unary(
+            "/I",
+            Introduction.Or[BigInt].apply.andThen(Rule.Intro[BigInt].apply)
+          )
         ) <|>
         binary(
           "/E",
-          Elimination.Or.apply.tupled.andThen(Rule.Elim.apply)
+          Elimination.Or[BigInt].apply.tupled.andThen(Rule.Elim[BigInt].apply)
         ) <|>
         // ~~E and ~~I
         atomic(
@@ -77,7 +109,7 @@ object RuleParser {
           ) <|> 'I'.as((prev: BigInt) =>
               Rule.Intro(Introduction.DoubleNeg(prev))
           )) <~> arg(number)
-        ).map { (res: (BigInt => Rule, BigInt)) => res._1(res._2) } <|>
+        ).map { (res: (BigInt => Rule[BigInt], BigInt)) => res._1(res._2) } <|>
         // ~E and ~I
         atomic(
           "~" ~> ('E'.as((list: List[BigInt]) =>
@@ -85,7 +117,7 @@ object RuleParser {
           ) <|> 'I'.as((list: List[BigInt]) =>
               Rule.Intro(Introduction.Not(list(0), list(1)))
           )) <~> numbers
-        ).map { (res: (List[BigInt] => Rule, List[BigInt])) =>
+        ).map { (res: (List[BigInt] => Rule[BigInt], List[BigInt])) =>
             res._1(res._2)
         } <|>
         // FE and FI
@@ -93,8 +125,9 @@ object RuleParser {
             Rule.Elim(Elimination.Falsity(i, j))
         ) <|> 'I'.as((i: BigInt, j: BigInt) =>
             Rule.Intro(Introduction.Falsity(i, j))
-        )) <~> numbers).map { (res: ((BigInt, BigInt) => Rule, List[BigInt])) =>
-            res._1(res._2(0), res._2(1))
+        )) <~> numbers).map {
+            (res: ((BigInt, BigInt) => Rule[BigInt], List[BigInt])) =>
+                res._1(res._2(0), res._2(1))
         } <|>
         // <->E and <->I
         (
@@ -103,27 +136,47 @@ object RuleParser {
           ) <|> 'I'.as((list: List[BigInt]) =>
               Rule.Intro(Introduction.Equiv(list(0), list(1)))
           )) <~> numbers
-        ).map { (res: (List[BigInt] => Rule, List[BigInt])) =>
+        ).map { (res: (List[BigInt] => Rule[BigInt], List[BigInt])) =>
             res._1(res._2)
         } <|>
         atomic(
           unary(
             "existsI",
-            Introduction.Exists.apply.andThen(Rule.Intro.apply)
+            Introduction.Exists[BigInt].apply.andThen(Rule.Intro[BigInt].apply)
           )
         ) <|>
         binary(
           "existsE",
-          Elimination.Exists.apply.tupled.andThen(Rule.Elim.apply)
+          Elimination
+              .Exists[BigInt]
+              .apply
+              .tupled
+              .andThen(Rule.Elim[BigInt].apply)
         ) <|>
         atomic(
           binary(
             "forallI",
-            Introduction.Forall.apply.tupled.andThen(Rule.Intro.apply)
+            Introduction
+                .Forall[BigInt]
+                .apply
+                .tupled
+                .andThen(Rule.Intro[BigInt].apply)
           )
         ) <|>
-        unary(
-          "forallE",
-          Elimination.Forall.apply.andThen(Rule.Elim.apply)
+        atomic(
+          unary(
+            "forallE",
+            Elimination.Forall[BigInt].apply.andThen(Rule.Elim[BigInt].apply)
+          )
+        ) <|>
+        atomic(
+          binary(
+            "forall->E",
+            Elimination
+                .ForallImp[BigInt]
+                .apply
+                .tupled
+                .andThen(Rule.Elim[BigInt].apply)
+          )
         )
 }
