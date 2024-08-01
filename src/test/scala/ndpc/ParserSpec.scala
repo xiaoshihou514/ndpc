@@ -1,11 +1,11 @@
 package ndpc
 
 import ndpc.Parser.parse
+import scala.compiletime.ops.string
 
 class ParserSpec extends UnitSpec {
     "A ndp file" should "be indented, a line is comment/empty/either/or/just pr" in {
-        println(
-          parse(
+        val input =
             """
 forall x. (forall y. (child(y, x) -> fly(y)) ^ dragon(x) -> happy(x)) [premise]
 forall x. (green(x) ^ dragon(x) -> fly(x)) [premise]
@@ -24,12 +24,39 @@ forall x y. (child (y, x) -> parent(x, y)) [premise]
         -- <hard struggle>
         fly(d) [forall->E(17,2)]
         -- some conclusion
+      T [TI] -- placeholder
       -- some more conclusion
+    T [TI]      -- placeholder
     -- and more...
   dragon(c) -> (green(c) -> happy(c)) [TI]
 forall x. (dragon(x) -> (green(x) -> happy(x))) [forallI(6,24)]
 """.trim() + "\n"
-          )
-        )
+        assert(parse(input).isSuccess)
+
+        val input2 =
+            """
+forall n.(~even(n) -> odd (n)) [premise]
+forall n.(~odd (n) -> even(n)) [premise]
+  c [forall I const] -- example comment
+  ~even(c) -> odd (c) [forallE(1)]
+  ~odd (c) -> even(c) [forallE(2)]
+  odd (c) / ~odd (c) [LEM]
+
+    -- "box" starts from this line
+    odd (c)               [ass]
+    even(c) / odd (c)     [/I(777)]
+    even(c) / odd (c)     [tick(8)] -- signifiy done
+    -- "box" ends
+
+    ~odd (c)              [ass]
+    even(c)               [forallE(3)]
+    even(c) / odd (c)     [/I(10)]
+    even(c) / odd (c)     [tick(12)]
+
+  even(c) / odd (c)       [/E(22,11)]
+
+forall n.(even(n) / odd (n)) [forallI(3, 12)]
+    """.trim() + "\n"
+        assert(parse(input2).isSuccess)
     }
 }

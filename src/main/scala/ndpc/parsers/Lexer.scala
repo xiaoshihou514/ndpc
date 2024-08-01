@@ -20,7 +20,7 @@ object Lexer {
         space = predicate.Basic(spaces)
       ),
       symbolDesc = SymbolDesc.plain.copy(
-        hardKeywords = Set("forall", "exists", "either", "or"),
+        hardKeywords = Set("forall", "exists"),
         // format: off
         hardOperators = Set(
           "^",
@@ -31,7 +31,6 @@ object Lexer {
           "--",
           "~~",
           ",",
-          ":",
           ".",
           "(", ")",
           "[", "]",
