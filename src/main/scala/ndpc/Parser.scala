@@ -120,7 +120,6 @@ object Parser {
                             s.addLineToTree(nonpf)
                         case (same, pf @ Pf(_, rule, _)) if same == s.indentLevel => 
                             rule match {
-                                // TODO: I hope there's a better way of doing this
                                 // pop scope if this line is a tick
                                 case Rule.Builtin(Special.Tick(_)) => s.popScopeWith(pf)
                                 case _ => s.addLineToTree(pf)

@@ -3,6 +3,7 @@ package ndpc.parsers
 import parsley.Parsley
 import parsley.token.{Lexer, predicate}
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc, SpaceDesc}
+import parsley.errors.combinator._
 
 object Lexer {
     private val ops = Set(
@@ -43,7 +44,7 @@ object Lexer {
     private val lexer = new Lexer(desc)
 
     val identifier = lexer.lexeme.names.identifier
-    val number = lexer.lexeme.natural.decimal
+    val number = lexer.lexeme.natural.decimal.label("number")
     val symbol = lexer.lexeme.symbol
 
     def fully[A](p: Parsley[A]) = lexer.fully(p)

@@ -5,6 +5,7 @@ import parsley.Parsley.{some, atomic, lookAhead, pure, eof}
 import parsley.character.satisfy
 import parsley.syntax.character.charLift
 import parsley.expr.{precedence, Ops, InfixL, Prefix}
+import parsley.errors.combinator._
 import parsley.debug._
 
 import ndpc.expr.Formula._
@@ -22,20 +23,22 @@ object FormulaParser {
     private val equiv: ((LF_, LF_) => LF_) = LFormula.Equiv.apply
 
     // LTerm
-    val variable = identifier.map(LTerm.Variable.apply)
+    val variable = identifier.map(LTerm.Variable.apply).label("variable")
     val lterms = args(lterm)
     lazy val funcAp: Parsley[LTerm.FuncAp] =
-        (
-          identifier <~ spc <~> lterms
-        ).map { (res: (String, List[LTerm])) =>
-            LTerm.FuncAp(
-              Function(res._1, res._2.length),
-              res._2
-            )
-        }
+        (identifier <~ spc <~> lterms)
+            .label("function application")
+            .map { (res: (String, List[LTerm])) =>
+                LTerm.FuncAp(
+                  Function(res._1, res._2.length),
+                  res._2
+                )
+            }
 
     // funcAp needs to have a higher precedence (or the function name is parsed as a variable!)
-    lazy val lterm = atomic(funcAp) <|> variable
+    lazy val lterm = (atomic(funcAp) <|> variable).label(
+      "lterm (function application or variable)"
+    )
 
     // LFormula
     // we introduce a bit of syntax sugar here, if a predicate has arity 0,
@@ -44,38 +47,45 @@ object FormulaParser {
     lazy val predAp: Parsley[LFormula.PredAp] =
         (
           (identifier <~ spc) <~> (lterms <|> pure(List()))
-        ).map { (res: (String, List[LTerm])) =>
-            LFormula.PredAp(
-              Predicate(res._1, res._2.length),
-              res._2
-            )
-        }
+        )
+            .label("predicate application")
+            .map { (res: (String, List[LTerm])) =>
+                LFormula.PredAp(
+                  Predicate(res._1, res._2.length),
+                  res._2
+                )
+            }
     val equ =
-        (lterm <~> "=" ~> lterm).map { (res: (LTerm, LTerm)) =>
-            LFormula.Eq(res._1, res._2)
-        }
+        (lterm <~> "=" ~> lterm)
+            .label("equality")
+            .map { (res: (LTerm, LTerm)) =>
+                LFormula.Eq(res._1, res._2)
+            }
     // T followed by some keyword
-    val truth = symbol.softKeyword("T") as (LFormula.Truth)
+    val truth = symbol.softKeyword("T").label("truth") as (LFormula.Truth)
     // F followed by some keyword
-    val falsity = symbol.softKeyword("F") as (LFormula.Falsity)
+    val falsity = symbol.softKeyword("F").label("falsity") as (LFormula.Falsity)
     // format: off
     lazy val forall =
         (("forall" ~> some(identifier) <~ ".") <~> lformula)
+        .label("forall statement")
         .map { (res: (List[String], LF_)) =>
             LFormula.Forall(res._1, res._2)
         }
     lazy val exists =
         (("exists" ~> some(identifier) <~ ".")
         <~> lformula)
+        .label("exists statement")
         .map { (res: (List[String], LF_)) =>
             LFormula.Exists(res._1, res._2)
         }
-    val atom: Parsley[LF_] =
+    val atom: Parsley[LF_] = (
         atomic(truth) <|>
         atomic(falsity) <|>
         atomic(equ) <|>
         atomic(predAp)
-    lazy val lformula: Parsley[LF_] =
+    ).label("Atom (T/F/equality/predicate application)")
+    lazy val lformula: Parsley[LF_] = (
         atomic(forall) <|>
         atomic(exists) <|>
         // "atom"-s connected by connectives
@@ -89,5 +99,6 @@ object FormulaParser {
             Ops(InfixL)("->" as implies),
             Ops(InfixL)("<->" as equiv)
         )
+    ).label("Lformula (forall statement/exists statement/lformula and logical connectives)")
     // format: on
 }
