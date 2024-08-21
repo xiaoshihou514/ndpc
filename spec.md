@@ -10,22 +10,25 @@ Here are some examples of the syntax:
 forall n.(~even(n) -> odd (n)) [premise]
 forall n.(~odd (n) -> even(n)) [premise]
   c [forall I const] -- example comment
-  ~even(c) -> odd (c) [forall E(1)]
+  ~even(c) -> odd (c) [forallE(1)]
   ~odd (c) -> even(c) [some reson]
   odd (c) / ~odd (c)
-    -- or elimination, these should be the only keywords in our DSL
-    either:
-    odd (c)               [asm]
-    even(c) / odd (c)     [/I(...)]
 
-    or:
-    ~odd (c)              [asm]
-    even(c)               [forall. E(3)]
+    -- indenting here creates a "box"
+    odd (c)               [ass]
+    even(c) / odd (c)     [/I(...)]
+    even(c) / odd (c)     [tick(8)] -- signifiy done
+    -- hence "box" ends here
+
+    -- there has to be something that acts as a flag
+    ~odd (c)              [ass]
+    even(c)               [forallE(3)]
     even(c) / odd (c)     [/I(10)]
+    even(c) / odd (c)     [tick(12)]
 
   even(c) / odd (c)       [even(c) / odd (c)]
 
-forall n.(even(n) / odd (n)) [forall I(3 − 12)]
+forall n.(even(n) / odd (n)) [forallI(3, 12)]
 ```
 
 ```
@@ -40,7 +43,7 @@ forall x y. (child (y, x) -> parent(x, y)) [premise]
       green(c) [ass]
          d [forall I const]
          child(d, c) [ass]
-         child (y, x) -> parent(x, y) [forall E(5)]
+         child (y, x) -> parent(x, y) [forallE(5)]
          parent(c, d) [->E(11,10)]
          parent(c, d) ^ green(c) [^I(8,11)]
          -- <hard struggle>
@@ -49,7 +52,7 @@ forall x y. (child (y, x) -> parent(x, y)) [premise]
       -- some more conclusion
     -- and more...
   dragon(c) → (green(c) → happy(c)) [???]
-forall x. (dragon(x) → (green(x) → happy(x))) [forall I(6,24)]
+forall x. (dragon(x) → (green(x) → happy(x))) [forallI(6,24)]
 ```
 
 The pretty printed version uses unicode ∀, ∃ and has nice boxes indicating the scope.
@@ -100,10 +103,11 @@ lives [here](https://github.com/xiaoshihou514/aristotle)
 
 ## What to do
 
-- rule parser: []
+- [x] lformula parser
+- [x] rule parser: []
+- [x] support for forall-\>E
 - sensible errors from parsers
-- parser for whole document
-- go throught jamie's tutorial to refine our parsers
-- implement lexer
+- use lexer to get rid of some extra parsers
+- [x] parser for whole document
 - implement checker
 - implement compiler
