@@ -6,7 +6,7 @@ import parsley.syntax.character.{charLift, stringLift}
 import parsley.combinator.sepBy
 
 object Utils {
-    val spc = many(' ')
+    val spc = many(' ' <|> '\t')
     def tolerant[A](p: Parsley[A]): Parsley[A] = spc ~> p <~ spc
 
     def arg[A](one: Parsley[A]) = tolerant('(') ~> one <~ tolerant(')')

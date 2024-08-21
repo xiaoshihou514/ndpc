@@ -1,12 +1,12 @@
 package ndpc
 
 import parsley.Parsley
-import parsley.state.RefMaker
-import parsley.Parsley.{many, atomic}
+import parsley.state.{RefMaker, forP}
+import parsley.Parsley.{many, atomic, pure, eof}
 import parsley.combinator.manyTill
-import parsley.character.whitespace
 import parsley.syntax.character.charLift
 import parsley.character.item
+import parsley.errors.combinator._
 import parsley.debug._
 
 import ndpc.expr.Formula._
@@ -67,26 +67,24 @@ object Parser {
 
     case class UncheckedProof(main: PfScope, lines: List[Line])
 
-    private val emptyState =
+    def emptyState() =
         State(0, List(), List(PfScope(List())))
 
     // format: off
-    val p: Parsley[UncheckedProof] = emptyState.makeRef { state =>
+    val p: Parsley[UncheckedProof] = emptyState().makeRef { state =>
         val lineComment = ("--" ~> manyTill(item, '\n'))
             .map(_.mkString)
             .map(Comment.apply)
 
         // in linewise parsers we only append to the lines list since we don't know our indent
         val comment = state.update(
-            lineComment
-            .map { c => (s: State) =>
+            lineComment.map { c => (s: State) =>
                 s.addLine(c)
             }
         ) ~> state.get.map(_.getLast())
 
         val empty = state.update(
-            manyTill(whitespace, '\n').void
-            .map { e => (s: State) =>
+            manyTill(" " <|> "\t", '\n').map { _ => (s: State) =>
                 s.addLine(Empty())
             }
         ).as(Empty())
@@ -108,12 +106,31 @@ object Parser {
 
         many(
             state.update((
-                many(' ').map(_.length) <~> 
+                // empty line / comments, don' change the indents
                 (
-                    comment <|> 
-                    empty <|> 
-                    pf
-                )).map { (res: (Int, Line)) => (s: State) =>
+                    state.gets(_.indentLevel) <~> (
+                    atomic(empty).label("empty line") <|>
+                    atomic(spc ~> lineComment).label("line comment")
+                )) <|>
+                // a line of proof has to have the correct indents
+                ((
+                    atomic(
+                        forP[Int](state.gets(_.indentLevel + 2), pure(_ > 0), pure(_ - 1)) {
+                            ' '
+                        } ~> state.gets(_.indentLevel + 2)
+                    ).label("more indent than last line") <|>
+                    atomic(
+                        forP[Int](state.gets(_.indentLevel), pure(_ > 0), pure(_ - 1)) { 
+                            ' '
+                        } ~> state.gets(_.indentLevel)
+                    ).label("same indent as last line") <|>
+                    atomic(
+                        forP[Int](state.gets(_.indentLevel - 2), pure(_ > 0), pure(_ - 1)) {
+                            ' '
+                        } ~> state.gets(_.indentLevel - 2)
+                    ).label("less indent than last line")
+                ) <~> pf.label("line of proof"))
+                ).map { (res: (Int, Line)) => (s: State) =>
                     res match {
                         // these are not indent agnostic
                         case (_ , nonpf @ (Comment(_) | Empty())) =>
@@ -128,14 +145,11 @@ object Parser {
                             s.pushScopeWith(pf)
                         case (deindented, pf) if deindented == s.indentLevel - 2 => 
                             s.popScopeWith(pf)
-                        case (incorrect, _) => {
-                            ???
-                            // TODO: better errors
-                        } 
+                        case _ => ??? // unreachable
                     }
                 }
-        )) ~> state.get.map { s => UncheckedProof(s.scopeStack.last, s.cache) }
-    }
+        )) ~> state.gets { s => UncheckedProof(s.scopeStack.last, s.cache) }
+    } <~ eof
     // format: on
 
     def parse(input: String) = p.parse(input)
