@@ -1,4 +1,4 @@
-# :toolbox:Natural Deduction Proof Compiler
+# :toolbox: Natural Deduction Proof Compiler
 
 ## About the project
 
@@ -98,7 +98,7 @@ This should just be pretty printing to a file.
 
 ## The GUI
 
-cpp + Imgui
+scala-native + Imgui
 lives [here](https://github.com/xiaoshihou514/aristotle)
 
 ## What to do
@@ -106,8 +106,9 @@ lives [here](https://github.com/xiaoshihou514/aristotle)
 - [x] lformula parser
 - [x] rule parser: []
 - [x] support for forall-\>E
-- sensible errors from parsers
-- use lexer to get rid of some extra parsers
+- [x] sensible errors from parsers
+- [x] use lexer to get rid of some extra parsers
 - [x] parser for whole document
 - implement checker
 - implement compiler
+- zig like cool progress report

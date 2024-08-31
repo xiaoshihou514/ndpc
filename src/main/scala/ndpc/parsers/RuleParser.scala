@@ -17,16 +17,16 @@ object RuleParser {
         tolerant(args(number)).label("numbers separated by comma")
     private def unary(
         kw: String,
-        to: BigInt => Rule[BigInt]
-    ): Parsley[Rule[BigInt]] =
+        to: Int => Rule[Int]
+    ): Parsley[Rule[Int]] =
         tolerant(
           (kw ~> tolerant(arg(number)).map(to))
         )
     private def binary(
         kw: String,
-        to: ((BigInt, BigInt)) => Rule[BigInt]
-    ): Parsley[Rule[BigInt]] =
-        tolerant((kw ~> tolerant(args(number))).map { (l: List[BigInt]) =>
+        to: ((Int, Int)) => Rule[Int]
+    ): Parsley[Rule[Int]] =
+        tolerant((kw ~> tolerant(args(number))).map { (l: List[Int]) =>
             to((l(0), l(1)))
         })
 
@@ -47,148 +47,147 @@ object RuleParser {
         ).label("Forall constant introduction") <|>
         binary(
           "MT",
-          Special.MT[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
+          Special.MT[Int].apply.tupled.andThen(Rule.Builtin[Int].apply)
         ).label("Modus Tollens") <|>
         binary(
           "PC",
-          Special.PC[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
+          Special.PC[Int].apply.tupled.andThen(Rule.Builtin[Int].apply)
         ).label("Proof by Contradiction") <|>
         binary(
           "=sub",
-          Special.EqSub[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
+          Special.EqSub[Int].apply.tupled.andThen(Rule.Builtin[Int].apply)
         ).label("substitution") <|>
         unary(
           "sym",
-          Special.Sym[BigInt].apply.andThen(Rule.Builtin[BigInt].apply)
+          Special.Sym[Int].apply.andThen(Rule.Builtin[Int].apply)
         ).label("rule of SYMmetry") <|>
         unary(
           "tick",
-          Special.Tick[BigInt].apply.andThen(Rule.Builtin[BigInt].apply)
+          Special.Tick[Int].apply.andThen(Rule.Builtin[Int].apply)
         ).label("the 'Tick'") <|>
         atomic(
           binary(
             "^I",
             Introduction
-                .And[BigInt]
+                .And[Int]
                 .apply
                 .tupled
-                .andThen(Rule.Intro[BigInt].apply)
+                .andThen(Rule.Intro[Int].apply)
           )
         ).label("And introduction") <|>
         unary(
           "^E",
-          Elimination.And[BigInt].apply.andThen(Rule.Elim[BigInt].apply)
+          Elimination.And[Int].apply.andThen(Rule.Elim[Int].apply)
         ).label("And elimination") <|>
         atomic(
           binary(
             "->I",
             Introduction
-                .Implies[BigInt]
+                .Implies[Int]
                 .apply
                 .tupled
-                .andThen(Rule.Intro[BigInt].apply)
+                .andThen(Rule.Intro[Int].apply)
           )
         ).label("Implication introduction") <|>
         binary(
           "->E",
           Elimination
-              .Implies[BigInt]
+              .Implies[Int]
               .apply
               .tupled
-              .andThen(Rule.Elim[BigInt].apply)
+              .andThen(Rule.Elim[Int].apply)
         ).label("Implication elimination") <|>
         atomic(
           unary(
             "/I",
-            Introduction.Or[BigInt].apply.andThen(Rule.Intro[BigInt].apply)
+            Introduction.Or[Int].apply.andThen(Rule.Intro[Int].apply)
           )
         ).label("Or introduction") <|>
         binary(
           "/E",
-          Elimination.Or[BigInt].apply.tupled.andThen(Rule.Elim[BigInt].apply)
+          Elimination.Or[Int].apply.tupled.andThen(Rule.Elim[Int].apply)
         ).label("Or Elimination") <|>
         // ~~E and ~~I
         atomic(
           "~~" ~> ('E'
-              .as((prev: BigInt) => Rule.Elim(Elimination.DoubleNeg(prev)))
+              .as((prev: Int) => Rule.Elim(Elimination.DoubleNeg(prev)))
               .label("Double negation elimination") <|>
-              'I'.as((prev: BigInt) => Rule.Intro(Introduction.DoubleNeg(prev)))
+              'I'.as((prev: Int) => Rule.Intro(Introduction.DoubleNeg(prev)))
                   .label("Double negation introduction")) <~> arg(number)
-        ).map { (res: (BigInt => Rule[BigInt], BigInt)) => res._1(res._2) } <|>
+        ).map { (res: (Int => Rule[Int], Int)) => res._1(res._2) } <|>
         // ~E and ~I
         atomic(
           "~" ~> ('E'
-              .as((list: List[BigInt]) =>
+              .as((list: List[Int]) =>
                   Rule.Elim(Elimination.Not(list(0), list(1)))
               )
               .label("Not elimination") <|>
-              'I'.as((list: List[BigInt]) =>
+              'I'.as((list: List[Int]) =>
                   Rule.Intro(Introduction.Not(list(0), list(1)))
               ).label("Not introduction")) <~> numbers
-        ).map { (res: (List[BigInt] => Rule[BigInt], List[BigInt])) =>
+        ).map { (res: (List[Int] => Rule[Int], List[Int])) =>
             res._1(res._2)
         } <|>
         // FE and FI
         ('F' ~> ('E'
-            .as((i: BigInt, j: BigInt) => Rule.Elim(Elimination.Falsity(i, j)))
+            .as((i: Int, j: Int) => Rule.Elim(Elimination.Falsity(i, j)))
             .label("Falsity elimination") <|>
-            'I'.as((i: BigInt, j: BigInt) =>
-                Rule.Intro(Introduction.Falsity(i, j))
-            ).label("Falsity introduction")) <~> numbers).map {
-            (res: ((BigInt, BigInt) => Rule[BigInt], List[BigInt])) =>
+            'I'.as((i: Int, j: Int) => Rule.Intro(Introduction.Falsity(i, j)))
+                .label("Falsity introduction")) <~> numbers).map {
+            (res: ((Int, Int) => Rule[Int], List[Int])) =>
                 res._1(res._2(0), res._2(1))
         } <|>
         // <->E and <->I
         (
           "<->" ~> ('E'
-              .as((list: List[BigInt]) =>
+              .as((list: List[Int]) =>
                   Rule.Elim(Elimination.Equiv(list(0), list(1)))
               )
               .label("Equiv elimination") <|>
-              'I'.as((list: List[BigInt]) =>
+              'I'.as((list: List[Int]) =>
                   Rule.Intro(Introduction.Equiv(list(0), list(1)))
               ).label("Equiv introduction")) <~> numbers
-        ).map { (res: (List[BigInt] => Rule[BigInt], List[BigInt])) =>
+        ).map { (res: (List[Int] => Rule[Int], List[Int])) =>
             res._1(res._2)
         } <|>
         atomic(
           unary(
             "existsI",
-            Introduction.Exists[BigInt].apply.andThen(Rule.Intro[BigInt].apply)
+            Introduction.Exists[Int].apply.andThen(Rule.Intro[Int].apply)
           )
         ).label("Exists introduction") <|>
         binary(
           "existsE",
           Elimination
-              .Exists[BigInt]
+              .Exists[Int]
               .apply
               .tupled
-              .andThen(Rule.Elim[BigInt].apply)
+              .andThen(Rule.Elim[Int].apply)
         ).label("Exists elimination") <|>
         atomic(
           binary(
             "forallI",
             Introduction
-                .Forall[BigInt]
+                .Forall[Int]
                 .apply
                 .tupled
-                .andThen(Rule.Intro[BigInt].apply)
+                .andThen(Rule.Intro[Int].apply)
           )
         ).label("Forall elimination") <|>
         atomic(
           unary(
             "forallE",
-            Elimination.Forall[BigInt].apply.andThen(Rule.Elim[BigInt].apply)
+            Elimination.Forall[Int].apply.andThen(Rule.Elim[Int].apply)
           )
         ).label("Forall introduction") <|>
         atomic(
           binary(
             "forall->E",
             Elimination
-                .ForallImp[BigInt]
+                .ForallImp[Int]
                 .apply
                 .tupled
-                .andThen(Rule.Elim[BigInt].apply)
+                .andThen(Rule.Elim[Int].apply)
           )
         ).label("Forall implies elimination")
 }

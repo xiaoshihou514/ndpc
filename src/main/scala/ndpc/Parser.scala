@@ -1,6 +1,7 @@
 package ndpc
 
 import parsley.Parsley
+import parsley.Result
 import parsley.state.{RefMaker, forP}
 import parsley.Parsley.{many, atomic, pure, eof}
 import parsley.combinator.manyTill
@@ -10,26 +11,29 @@ import parsley.errors.combinator._
 import parsley.debug._
 
 import ndpc.expr.Formula._
-import ndpc.expr.Rule.{Rule, Special}
+import ndpc.expr.Rule.{Rule, Special, ValidItem}
 import ndpc.parsers.FormulaParser
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 import ndpc.parsers.FormulaParser.lformula
 import ndpc.parsers.RuleParser.rule
 import ndpc.parsers.Utils._
 
+import scala.io.Source
+import scala.util.Try
+
 object Parser {
     sealed trait Line
     case class Empty() extends Line
     case class Comment(contents: String) extends Line
-    case class Pf(
+    case class Pf[A <: ValidItem](
         concl: LFormula[_],
-        rule: Rule[BigInt],
+        rule: Rule[A],
         trailingComment: Option[Comment]
     ) extends Line
 
     case class PfScope(var body: List[Line | PfScope])
 
-    class State(
+    private class State(
         var indentLevel: Int,
         var cache: List[Line],
         var scopeStack: List[PfScope]
@@ -67,11 +71,11 @@ object Parser {
 
     case class UncheckedProof(main: PfScope, lines: List[Line])
 
-    def emptyState() =
+    private def emptyState() =
         State(0, List(), List(PfScope(List())))
 
     // format: off
-    val p: Parsley[UncheckedProof] = emptyState().makeRef { state =>
+    private val p: Parsley[UncheckedProof] = emptyState().makeRef { state =>
         val lineComment = ("--" ~> manyTill(item, '\n'))
             .map(_.mkString)
             .map(Comment.apply)
@@ -96,7 +100,7 @@ object Parser {
                 ("[" ~> rule <~ spc <~ "]") <~>
                 (lineComment.map(Option.apply) <|> '\n'.as(None))
             )
-            .map { (res: ((LF_, Rule[BigInt]), Option[Comment])) =>
+            .map { (res: ((LF_, Rule[Int]), Option[Comment])) =>
                 Pf(res._1._1, res._1._2, res._2)
             }
             .map { pf => (s: State) =>

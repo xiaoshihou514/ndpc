@@ -3,7 +3,7 @@ package ndpc.expr
 import ndpc.expr.Formula._
 
 object Rule {
-    type ValidItem = BigInt | LF_
+    type ValidItem = Int | LF_
 
     // We can put either in this (avoid code dup!)
     // Still provides relatively strong type!

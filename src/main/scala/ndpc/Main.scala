@@ -1,7 +1,6 @@
 package ndpc
 
 import ndpc.Checker.check
-import ndpc.CheckOpts
 import ndpc.Assembler.compile
 import ndpc.Formatter.format
 
@@ -11,20 +10,17 @@ object Main {
             case Nil | "--help" :: _ =>
                 println("""
                 |Natural deduction proof compiler
-                | Usage: ndpc [SUBCOMMMAND] [OPTION] [FILE]
+                | Usage: ndpc [SUBCOMMMAND] [OPTION] [FILES]
                 |
                 |Arguments:
-                |[FILE]      input files, use - for stdin
+                |[FILES]      input files, use - for stdin
                 |
                 |SUBCOMMAND:
                 |check       check proof validity
+                |  --json      print diagnostics in json
                 |format      format proof file
-                |<default>   generate proof with pretty printed boxes
-                |
-                |Options:
-                |--apply     apply format to file instead of printing to stdout
-                |--json      print diagnostics in json
-                |--verbose   print verbose diagnostics
+                |  --apply     apply format to file instead of printing to stdout
+                |<default>   check proofs and generate pictures
                 """.stripMargin)
             case "format" :: tail =>
                 tail match
@@ -35,11 +31,9 @@ object Main {
             case "check" :: tail =>
                 tail match
                     case "--json" :: files =>
-                        check(tail, CheckOpts.Json)
-                    case "--verbose" :: files =>
-                        check(tail, CheckOpts.Verbose)
+                        check(tail, true)
                     case files =>
-                        check(tail, CheckOpts.Default)
+                        check(tail, false)
             case files => compile(files)
         }
         sys.exit(ret match {
