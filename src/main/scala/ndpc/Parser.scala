@@ -26,9 +26,9 @@ object Parser {
     case class Empty() extends Line
     case class Comment(contents: String) extends Line
     case class Pf[A <: ValidItem](
-        concl: LFormula[_],
-        rule: Rule[A],
-        trailingComment: Option[Comment]
+        val concl: LFormula[_],
+        val rule: Rule[A],
+        val trailingComment: Option[Comment]
     ) extends Line
 
     case class PfScope(var body: List[Line | PfScope])

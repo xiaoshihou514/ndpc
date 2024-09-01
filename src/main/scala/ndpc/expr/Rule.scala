@@ -14,7 +14,7 @@ object Rule {
         def fmap[B](f: A => B) = ???
 
     enum Introduction[A]:
-        // ∧-introduction, ∧I: you have to have alrready introduced both sides
+        // ∧-introduction, ∧I: you have to have already introduced both sides
         case And(left: A, right: A)
         // →-introduction, →I: you assume 𝝓 and prove φ
         case Implies(ass: A, res: A)
