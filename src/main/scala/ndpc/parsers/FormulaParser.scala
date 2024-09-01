@@ -14,22 +14,14 @@ import ndpc.parsers.Lexer.{identifier, symbol}
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 
 object FormulaParser {
-    // utils
-    // need to hint scala about the type we want
-    private val neg: (LF_ => LF_) = LFormula.Not.apply
-    private val and: ((LF_, LF_) => LF_) = LFormula.And.apply
-    private val or: ((LF_, LF_) => LF_) = LFormula.Or.apply
-    private val implies: ((LF_, LF_) => LF_) = LFormula.Implies.apply
-    private val equiv: ((LF_, LF_) => LF_) = LFormula.Equiv.apply
-
     // LTerm
-    val variable = identifier.map(LTerm.Variable.apply).label("variable")
+    val variable = identifier.map(Variable.apply).label("variable")
     val lterms = args(lterm)
-    lazy val funcAp: Parsley[LTerm.FuncAp] =
+    lazy val funcAp: Parsley[FuncAp] =
         (identifier <~ spc <~> lterms)
             .label("function application")
             .map { (res: (String, List[LTerm])) =>
-                LTerm.FuncAp(
+                FuncAp(
                   Function(res._1, res._2.length),
                   res._2
                 )
@@ -44,13 +36,13 @@ object FormulaParser {
     // we introduce a bit of syntax sugar here, if a predicate has arity 0,
     // you can omit the parenthesis, this makes propositional logic strictly
     // a subset of first ordet logic in our syntax system.
-    lazy val predAp: Parsley[LFormula.PredAp] =
+    lazy val predAp: Parsley[PredAp] =
         (
           (identifier <~ spc) <~> (lterms <|> pure(List()))
         )
             .label("predicate application")
             .map { (res: (String, List[LTerm])) =>
-                LFormula.PredAp(
+                PredAp(
                   Predicate(res._1, res._2.length),
                   res._2
                 )
@@ -59,25 +51,25 @@ object FormulaParser {
         (lterm <~> "=" ~> lterm)
             .label("equality")
             .map { (res: (LTerm, LTerm)) =>
-                LFormula.Eq(res._1, res._2)
+                Eq(res._1, res._2)
             }
     // T followed by some keyword
-    val truth = symbol.softKeyword("T").label("truth") as (LFormula.Truth)
+    val truth = symbol.softKeyword("T").label("truth") as (Truth)
     // F followed by some keyword
-    val falsity = symbol.softKeyword("F").label("falsity") as (LFormula.Falsity)
+    val falsity = symbol.softKeyword("F").label("falsity") as (Falsity)
     // format: off
     lazy val forall =
         (("forall" ~> some(identifier) <~ ".") <~> lformula)
         .label("forall statement")
         .map { (res: (List[String], LF_)) =>
-            LFormula.Forall(res._1, res._2)
+            Forall(res._1, res._2)
         }
     lazy val exists =
         (("exists" ~> some(identifier) <~ ".")
         <~> lformula)
         .label("exists statement")
         .map { (res: (List[String], LF_)) =>
-            LFormula.Exists(res._1, res._2)
+            Exists(res._1, res._2)
         }
     val atom: Parsley[LF_] = (
         atomic(truth) <|>
@@ -85,6 +77,7 @@ object FormulaParser {
         atomic(equ) <|>
         atomic(predAp)
     ).label("Atom (T/F/equality/predicate application)")
+    .asInstanceOf[Parsley[LF_]] // come on scala, you can do this!
     lazy val lformula: Parsley[LF_] = (
         atomic(forall) <|>
         atomic(exists) <|>
@@ -93,11 +86,11 @@ object FormulaParser {
             tolerant('(' ~> tolerant(lformula) <~ ')') <|>
             tolerant(atom)
         )(
-            Ops(Prefix)("~" as neg),
-            Ops(InfixL)("^" as and),
-            Ops(InfixL)("/" as or),
-            Ops(InfixL)("->" as implies),
-            Ops(InfixL)("<->" as equiv)
+            Ops(Prefix)("~" as Not.apply),
+            Ops(InfixL)("^" as And.apply),
+            Ops(InfixL)("/" as Or.apply),
+            Ops(InfixL)("->" as Implies.apply),
+            Ops(InfixL)("<->" as Equiv.apply)
         )
     ).label("Lformula (forall statement/exists statement/lformula and logical connectives)")
     // format: on

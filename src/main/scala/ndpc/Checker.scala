@@ -95,39 +95,39 @@ object Checker {
         case nonpf @ (Comment(_) | Empty()) => Success(nonpf)
         // format: off
         case it @ Pf[Int](concl, rule, _) => rule match {
-            // ∧-introduction, ∧I: you have to have already introduced both sides
-        case Rule.Intro(Introduction.And(left, right)) => 
+        // ∧-introduction, ∧I: you have to have already introduced both sides
+        case AndIntro(left, right) => 
             trySubstituteAndIntroduction(it, lineNr, lines, concl, left, right)
 
         // →-introduction, →I: you assume 𝝓 and prove φ
-        case Rule.Intro(Introduction.Implies(left, right))
+        case ImpliesIntro(left, right)
         if left < lines.length && right < lines.length => 
             (lines(left - 1), lines(right - 1)) match {
                 case (Pf(l, _, _), Pf(r, _, _)) 
-                if (concl.equals(LFormula.Implies(l, r))) =>
-                    Success(it.copy(rule = Rule.Intro[LF_](Introduction.Implies(l, r))))
+                if (concl.equals(Implies(l, r))) =>
+                    Success(it.copy(rule = ImpliesIntro(l, r)))
                 case (l, r) => 
                     Failure(s"line $lineNr: rule \"Implies Introduction\" expects lhs ($l) ^ rhs ($r) equals $concl")
             }
-        case Rule.Intro(Introduction.Implies(_, _)) => 
+        case ImpliesIntro(_, _) =>
             Failure(s"line $lineNr: $rule specified line numbers that's out of bound")
 
         // ∨-introduction, ∨I: prove either side
-        case Rule.Intro(Introduction.Or(leftOrRight))
+        case OrIntro(leftOrRight)
         if leftOrRight < lines.length => 
             lines(leftOrRight - 1) match {
                 case Pf(pf, _, _) =>
                     concl match {
-                        case LFormula.Or(l, r)
+                        case Or(l, r)
                         if leftOrRight.equals(l) || leftOrRight.equals(r) =>
-                            Success(it.copy(rule = Rule.Intro[LF_](Introduction.Or(pf))))
+                            Success(it.copy(rule = OrIntro(pf)))
                         case _ =>
                             Failure(s"line $lineNr: rule \"Or Introduction\" expects conclusion ($concl) is an or expression with reference on the lhs ($pf | a) or on the rhs (a | $pf)")
                     }
                 case (l, r) => 
                     Failure(s"line $lineNr: rule \"Implies Introduction\" expects lhs ($l) ^ rhs ($r) equals $concl")
             }
-        case Rule.Intro(Introduction.Or(_)) => 
+        case OrIntro(_) =>
             Failure(s"line $lineNr: $rule specified line numbers that's out of bound")
         }
         // format: on
@@ -143,10 +143,9 @@ object Checker {
     ): Result[String, Line] =
         if left < lines.length && right < lines.length then
             (lines(left - 1), lines(right - 1)) match {
-                case (Pf(l, _, _), Pf(r, _, _))
-                    if (concl.equals(LFormula.And(l, r))) =>
+                case (Pf(l, _, _), Pf(r, _, _)) if (concl.equals(And(l, r))) =>
                     Success(
-                      input.concl.copy(rule = Rule.Intro[LF_](Introduction.And(l, r)))
+                      input.copy(rule = AndIntro(l, r))
                     )
                 case (l, r) =>
                     Failure(

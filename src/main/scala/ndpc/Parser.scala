@@ -11,7 +11,7 @@ import parsley.errors.combinator._
 import parsley.debug._
 
 import ndpc.expr.Formula._
-import ndpc.expr.Rule.{Rule, Special, ValidItem}
+import ndpc.expr.Rule.{Rule, ValidItem, Tick}
 import ndpc.parsers.FormulaParser
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 import ndpc.parsers.FormulaParser.lformula
@@ -142,7 +142,7 @@ object Parser {
                         case (same, pf @ Pf(_, rule, _)) if same == s.indentLevel => 
                             rule match {
                                 // pop scope if this line is a tick
-                                case Rule.Builtin(Special.Tick(_)) => s.popScopeWith(pf)
+                                case Tick(_) => s.popScopeWith(pf)
                                 case _ => s.addLineToTree(pf)
                             }
                         case (indented, pf) if indented == s.indentLevel + 2 => 
