@@ -54,9 +54,9 @@ object FormulaParser {
                 Eq(res._1, res._2)
             }
     // T followed by some keyword
-    val truth = symbol.softKeyword("T").label("truth") as (Truth)
+    val truth = symbol.softKeyword("T").label("truth") as (Truth())
     // F followed by some keyword
-    val falsity = symbol.softKeyword("F").label("falsity") as (Falsity)
+    val falsity = symbol.softKeyword("F").label("falsity") as (Falsity())
     // format: off
     lazy val forall =
         (("forall" ~> some(identifier) <~ ".") <~> lformula)

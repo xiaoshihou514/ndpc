@@ -9,7 +9,7 @@ import scala.util.Try
 import parsley.{Success, Failure}
 import parsley.Result
 
-case class CheckedProof(main: PfScope)
+case class CheckedProof(main: PfScope[LF_])
 
 object Checker {
     // just controller exceptions that can be pattern matched
@@ -29,8 +29,8 @@ object Checker {
         val errors = pfFromSource(inputs).filter {
             (out: Result[CheckError, CheckedProof]) =>
                 out match {
-                    case Left(_) => false
-                    case _       => true
+                    case Success(_) => false
+                    case _          => true
                 }
         }
         if toJson then
@@ -88,47 +88,17 @@ object Checker {
         ???
 
     private def trySubstitute(
-        input: Line,
+        input: Line[Int],
         lineNr: Int,
-        lines: List[Line]
-    ): Result[String, Line] = input match {
+        lines: List[Line[Int]]
+    ): Result[String, Line[_]] = input match {
         case nonpf @ (Comment(_) | Empty()) => Success(nonpf)
         // format: off
         case it @ Pf[Int](concl, rule, _) => rule match {
         // ∧-introduction, ∧I: you have to have already introduced both sides
         case AndIntro(left, right) => 
             trySubstituteAndIntroduction(it, lineNr, lines, concl, left, right)
-
-        // →-introduction, →I: you assume 𝝓 and prove φ
-        case ImpliesIntro(left, right)
-        if left < lines.length && right < lines.length => 
-            (lines(left - 1), lines(right - 1)) match {
-                case (Pf(l, _, _), Pf(r, _, _)) 
-                if (concl.equals(Implies(l, r))) =>
-                    Success(it.copy(rule = ImpliesIntro(l, r)))
-                case (l, r) => 
-                    Failure(s"line $lineNr: rule \"Implies Introduction\" expects lhs ($l) ^ rhs ($r) equals $concl")
-            }
-        case ImpliesIntro(_, _) =>
-            Failure(s"line $lineNr: $rule specified line numbers that's out of bound")
-
-        // ∨-introduction, ∨I: prove either side
-        case OrIntro(leftOrRight)
-        if leftOrRight < lines.length => 
-            lines(leftOrRight - 1) match {
-                case Pf(pf, _, _) =>
-                    concl match {
-                        case Or(l, r)
-                        if leftOrRight.equals(l) || leftOrRight.equals(r) =>
-                            Success(it.copy(rule = OrIntro(pf)))
-                        case _ =>
-                            Failure(s"line $lineNr: rule \"Or Introduction\" expects conclusion ($concl) is an or expression with reference on the lhs ($pf | a) or on the rhs (a | $pf)")
-                    }
-                case (l, r) => 
-                    Failure(s"line $lineNr: rule \"Implies Introduction\" expects lhs ($l) ^ rhs ($r) equals $concl")
-            }
-        case OrIntro(_) =>
-            Failure(s"line $lineNr: $rule specified line numbers that's out of bound")
+        case _ => ???
         }
         // format: on
     }
@@ -136,11 +106,11 @@ object Checker {
     private def trySubstituteAndIntroduction(
         input: Pf[Int],
         lineNr: Int,
-        lines: List[Line],
+        lines: List[Line[Int]],
         concl: LF_,
         left: Int,
         right: Int
-    ): Result[String, Line] =
+    ): Result[String, Line[LF_]] =
         if left < lines.length && right < lines.length then
             (lines(left - 1), lines(right - 1)) match {
                 case (Pf(l, _, _), Pf(r, _, _)) if (concl.equals(And(l, r))) =>
