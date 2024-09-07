@@ -90,20 +90,38 @@ object Checker {
     private def trySubstitute(
         input: Line[Int],
         lineNr: Int,
-        lines: List[Line[Int]]
+        lines: List[Line[Int]],
+        env: Set[String]
     ): Result[String, Line[_]] = input match {
         case nonpf @ (Comment(_) | Empty()) => Success(nonpf)
         // format: off
         case it @ Pf[Int](concl, rule, _) => rule match {
-        // ∧-introduction, ∧I: you have to have already introduced both sides
         case AndIntro(left, right) => 
-            trySubstituteAndIntroduction(it, lineNr, lines, concl, left, right)
+            trySubstituteAndIntro(it, lineNr, lines, concl, left, right)
+        case ImpliesIntro(ass, res) =>
+            trySubstituteImpliesIntro(it, lineNr, lines, concl, ass, res)
+        case OrIntro(either) =>
+            ???
+        case NotIntro(orig, bottom) =>
+            ???
+        case DoubleNegIntro(orig) =>
+            ???
+        case FalsityIntro(orig, negated) =>
+            ???
+        case TruthIntro() =>
+            ???
+        case EquivIntro(leftImp, rightImp) =>
+            ???
+        case ExistsIntro(orig) =>
+            ???
+        case ForallIntro(orig, concl) =>
+            ???
         case _ => ???
         }
         // format: on
     }
 
-    private def trySubstituteAndIntroduction(
+    private def trySubstituteAndIntro(
         input: Pf[Int],
         lineNr: Int,
         lines: List[Line[Int]],
@@ -127,4 +145,28 @@ object Checker {
               s"line $lineNr: ${input.rule} specified line numbers that's out of bound"
             )
 
+    private def trySubstituteImpliesIntro(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        imp: Int,
+        res: Int
+    ): Result[String, Line[LF_]] =
+        if imp < lines.length && res < lines.length then
+            (lines(imp - 1), lines(res - 1)) match {
+                case (Pf(i, _, _), Pf(r, _, _))
+                    if (concl.equals(Implies(i, r))) =>
+                    Success(
+                      input.copy(rule = ImpliesIntro(i, r))
+                    )
+                case (l, r) =>
+                    Failure(
+                      s"line $lineNr: rule \"Implies Introduction\" expects lhs ($l) -> rhs ($r) equals $concl"
+                    )
+            }
+        else
+            Failure(
+              s"line $lineNr: ${input.rule} specified line numbers that's out of bound"
+            )
 }
