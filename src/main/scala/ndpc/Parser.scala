@@ -23,8 +23,12 @@ import scala.util.Try
 
 object Parser {
     sealed trait Line[A <: ValidItem]
-    case class Empty() extends Line[Int]
-    case class Comment(contents: String) extends Line[Int]
+    case class Empty() extends Line[Int] {
+        override def toString(): String = "<Empty Line>"
+    }
+    case class Comment(contents: String) extends Line[Int] {
+        override def toString(): String = "<Comment>"
+    }
     case class Pf[A <: ValidItem](
         val concl: LFormula[_],
         val rule: Rule[A],
