@@ -9,8 +9,8 @@ class ParserSpec extends UnitSpec {
         |forall x. (forall y. (child(y, x) -> fly(y)) ^ dragon(x) -> happy(x)) [premise]
         |forall x. (green(x) ^ dragon(x) -> fly(x)) [premise]
         |forall x. (exists y. (parent(y, x) ^ green(y)) -> green(x)) [premise]
-        |forall z x. (child (x, z) ^ dragon(z) -> dragon(x)) [premise]
-        |forall x y. (child (y, x) -> parent(x, y)) [premise]
+        |forall z. forall x. (child (x, z) ^ dragon(z) -> dragon(x)) [premise]
+        |forall x. forall y. (child (y, x) -> parent(x, y)) [premise]
         |
         |  c [forall I const]
         |    dragon(c) [ass]

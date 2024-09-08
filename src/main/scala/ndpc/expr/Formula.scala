@@ -118,24 +118,24 @@ object Formula {
 
     // 5. If 𝝓 is an L-formula and x a variable, then (∀x 𝝓) and (∃x 𝝓) are L-formulas.
     case class Forall[A](
-        vars: List[String],
+        x: String,
         body: LFormula[A]
     ) extends LFormula[Forall[A]] {
         override def toString(): String =
-            s"forall ${vars.mkString(". ")} ($body)"
-        def getVars(): Set[String] = body.getVars() removedAll vars
+            s"forall $x ($body)"
+        def getVars(): Set[String] = body.getVars() removedAll List(x)
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitute(from: String, to: String) =
             this.copy(body = body.substitute(from, to))
     }
 
     case class Exists[A](
-        vars: List[String],
+        x: String,
         body: LFormula[A]
     ) extends LFormula[Exists[A]] {
         override def toString(): String =
-            s"exists ${vars.mkString(". ")} ($body)"
-        def getVars(): Set[String] = body.getVars() removedAll vars
+            s"exists $x ($body)"
+        def getVars(): Set[String] = body.getVars() removedAll List(x)
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitute(from: String, to: String) =
             this.copy(body = body.substitute(from, to))

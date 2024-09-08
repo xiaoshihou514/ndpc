@@ -59,16 +59,16 @@ object FormulaParser {
     val falsity = symbol.softKeyword("F").label("falsity") as (Falsity())
     // format: off
     lazy val forall =
-        (("forall" ~> some(identifier) <~ ".") <~> lformula)
+        (("forall" ~> identifier <~ ".") <~> lformula)
         .label("forall statement")
-        .map { (res: (List[String], LF_)) =>
+        .map { (res: (String, LF_)) =>
             Forall(res._1, res._2)
         }
     lazy val exists =
-        (("exists" ~> some(identifier) <~ ".")
+        (("exists" ~> identifier <~ ".")
         <~> lformula)
         .label("exists statement")
-        .map { (res: (List[String], LF_)) =>
+        .map { (res: (String, LF_)) =>
             Exists(res._1, res._2)
         }
     val atom: Parsley[LF_] = (

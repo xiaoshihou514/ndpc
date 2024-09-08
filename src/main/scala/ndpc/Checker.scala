@@ -311,9 +311,9 @@ object Checker {
         env: Set[String]
     ): Result[String, Line[LF_]] = try
         (lines(orig - 1), concl) match {
-            case (Pf(o, _, _), Exists(vars, f))
-                if !vars.exists(env(_)) &&
-                    isSubstitutionOf(o, f, vars) =>
+            case (Pf(o, _, _), Exists(x, f))
+                if !env(x) &&
+                    isSubstitutionOf(o, f, x) =>
                 Success(input.copy(rule = ExistsIntro(o)))
             case (l, c) =>
                 Failure(
@@ -337,50 +337,14 @@ object Checker {
         case e: ArrayIndexOutOfBoundsException =>
             outOfBound(lineNr, input.rule)
 
-    // we allowed users to specify many variabels in exists and forall so we have
-    // to do a bit more work here :)
     private def isSubstitutionOf(
         original: LF_,
         substituted: LF_,
-        varPool: List[String]
-    ): Boolean = {
-        val freeVars = original.getVars().toList
-        // "seq" in Haskell
-        // let's hope scala is lazy enough :P
-        lazy val possibleSubs =
-            freeVars.map(x => varPool.map(y => (x, y))).flatten
-        isSubstitutionOf(
-          original,
-          freeVars,
-          substituted,
-          varPool,
-          possibleSubs
-        )
-    }
-
-    private def isSubstitutionOf(
-        original: LF_,
-        freeVars: List[String],
-        substituted: LF_,
-        varPool: List[String],
-        possibleSubs: List[(String, String)]
+        x: String
     ): Boolean =
-        if original == substituted then true
-        else if varPool.isEmpty || freeVars.isEmpty then
-            // if either of them is empty, any substitution would do nothing
-            // either you don't have anything you can substitute
-            // or you don't have anything to substitute for
-            false
-        else
-            possibleSubs.exists((from, to) =>
-                isSubstitutionOf(
-                  original.substitute(from, to),
-                  freeVars.remove(from),
-                  substituted,
-                  varPool.remove(to),
-                  // after substitution, `from` will no longer be free and `to` will be consumed
-                  possibleSubs.filterNot { (x) => x._1 == from || x._2 == to }
-                )
-            )
-
+        original == substituted ||
+            original
+                .getVars()
+                // original[t/x] == substituted?
+                .exists(t => original.substitute(t, x) == substituted)
 }

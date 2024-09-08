@@ -287,26 +287,26 @@ class FormulaParserSpec extends UnitSpec {
         )
 
         val forall = Forall(
-          List("p", "q"),
+          "q",
           connectives_7
         )
         assert(
           lformula
-              .parse("forall p q. ((p=    q   )^    ( ~  p-> r  ))")
+              .parse("forall q. ((p=    q   )^    ( ~  p-> r  ))")
               .get === forall
         )
 
         val exists = Forall(
-          List("𝝓", "φ"),
+          "𝝓",
           Exists(
-            List("A"),
+            "A",
             Or(
               PredAp(
                 P("foo", 3),
                 List("𝝓", "φ", "A")
               ),
               Exists(
-                List("B"),
+                "B",
                 PredAp(
                   P("bar", 2),
                   List("𝝓", "B")
@@ -318,7 +318,7 @@ class FormulaParserSpec extends UnitSpec {
         assert(
           lformula
               .parse(
-                "forall 𝝓 φ. (exists A. ( foo(𝝓 ,φ ,A) / (exists B. (bar(𝝓, B)))))"
+                "forall 𝝓 . (exists A. ( foo(𝝓 ,φ ,A) / (exists B. (bar(𝝓, B)))))"
               )
               .get === exists
         )
@@ -339,7 +339,7 @@ class FormulaParserSpec extends UnitSpec {
 
     "Any LFormula" should "be parsed correctly" in {
         val `all green dragons can fly` = Forall(
-          List("x"),
+          "x",
           Implies(
             And(
               PredAp(P("dragon", 1), List("x")),
