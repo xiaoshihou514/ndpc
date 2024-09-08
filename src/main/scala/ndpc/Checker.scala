@@ -170,20 +170,20 @@ object Checker {
                     case NotElim(orig, negated) => 
                         // ~orig = negated
                         // concl = F
-                        ???
+                        tryVerifyNotElim(orig, negated)
                     case DoubleNegElim(orig) => 
                         // ~~concl = orig
-                        ???
+                        tryVerifyDoubleNegElim(orig)
                     case FalsityElim(bottom) => 
                         // bottom = F
-                        ???
+                        tryVerifyFalsityElim(bottom)
                     case EquivElim(equiv, either) => 
                         // equiv = l <-> r, either = l OR either = r
-                        ???
+                        tryVerifyEquivElim(equiv, either)
                     case ExistsElim(exists, ass, assConcl) => 
                         // exists = exists x. ass[c/x], c new var
                         // concl = assConcl
-                        ???
+                        tryVerifyExistsElim(exists, ass, assConcl)
                     case ForallElim(orig) => 
                         // orig = forall x. concl[c/x], c in env
                         ???
@@ -201,10 +201,7 @@ object Checker {
     }
 
     private def outOfBound(currLine: Int, rule: Rule) =
-        Failure(s"""
-                |line $currLine:
-                |   $rule specified line numbers that's out of bound
-                """.stripMargin)
+        Failure(s"$rule specified line numbers that's out of bound")
 
     private def inBound(it: Int, current: Int) = it < current && it > 0
 
@@ -515,4 +512,109 @@ object Checker {
                     """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyNotElim(
+        orig: Int,
+        negated: Int
+    )(using
+        input: Pf,
+        lineNr: Int,
+        lines: List[Line],
+        concl: LFormula
+    ) = if inBound(orig, lineNr) && inBound(negated, lineNr) then
+        (lines(orig - 1), lines(negated - 1)) match {
+            case (Pf(o, _, _), Pf(n, _, _))
+                if n == Not(o) && concl == Falsity() =>
+                Success(input)
+            case (o, n) =>
+                Failure(s"""
+                        |rule ${input.rule} expects "~original" equals "negated", and "conclusion" equals F
+                        |in particular, ~($orig) to be equal to $negated, and $concl to be equal to F
+                """.stripMargin)
+        }
+    else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyDoubleNegElim(orig: Int)(using
+        input: Pf,
+        lineNr: Int,
+        lines: List[Line],
+        concl: LFormula
+    ) = if inBound(orig, lineNr) then
+        lines(orig - 1) match {
+            case Pf(o, _, _) if o == Not(Not(concl)) =>
+                Success(input)
+            case o =>
+                Failure(s"""
+                        |rule ${input.rule} expects "~~conclusion" equals "original"
+                        |in particular, ~~($concl) to be equal to $o
+                """.stripMargin)
+        }
+    else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyFalsityElim(bottom: Int)(using
+        input: Pf,
+        lineNr: Int,
+        lines: List[Line],
+        concl: LFormula
+    ) = if inBound(bottom, lineNr) then
+        lines(bottom - 1) match {
+            case Pf(b, _, _) if b == Falsity() =>
+                Success(input)
+            case b =>
+                Failure(s"""
+                        |rule ${input.rule} expects "bottom" to be equal to F
+                        |in particular, $b to be equal to F
+                """.stripMargin)
+        }
+    else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyEquivElim(equiv: Int, either: Int)(using
+        input: Pf,
+        lineNr: Int,
+        lines: List[Line],
+        concl: LFormula
+    ) = if inBound(equiv, lineNr) && inBound(either, lineNr) then
+        (lines(equiv - 1), lines(either - 1)) match {
+            case (Pf(Equiv(l, r), _, _), Pf(ei, _, _))
+                if (l == ei && concl == r) && (r == ei && concl == l) =>
+                Success(input)
+            case (eq, ei) =>
+                Failure(s"""
+                        |rule ${input.rule} expects "equiv" to be equal to "conclusion" <-> "either" OR "either" <-> "conclusion"
+                        |in particular, $eq to be equal to ($concl) <-> ($ei) or reversed
+                """.stripMargin)
+        }
+    else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyExistsElim(exists: Int, ass: Int, assConcl: Int)(using
+        input: Pf,
+        lineNr: Int,
+        lines: List[Line],
+        concl: LFormula,
+        env: Set[String]
+    ) = if inBound(exists, lineNr) && inBound(ass, lineNr) && inBound(
+          assConcl,
+          lineNr
+        )
+    then
+        (lines(exists - 1), lines(ass - 1), lines(assConcl - 1)) match {
+            case (Pf(e @ Exists(x, f), _, _), Pf(a, _, _), Pf(ac, _, _))
+                if concl == ac && isSubstitutionOf(f, a, x) =>
+                // !!! IMPORTANT !!!
+                // There's a bug here, if we introduced `t` after line `ass`, the proof
+                // should be valid, but that requires us to get the valid env list at that time
+                (a.getVars() removedAll e.getVars()).toList match {
+                    case t :: Nil if env(t) =>
+                        Success(input)
+                    case _ =>
+                        Failure(
+                          s"rule ${input.rule} expects assumed exist formula ($a) uses variables that was not defined previously"
+                        )
+                }
+            case (e, a, ac) =>
+                Failure(s"""
+                        |rule ${input.rule} expects
+                """.stripMargin)
+        }
+    else outOfBound(lineNr, input.rule)
 }
