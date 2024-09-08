@@ -70,8 +70,14 @@ object Rule {
         override def toString(): String = s"->E($ass, $imp)"
     }
     // ∨-elimination, ∨E: prove by assuming 𝝓, then assume φ and get the same result
-    case class OrElim[A <: ValidItem](ifleft: A, ifright: A) extends Rule[A] {
-        override def toString(): String = s"/E($ifleft, $ifright)"
+    case class OrElim[A <: ValidItem](
+        leftAss: A,
+        leftConcl: A,
+        rightAss: A,
+        rightConcl: A
+    ) extends Rule[A] {
+        override def toString(): String =
+            s"/E($leftAss, $leftConcl, $rightAss, $rightConcl)"
     }
     // ¬-elimination, ¬E: 𝝓 and ¬𝝓 gives ⊥
     case class NotElim[A <: ValidItem](orig: A, negated: A) extends Rule[A] {
@@ -86,14 +92,12 @@ object Rule {
     // ⊥-elimination, ⊥E: This encode the fact that a contradiction can prove anything.
     // 1 ⊥ we got this
     // 2 𝝓 ⊥E(1)
-    case class FalsityElim[A <: ValidItem](bottom: A)
-        extends Rule[A] {
+    case class FalsityElim[A <: ValidItem](bottom: A) extends Rule[A] {
         override def toString(): String = s"FE($bottom)"
     }
     // ↔-elimination, ↔E: From 𝝓 ↔ φ and 𝝓, you can prove φ. From 𝝓 ↔ φ and φ, you can prove 𝝓.
-    case class EquivElim[A <: ValidItem](leftImp: A, rightImp: A)
-        extends Rule[A] {
-        override def toString(): String = s"<->E($leftImp, $rightImp)"
+    case class EquivElim[A <: ValidItem](equiv: A, either: A) extends Rule[A] {
+        override def toString(): String = s"<->E($equiv, $either)"
     }
     // ∃-elimination, or ∃E: Let 𝝓 be a formula. If you have managed to write down ∃x 𝝓,
     // you can prove a sentence φ from it by

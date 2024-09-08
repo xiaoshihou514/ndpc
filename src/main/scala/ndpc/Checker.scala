@@ -149,11 +149,19 @@ object Checker {
         // All the eliminations
         case AndElim(orig) =>
             tryVerifyAndElim(it, lineNr, lines, concl, orig)
-        case ImpliesElim(ass, imp) => ???
-        case OrElim(l, r) => ???
+        case ImpliesElim(ass, imp) =>
+            tryVerifyImpliesElim(it, lineNr, lines, concl, ass, imp)
+        case OrElim(ls, le, rs, re) =>
+            tryVerifyOrElim(it, lineNr, lines, concl, ls, le, rs, re)
         case NotElim(orig, negated) => ???
         case DoubleNegElim(orig) => ???
         case FalsityElim(bottom) => ???
+        case EquivElim(equiv, either) => ???
+        case ExistsElim(ass, concl) => ???
+        case ForallElim(orig) => ???
+        case ForallImpElim(ass, imp) => ???
+
+        // The special ones
 
         case _ => ???
         }
@@ -431,6 +439,53 @@ object Checker {
                             |   in particular, $concl to be the rhs or lhs of $a
                             |   but it's not satisfied
                     """.stripMargin)
+            }
+        else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyImpliesElim(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        ass: Int,
+        imp: Int
+    ) =
+        if inBound(ass, lineNr) && inBound(ass, lineNr) then
+            (lines(ass - 1), lines(imp - 1)) match {
+                case (Pf(a, _, _), Pf(i, _, _)) if i == Implies(a, concl) =>
+                    Success(input.copy(rule = ImpliesElim(a, i)))
+                case (a, i) =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to be the rhs of "implication" and "assumption" to be its lhs
+                            |   in particular, $a -> $concl should be equal to $i
+                            |   but it's not satisfied
+                    """.stripMargin)
+            }
+        else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyOrElim(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        leftStart: Int,
+        leftEnd: Int,
+        rightStart: Int,
+        rightEnd: Int
+    ) =
+        if inBound(leftStart, lineNr) && inBound(rightStart, lineNr) && inBound(
+              leftEnd,
+              lineNr
+            ) && inBound(rightEnd, lineNr)
+        then
+            (
+              lines(leftStart - 1),
+              lines(leftEnd - 1),
+              lines(rightStart - 1),
+              lines(rightEnd - 1)
+            ) match {
+                case (_, _, _, _) => ???
             }
         else outOfBound(lineNr, input.rule)
 }
