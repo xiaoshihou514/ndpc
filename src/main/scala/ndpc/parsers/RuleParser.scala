@@ -95,7 +95,10 @@ object RuleParser {
             // format: on
             atomic(unary("existsI", ExistsIntro.apply))
                 .label("Exists introduction") <|>
-            binary("existsE", ExistsElim.apply).label("Exists elimination") <|>
+            tolerant(("existsE" ~> tolerant(args(number))).map {
+                (l: List[Int]) =>
+                    ExistsElim(l(0), l(1), l(2))
+            }).label("Exists elimination") <|>
             atomic(binary("forallI", ForallIntro.apply))
                 .label("Forall elimination") <|>
             atomic(unary("forallE", ForallElim.apply))

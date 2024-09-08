@@ -104,8 +104,9 @@ object Rule {
     // you can prove a sentence φ from it by
     // • assuming 𝝓[c/x], where c is a new constant not used in the proof so far,
     // • proving φ from this assumption.
-    case class ExistsElim[A <: ValidItem](ass: A, concl: A) extends Rule[A] {
-        override def toString(): String = s"existsE($ass, $concl)"
+    case class ExistsElim[A <: ValidItem](exists: A, ass: A, concl: A)
+        extends Rule[A] {
+        override def toString(): String = s"existsE($exists, $ass, $concl)"
     }
     // ∀-elimination, or ∀E: Let 𝝓(x) be a formula. If you have managed to
     // write down ∀x 𝝓, you can go on to write down ∀[t/x] for any closed

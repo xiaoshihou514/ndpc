@@ -51,7 +51,7 @@ class ParserSpec extends UnitSpec {
             |    even(c) / odd (c)     [/I(10)]
             |    even(c) / odd (c)     [tick(12)]
             |
-            |  even(c) / odd (c)       [/E(22,11)]
+            |  even(c) / odd (c)       [/E(1,2,3,22,11)]
             |
             |forall n.(even(n) / odd (n)) [forallI(3, 12)]
             |""".stripMargin

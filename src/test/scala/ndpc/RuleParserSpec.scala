@@ -41,7 +41,7 @@ class RuleParserSpec extends UnitSpec {
         assert(rule.parse("~~E ( 1 )").get === DoubleNegElim(1))
         assert(rule.parse("FE(7)").get === FalsityElim(7))
         assert(rule.parse("<->E (4,5)").get === EquivElim(4, 5))
-        assert(rule.parse("existsE(1,2)").get === ExistsElim(1, 2))
+        assert(rule.parse("existsE(1,2,3)").get === ExistsElim(1, 2, 3))
         assert(rule.parse("forallE (77)").get === ForallElim(77))
     }
 }

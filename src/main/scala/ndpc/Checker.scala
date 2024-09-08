@@ -164,10 +164,18 @@ object Checker {
             // ~orig = negated
             // concl = F
             ???
-        case DoubleNegElim(orig) => ???
-        case FalsityElim(bottom) => ???
-        case EquivElim(equiv, either) => ???
-        case ExistsElim(ass, concl) => ???
+        case DoubleNegElim(orig) => 
+            // ~~concl = orig
+            ???
+        case FalsityElim(bottom) => 
+            // bottom = F
+            ???
+        case EquivElim(equiv, either) => 
+            // equiv = l <-> r, either = l OR either = r
+            ???
+        case ExistsElim(exists, ass, concl) => 
+            // 
+            ???
         case ForallElim(orig) => ???
         case ForallImpElim(ass, imp) => ???
 
