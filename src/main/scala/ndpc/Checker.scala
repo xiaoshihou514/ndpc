@@ -145,6 +145,16 @@ object Checker {
             //  ..._but_ due to parser constraints, we should expect an 0-arity predAp
             // and x should not be defined previously
             tryVerifyForallIntro(it, lineNr, lines, concl, const, conclForall, env)
+
+        // All the eliminations
+        case AndElim(orig) =>
+            tryVerifyAndElim(it, lineNr, lines, concl, orig)
+        case ImpliesElim(ass, imp) => ???
+        case OrElim(l, r) => ???
+        case NotElim(orig, negated) => ???
+        case DoubleNegElim(orig) => ???
+        case FalsityElim(bottom) => ???
+
         case _ => ???
         }
         // format: on
@@ -343,8 +353,9 @@ object Checker {
                     Failure(s"""
                             |line $lineNr:
                             |   rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
-                            |   and that the exist quantifier is a new variable...
-                            |   and that the body of the exists formula has no free variables.
+                            |   and that the exist quantifier is a new variable "x"...
+                            |   and that the body of the exists formula has no free variables...
+                            |   and that the body of the exists formula is free of new variable "x"...
                             |   But with 
                             |       "conclusion" = $c
                             |       "original" = $o
@@ -365,12 +376,29 @@ object Checker {
         if inBound(const, lineNr) && inBound(conclForall, lineNr) then
             (lines(const - 1), lines(conclForall - 1), concl) match {
                 case (
-                      Pf(PredAp(Predicate(name, 0), Nil), _, _),
+                      Pf(c @ PredAp(Predicate(name, 0), Nil), _, _),
                       Pf(fa, _, _),
                       Forall(x, f)
-                    ) =>
-                    ???
-                case (c, fa, f) => ???
+                    )
+                    if x == name &&
+                        isSubstitutionOf(fa, f, x) &&
+                        !env(x) &&
+                        !f.getVars()(x) &&
+                        f.getVars().forall(env(_)) =>
+                    Success(input.copy(rule = ForallIntro(c, fa)))
+                case (c, fa, f) =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
+                            |   and that "const" introduced a variable...
+                            |   and that the forall quantifier is a new variable...
+                            |   and that the body of the exists formula has no free variables.
+                            |   But with 
+                            |       "conclusion" = $f
+                            |       "original" = $fa
+                            |       "const" = $c
+                            |   the relations are not satisfied
+                        """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -384,4 +412,25 @@ object Checker {
                 .getVars()
                 // original[t/x] == substituted?
                 .exists(t => original.substitute(t, x) == substituted)
+
+    private def tryVerifyAndElim(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        orig: Int
+    ) =
+        if inBound(orig, lineNr) then
+            (lines(orig - 1)) match {
+                case Pf(a @ And(l, r), _, _) if l == concl || r == concl =>
+                    Success(input.copy(rule = AndElim(a)))
+                case a =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to be either the lhs or rhs of "and"
+                            |   in particular, $concl to be the rhs or lhs of $a
+                            |   but it's not satisfied
+                    """.stripMargin)
+            }
+        else outOfBound(lineNr, input.rule)
 }

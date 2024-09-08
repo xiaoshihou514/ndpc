@@ -121,8 +121,7 @@ object Formula {
         x: String,
         body: LFormula[A]
     ) extends LFormula[Forall[A]] {
-        override def toString(): String =
-            s"forall $x ($body)"
+        override def toString(): String = s"forall $x ($body)"
         def getVars(): Set[String] = body.getVars() removedAll List(x)
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitute(from: String, to: String) =
@@ -133,8 +132,7 @@ object Formula {
         x: String,
         body: LFormula[A]
     ) extends LFormula[Exists[A]] {
-        override def toString(): String =
-            s"exists $x ($body)"
+        override def toString(): String = s"exists $x ($body)"
         def getVars(): Set[String] = body.getVars() removedAll List(x)
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitute(from: String, to: String) =

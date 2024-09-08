@@ -77,14 +77,8 @@ object RuleParser {
                 res._1(res._2)
             } <|>
             // FE and FI
-            ('F' ~> (
-                'E'.as((i: Int, j: Int) => FalsityElim(i, j))
-                .label("Falsity elimination") <|>
-                'I'.as((i: Int, j: Int) => FalsityIntro(i, j))
-                .label("Falsity introduction")) <~> numbers).map {
-                (res: ((Int, Int) => Rule[Int], List[Int])) =>
-                    res._1(res._2(0), res._2(1))
-            } <|>
+            atomic("FE") ~> numbers.map {(res: List[Int]) => FalsityElim(res(0))} <|>
+            "FI" ~> numbers.map{(res: List[Int]) => FalsityIntro(res(0), res(1))} <|>
             // <->E and <->I
             // somehow if I change the order it won't work...
             (

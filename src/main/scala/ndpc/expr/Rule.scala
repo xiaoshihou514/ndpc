@@ -86,9 +86,9 @@ object Rule {
     // ⊥-elimination, ⊥E: This encode the fact that a contradiction can prove anything.
     // 1 ⊥ we got this
     // 2 𝝓 ⊥E(1)
-    case class FalsityElim[A <: ValidItem](orig: A, negated: A)
+    case class FalsityElim[A <: ValidItem](bottom: A)
         extends Rule[A] {
-        override def toString(): String = s"FE($orig, $negated)"
+        override def toString(): String = s"FE($bottom)"
     }
     // ↔-elimination, ↔E: From 𝝓 ↔ φ and 𝝓, you can prove φ. From 𝝓 ↔ φ and φ, you can prove 𝝓.
     case class EquivElim[A <: ValidItem](leftImp: A, rightImp: A)
