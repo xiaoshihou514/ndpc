@@ -11,6 +11,13 @@ import parsley.Result
 
 case class CheckedProof(main: PfScope[LF_])
 
+extension [A](xs: List[A])
+    def remove(x: A): List[A] = xs match {
+        case `x` :: tail  => tail
+        case head :: tail => head :: tail.remove(x)
+        case _            => Nil
+    }
+
 object Checker {
     // just controller exceptions that can be pattern matched
     private class ParserException(val reason: String) extends Exception
@@ -87,7 +94,7 @@ object Checker {
     private def checkOne(upf: UncheckedProof): Result[String, CheckedProof] =
         ???
 
-    private def trySubstitute(
+    private def tryVerify(
         input: Line[Int],
         lineNr: Int,
         lines: List[Line[Int]],
@@ -96,26 +103,46 @@ object Checker {
         case nonpf @ (Comment(_) | Empty()) => Success(nonpf)
         // format: off
         case it @ Pf[Int](concl, rule, _) => rule match {
+        // All the introductions
         case AndIntro(left, right) => 
-            trySubstituteAndIntro(it, lineNr, lines, concl, left, right)
+            // concl = left ^ right
+            tryVerifyAndIntro(it, lineNr, lines, concl, left, right)
         case ImpliesIntro(ass, res) =>
-            trySubstituteImpliesIntro(it, lineNr, lines, concl, ass, res)
+            // concl = ass -> res
+            tryVerifyImpliesIntro(it, lineNr, lines, concl, ass, res)
         case OrIntro(either) =>
-            trySubstituteOrIntro(it, lineNr, lines, concl, either)
+            // concl = either / x OR concl = x / either
+            tryVerifyOrIntro(it, lineNr, lines, concl, either)
         case NotIntro(orig, bottom) =>
-            trySubstituteNotIntro(it, lineNr, lines, concl, orig, bottom)
+            // concl = ~orig, bottom = F
+            tryVerifyNotIntro(it, lineNr, lines, concl, orig, bottom)
         case DoubleNegIntro(orig) =>
-            trySubstituteDoubleNegIntro(it, lineNr, lines, concl, orig)
+            // concl = ~~orig
+            tryVerifyDoubleNegIntro(it, lineNr, lines, concl, orig)
         case FalsityIntro(orig, negated) =>
-            ???
+            // concl = F, negated = ~orig
+            tryVerifyFalsityIntro(it, lineNr, lines, concl, orig, negated)
         case TruthIntro() =>
-            ???
+            // concl = T
+            if concl == Truth() then
+                Success(it)
+            else
+                Failure(s"line $lineNr: $rule expects \"conclusion\" ($concl) to be T")
         case EquivIntro(leftImp, rightImp) =>
-            ???
+            // leftImp = l -> r, rightImp = r -> l, concl = l <-> r
+            tryVerifyEquivIntro(it, lineNr, lines, concl, leftImp, rightImp)
         case ExistsIntro(orig) =>
-            ???
-        case ForallIntro(orig, concl) =>
-            ???
+            // we can ensure that `exists` has 1+ quantifier (ensured at parser level)
+            // concl = exists [x, y, ...] f, where f = orig[x/?][y/?]...
+            // and x, y, ... should not be defined previously
+            tryVerifyExistsIntro(it, lineNr, lines, concl, orig, env)
+        case ForallIntro(const, conclForall) =>
+            // concl = forall [x, y, <C>,...] f, where f = conclForall[x/?][y/?]...
+            // and f free of C, concl free of C
+            // and const = C, a Var
+            //  ..._but_ due to parser constraints, we should expect an 0-arity predAp
+            // and x, y, ... should not be defined previously
+            tryVerifyForallIntro(it, lineNr, lines, concl, const, conclForall, env)
         case _ => ???
         }
         // format: on
@@ -126,7 +153,7 @@ object Checker {
           s"line $currLine: $rule specified line numbers that's out of bound"
         )
 
-    private def trySubstituteAndIntro(
+    private def tryVerifyAndIntro(
         input: Pf[Int],
         lineNr: Int,
         lines: List[Line[Int]],
@@ -142,12 +169,12 @@ object Checker {
                     )
                 case (l, r) =>
                     Failure(
-                      s"line $lineNr: rule ${input.rule} expects lhs ^ rhs \"($l) ^ ($r)\" equals $concl"
+                      s"line $lineNr: rule ${input.rule} expects \"lhs ^ rhs\" (($l) ^ ($r)) equals \"conclusion\" ($concl)"
                     )
             }
         else outOfBound(lineNr, input.rule)
 
-    private def trySubstituteImpliesIntro(
+    private def tryVerifyImpliesIntro(
         input: Pf[Int],
         lineNr: Int,
         lines: List[Line[Int]],
@@ -163,12 +190,12 @@ object Checker {
                     )
                 case (l, r) =>
                     Failure(
-                      s"line $lineNr: rule ${input.rule} expects lhs -> rhs \"($l) -> ($r)\" equals $concl"
+                      s"line $lineNr: rule ${input.rule} expects \"lhs -> rhs\" (($l) -> ($r)) equals \"conclustion\" ($concl)"
                     )
             }
         else outOfBound(lineNr, input.rule)
 
-    private def trySubstituteOrIntro(
+    private def tryVerifyOrIntro(
         input: Pf[Int],
         lineNr: Int,
         lines: List[Line[Int]],
@@ -179,50 +206,181 @@ object Checker {
             (lines(either - 1), concl) match {
                 case (Pf(lf, _, _), Or(l, r)) if lf == l || lf == r =>
                     Success(input.copy(rule = OrIntro(lf)))
-                case (e, pf) =>
+                case (e, concl) =>
                     Failure(
-                      s"line $lineNr: rule ${input.rule} expects $pf equals x / y or y / x, where x is $e"
+                      s"line $lineNr: rule ${input.rule} expects x / y or y / x, where \"x\" is $e, equals \"conclusion\" (concl)"
                     )
             }
         else outOfBound(lineNr, input.rule)
 
-    private def trySubstituteNotIntro(
+    private def tryVerifyNotIntro(
         input: Pf[Int],
         lineNr: Int,
         lines: List[Line[Int]],
         concl: LF_,
         orig: Int,
         bottom: Int
-    ): Result[String, Line[LF_]] =
-        if orig < lines.length && bottom < lines.length then
-            (lines(orig - 1), lines(bottom - 1)) match {
-                case (Pf(o, _, _), Pf(b, _, _))
-                    if (b == Falsity() && concl == Not(o)) =>
-                    Success(
-                      input.copy(rule = NotIntro(o, b))
-                    )
-                case (l, r) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects $concl equals ~($orig) and $bottom is F"
-                    )
-            }
-        else outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] = try
+        (lines(orig - 1), lines(bottom - 1)) match {
+            case (Pf(o, _, _), Pf(b, _, _))
+                if (b == Falsity() && concl == Not(o)) =>
+                Success(
+                  input.copy(rule = NotIntro(o, b))
+                )
+            case (l, r) =>
+                Failure(
+                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~($orig) and \"bottom\" ($bottom) to be F"
+                )
+        }
+    catch
+        case e: ArrayIndexOutOfBoundsException =>
+            outOfBound(lineNr, input.rule)
 
-    private def trySubstituteDoubleNegIntro(
+    private def tryVerifyDoubleNegIntro(
         input: Pf[Int],
         lineNr: Int,
         lines: List[Line[Int]],
         concl: LF_,
         orig: Int
-    ): Result[String, Line[LF_]] =
-        if orig < lines.length then
-            lines(orig - 1) match {
-                case Pf(o, _, _) if concl == Not(Not(o)) =>
-                    Success(input.copy(rule = DoubleNegIntro(o)))
-                case l =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects $concl equals ~~($l)"
-                    )
-            }
-        else outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] = try
+        lines(orig - 1) match {
+            case Pf(o, _, _) if concl == Not(Not(o)) =>
+                Success(input.copy(rule = DoubleNegIntro(o)))
+            case l =>
+                Failure(
+                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~~($l)"
+                )
+        }
+    catch
+        case e: ArrayIndexOutOfBoundsException =>
+            outOfBound(lineNr, input.rule)
+
+    private def tryVerifyFalsityIntro(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        orig: Int,
+        negated: Int
+    ): Result[String, Line[LF_]] = try
+        (lines(orig - 1), lines(negated - 1)) match {
+            case (Pf(o, _, _), Pf(n, _, _))
+                // we don't allow orig and negated to be reversed, same for the others
+                if (n == Not(o) && concl == Falsity()) =>
+                Success(
+                  input.copy(rule = FalsityIntro(o, n))
+                )
+            case (l, r) =>
+                Failure(
+                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be F and that ~($orig) equals $negated"
+                )
+        }
+    catch
+        case e: ArrayIndexOutOfBoundsException =>
+            outOfBound(lineNr, input.rule)
+
+    private def tryVerifyEquivIntro(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        leftImp: Int,
+        rightImp: Int
+    ): Result[String, Line[LF_]] = try
+        (lines(leftImp - 1), lines(rightImp - 1)) match {
+            case (Pf(Implies(ll, lr), _, _), Pf(Implies(rl, rr), _, _))
+                if (ll == rr && lr == rl && concl == Equiv(ll, rr)) =>
+                Success(
+                  input.copy(rule = EquivIntro(ll, rr))
+                )
+            case (l, r) =>
+                Failure(
+                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to have the same lhs and rhs as \"left implication\" ($l) and \"right implication\" ($r)"
+                )
+        }
+    catch
+        case e: ArrayIndexOutOfBoundsException =>
+            outOfBound(lineNr, input.rule)
+
+    private def tryVerifyExistsIntro(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        orig: Int,
+        env: Set[String]
+    ): Result[String, Line[LF_]] = try
+        (lines(orig - 1), concl) match {
+            case (Pf(o, _, _), Exists(vars, f))
+                if !vars.exists(env(_)) &&
+                    isSubstitutionOf(o, f, vars) =>
+                Success(input.copy(rule = ExistsIntro(o)))
+            case (l, c) =>
+                Failure(
+                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be \"original\" ($orig) with variables substituted"
+                )
+        }
+    catch
+        case e: ArrayIndexOutOfBoundsException =>
+            outOfBound(lineNr, input.rule)
+
+    private def tryVerifyForallIntro(
+        input: Pf[Int],
+        lineNr: Int,
+        lines: List[Line[Int]],
+        concl: LF_,
+        const: Int,
+        conclForall: Int,
+        env: Set[String]
+    ): Result[String, Line[LF_]] = try ???
+    catch
+        case e: ArrayIndexOutOfBoundsException =>
+            outOfBound(lineNr, input.rule)
+
+    // we allowed users to specify many variabels in exists and forall so we have
+    // to do a bit more work here :)
+    private def isSubstitutionOf(
+        original: LF_,
+        substituted: LF_,
+        varPool: List[String]
+    ): Boolean = {
+        val freeVars = original.getVars().toList
+        // "seq" in Haskell
+        // let's hope scala is lazy enough :P
+        lazy val possibleSubs =
+            freeVars.map(x => varPool.map(y => (x, y))).flatten
+        isSubstitutionOf(
+          original,
+          freeVars,
+          substituted,
+          varPool,
+          possibleSubs
+        )
+    }
+
+    private def isSubstitutionOf(
+        original: LF_,
+        freeVars: List[String],
+        substituted: LF_,
+        varPool: List[String],
+        possibleSubs: List[(String, String)]
+    ): Boolean =
+        if original == substituted then true
+        else if varPool.isEmpty || freeVars.isEmpty then
+            // if either of them is empty, any substitution would do nothing
+            // either you don't have anything you can substitute
+            // or you don't have anything to substitute for
+            false
+        else
+            possibleSubs.exists((from, to) =>
+                isSubstitutionOf(
+                  original.substitute(from, to),
+                  freeVars.remove(from),
+                  substituted,
+                  varPool.remove(to),
+                  // after substitution, `from` will no longer be free and `to` will be consumed
+                  possibleSubs.filterNot { (x) => x._1 == from || x._2 == to }
+                )
+            )
+
 }

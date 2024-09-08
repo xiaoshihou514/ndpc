@@ -57,8 +57,8 @@ object Rule {
     }
     // To introduce the sentence ∀x 𝝓 for some 𝝓(x), you introduce a new
     // constant, say c, not used in the proof so far, and prove 𝝓[c/x].
-    case class ForallIntro[A <: ValidItem](orig: A, concl: A) extends Rule[A] {
-        override def toString(): String = s"forallI($orig)"
+    case class ForallIntro[A <: ValidItem](const: A, concl: A) extends Rule[A] {
+        override def toString(): String = s"forallI($const, $concl)"
     }
 
     // ∧-elimination, ∧E: if you have (𝝓 ∧ φ), you can write down 𝝓 and/or φ
