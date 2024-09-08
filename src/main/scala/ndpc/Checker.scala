@@ -10,7 +10,7 @@ import parsley.{Success, Failure}
 import scala.collection.mutable.Set
 import parsley.Result
 
-case class CheckedProof(main: PfScope[LF_])
+case class CheckedProof(main: PfScope)
 
 extension [A](xs: List[A])
     def remove(x: A): List[A] = xs match {
@@ -96,15 +96,15 @@ object Checker {
         ???
 
     private def tryVerify(
-        main: PfScope[Int],
-        input: Line[Int],
+        main: PfScope,
+        input: Line,
         lineNr: Int,
-        lines: List[Line[Int]],
+        lines: List[Line],
         env: Set[String]
-    ): Result[String, Line[_]] = input match {
+    ): Result[String, Line] = input match {
         case nonpf @ (Comment(_) | Empty()) => Success(nonpf)
         // format: off
-        case it @ Pf[Int](concl, rule, _) => rule match {
+        case it @ Pf(concl, rule, _) => rule match {
         // All the introductions
         case AndIntro(left, right) => 
             // concl = left ^ right
@@ -173,11 +173,17 @@ object Checker {
         case EquivElim(equiv, either) => 
             // equiv = l <-> r, either = l OR either = r
             ???
-        case ExistsElim(exists, ass, concl) => 
-            // 
+        case ExistsElim(exists, ass, assConcl) => 
+            // exists = exists x. ass[c/x], c new var
+            // concl = assConcl
             ???
-        case ForallElim(orig) => ???
-        case ForallImpElim(ass, imp) => ???
+        case ForallElim(orig) => 
+            // orig = forall x. concl[c/x], c in env
+            ???
+        case ForallImpElim(ass, imp) => 
+            // imp = forall x. f(x) -> g(x)
+            // ass = f(c), concl = g(c), c in env
+            ???
 
         // The special ones
 
@@ -186,7 +192,7 @@ object Checker {
         // format: on
     }
 
-    private def outOfBound(currLine: Int, rule: Rule[_]) =
+    private def outOfBound(currLine: Int, rule: Rule) =
         Failure(s"""
                 |line $currLine:
                 |   $rule specified line numbers that's out of bound
@@ -195,19 +201,17 @@ object Checker {
     private def inBound(it: Int, current: Int) = it < current && it > 0
 
     private def tryVerifyAndIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         left: Int,
         right: Int
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(left, lineNr) && inBound(right, lineNr) then
             (lines(left - 1), lines(right - 1)) match {
                 case (Pf(l, _, _), Pf(r, _, _)) if (concl == And(l, r)) =>
-                    Success(
-                      input.copy(rule = AndIntro(l, r))
-                    )
+                    Success(input)
                 case (l, r) =>
                     Failure(s"""
                             |line $lineNr:
@@ -219,19 +223,17 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyImpliesIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         imp: Int,
         res: Int
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(imp, lineNr) && inBound(res, lineNr) then
             (lines(imp - 1), lines(res - 1)) match {
                 case (Pf(i, _, _), Pf(r, _, _)) if (concl == Implies(i, r)) =>
-                    Success(
-                      input.copy(rule = ImpliesIntro(i, r))
-                    )
+                    Success(input)
                 case (l, r) =>
                     Failure(s"""
                             |line $lineNr:
@@ -243,16 +245,16 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyOrIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         either: Int
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(either, lineNr) then
             (lines(either - 1), concl) match {
                 case (Pf(lf, _, _), Or(l, r)) if lf == l || lf == r =>
-                    Success(input.copy(rule = OrIntro(lf)))
+                    Success(input)
                 case (e, concl) =>
                     Failure(s"""
                             |line $lineNr:
@@ -264,20 +266,18 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyNotIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         orig: Int,
         bottom: Int
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(orig, lineNr) && inBound(bottom, lineNr) then
             (lines(orig - 1), lines(bottom - 1)) match {
                 case (Pf(o, _, _), Pf(b, _, _))
                     if (b == Falsity() && concl == Not(o)) =>
-                    Success(
-                      input.copy(rule = NotIntro(o, b))
-                    )
+                    Success(input)
                 case (o, b) =>
                     Failure(s"""
                             |line $lineNr:
@@ -289,16 +289,16 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyDoubleNegIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         orig: Int
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(orig, lineNr) then
             lines(orig - 1) match {
                 case Pf(o, _, _) if concl == Not(Not(o)) =>
-                    Success(input.copy(rule = DoubleNegIntro(o)))
+                    Success(input)
                 case o =>
                     Failure(s"""
                             |line $lineNr:
@@ -310,21 +310,19 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyFalsityIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         orig: Int,
         negated: Int
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(orig, lineNr) && inBound(negated, lineNr) then
             (lines(orig - 1), lines(negated - 1)) match {
                 case (Pf(o, _, _), Pf(n, _, _))
                     // we don't allow orig and negated to be reversed, same for the others
                     if (n == Not(o) && concl == Falsity()) =>
-                    Success(
-                      input.copy(rule = FalsityIntro(o, n))
-                    )
+                    Success(input)
                 case (o, n) =>
                     Failure(s"""
                             |line $lineNr:
@@ -336,20 +334,18 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyEquivIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         leftImp: Int,
         rightImp: Int
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(leftImp, lineNr) && inBound(rightImp, lineNr) then
             (lines(leftImp - 1), lines(rightImp - 1)) match {
                 case (Pf(Implies(ll, lr), _, _), Pf(Implies(rl, rr), _, _))
                     if (ll == rr && lr == rl && concl == Equiv(ll, rr)) =>
-                    Success(
-                      input.copy(rule = EquivIntro(ll, rr))
-                    )
+                    Success(input)
                 case (l, r) =>
                     Failure(s"""
                             |line $lineNr:
@@ -361,20 +357,20 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyExistsIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         orig: Int,
         env: Set[String]
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(orig, lineNr) then
             (lines(orig - 1), concl) match {
                 case (Pf(o, _, _), Exists(x, f))
                     if !env(x) &&
                         isSubstitutionOf(o, f, x) &&
                         f.getVars().forall(env(_)) =>
-                    Success(input.copy(rule = ExistsIntro(o)))
+                    Success(input)
                 case (o, c) =>
                     Failure(s"""
                             |line $lineNr:
@@ -391,14 +387,14 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyForallIntro(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         const: Int,
         conclForall: Int,
         env: Set[String]
-    ): Result[String, Line[LF_]] =
+    ): Result[String, Line] =
         if inBound(const, lineNr) && inBound(conclForall, lineNr) then
             (lines(const - 1), lines(conclForall - 1), concl) match {
                 case (
@@ -411,7 +407,7 @@ object Checker {
                         !env(x) &&
                         !f.getVars()(x) &&
                         f.getVars().forall(env(_)) =>
-                    Success(input.copy(rule = ForallIntro(c, fa)))
+                    Success(input)
                 case (c, fa, f) =>
                     Failure(s"""
                             |line $lineNr:
@@ -429,8 +425,8 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def isSubstitutionOf(
-        original: LF_,
-        substituted: LF_,
+        original: LFormula,
+        substituted: LFormula,
         x: String
     ): Boolean =
         original == substituted ||
@@ -440,16 +436,16 @@ object Checker {
                 .exists(t => original.substitute(t, x) == substituted)
 
     private def tryVerifyAndElim(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         orig: Int
     ) =
         if inBound(orig, lineNr) then
             (lines(orig - 1)) match {
                 case Pf(a @ And(l, r), _, _) if l == concl || r == concl =>
-                    Success(input.copy(rule = AndElim(a)))
+                    Success(input)
                 case a =>
                     Failure(s"""
                             |line $lineNr:
@@ -461,17 +457,17 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyImpliesElim(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         ass: Int,
         imp: Int
     ) =
         if inBound(ass, lineNr) && inBound(ass, lineNr) then
             (lines(ass - 1), lines(imp - 1)) match {
                 case (Pf(a, _, _), Pf(i, _, _)) if i == Implies(a, concl) =>
-                    Success(input.copy(rule = ImpliesElim(a, i)))
+                    Success(input)
                 case (a, i) =>
                     Failure(s"""
                             |line $lineNr:
@@ -483,16 +479,16 @@ object Checker {
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyOrElim(
-        input: Pf[Int],
+        input: Pf,
         lineNr: Int,
-        lines: List[Line[Int]],
-        concl: LF_,
+        lines: List[Line],
+        concl: LFormula,
         or: Int,
         leftStart: Int,
         leftEnd: Int,
         rightStart: Int,
         rightEnd: Int,
-        main: PfScope[Int]
+        main: PfScope
     ) =
         if inBound(or, lineNr) &&
             inBound(leftStart, lineNr) && inBound(rightStart, lineNr) &&
@@ -517,7 +513,7 @@ object Checker {
                         lef == ref &&
                         lef == concl &&
                         o == Or(lsf, rsf) =>
-                    Success(input.copy(rule = OrElim(o, lsf, lef, rsf, ref)))
+                    Success(input)
 
                 case (or, ls, le, rs, re) =>
                     Failure(s"""
