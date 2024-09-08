@@ -57,7 +57,7 @@ object RuleParser {
                 .label("Implication elimination") <|>
             atomic(unary("/I", OrIntro[Int].apply)).label("Or introduction") <|>
             tolerant(("/E" ~> tolerant(args(number))).map { (l: List[Int]) =>
-                OrElim(l(0), l(1), l(2), l(3))
+                OrElim(l(0), l(1), l(2), l(3), l(4))
             }).label("Or Elimination") <|> 
             // format: off
             // ~~E and ~~I

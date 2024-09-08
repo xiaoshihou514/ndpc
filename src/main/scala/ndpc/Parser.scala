@@ -35,7 +35,15 @@ object Parser {
         val trailingComment: Option[Comment]
     ) extends Line[A]
 
-    case class PfScope[A <: ValidItem](var body: List[Line[A] | PfScope[A]])
+    case class PfScope[A <: ValidItem](var body: List[Line[A] | PfScope[A]]) {
+        def isStartAndEndOfScope(line1: Line[A], line2: Line[A]): Boolean =
+            (body.head == line1 && body.last == line2) ||
+                body.filter(_.isInstanceOf[PfScope[A]])
+                    .exists(
+                      _.asInstanceOf[PfScope[A]]
+                          .isStartAndEndOfScope(line1, line2)
+                    )
+    }
 
     private class State(
         var indentLevel: Int,

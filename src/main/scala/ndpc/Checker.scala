@@ -7,6 +7,7 @@ import ndpc.expr.Formula._
 import scala.io.Source
 import scala.util.Try
 import parsley.{Success, Failure}
+import scala.collection.mutable.Set
 import parsley.Result
 
 case class CheckedProof(main: PfScope[LF_])
@@ -95,6 +96,7 @@ object Checker {
         ???
 
     private def tryVerify(
+        main: PfScope[Int],
         input: Line[Int],
         lineNr: Int,
         lines: List[Line[Int]],
@@ -129,7 +131,7 @@ object Checker {
             else
                 Failure(s"""
                         |line $lineNr:
-                        |   $rule expects \"conclusion\" ($concl) to be T
+                        |   $rule expects "conclusion" ($concl) to be T
                         """.stripMargin)
         case EquivIntro(leftImp, rightImp) =>
             // leftImp = l -> r, rightImp = r -> l, concl = l <-> r
@@ -148,12 +150,20 @@ object Checker {
 
         // All the eliminations
         case AndElim(orig) =>
+            // concl = orig ^ x OR concl = x ^ orig
             tryVerifyAndElim(it, lineNr, lines, concl, orig)
         case ImpliesElim(ass, imp) =>
+            // imp = ass -> concl
             tryVerifyImpliesElim(it, lineNr, lines, concl, ass, imp)
-        case OrElim(ls, le, rs, re) =>
-            tryVerifyOrElim(it, lineNr, lines, concl, ls, le, rs, re)
-        case NotElim(orig, negated) => ???
+        case OrElim(or, ls, le, rs, re) =>
+            // (ls, le), (rs, re) start and end of box
+            // or = ls / rs
+            // le = re = concl
+            tryVerifyOrElim(it, lineNr, lines, concl, or, ls, le, rs, re, main)
+        case NotElim(orig, negated) => 
+            // ~orig = negated
+            // concl = F
+            ???
         case DoubleNegElim(orig) => ???
         case FalsityElim(bottom) => ???
         case EquivElim(equiv, either) => ???
@@ -469,23 +479,55 @@ object Checker {
         lineNr: Int,
         lines: List[Line[Int]],
         concl: LF_,
+        or: Int,
         leftStart: Int,
         leftEnd: Int,
         rightStart: Int,
-        rightEnd: Int
+        rightEnd: Int,
+        main: PfScope[Int]
     ) =
-        if inBound(leftStart, lineNr) && inBound(rightStart, lineNr) && inBound(
-              leftEnd,
-              lineNr
-            ) && inBound(rightEnd, lineNr)
+        if inBound(or, lineNr) &&
+            inBound(leftStart, lineNr) && inBound(rightStart, lineNr) &&
+            inBound(leftEnd, lineNr) && inBound(rightEnd, lineNr)
         then
             (
+              lines(or - 1),
               lines(leftStart - 1),
               lines(leftEnd - 1),
               lines(rightStart - 1),
               lines(rightEnd - 1)
             ) match {
-                case (_, _, _, _) => ???
+                case (
+                      or @ Pf(o, _, _),
+                      ls @ Pf(lsf, _, _),
+                      le @ Pf(lef, _, _),
+                      rs @ Pf(rsf, _, _),
+                      re @ Pf(ref, _, _)
+                    )
+                    if main.isStartAndEndOfScope(ls, le) &&
+                        main.isStartAndEndOfScope(rs, re) &&
+                        lef == ref &&
+                        lef == concl &&
+                        o == Or(lsf, rsf) =>
+                    Success(input.copy(rule = OrElim(o, lsf, lef, rsf, ref)))
+
+                case (or, ls, le, rs, re) =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to hold when either "lhs" or "rhs" is true
+                            |   "lhs start", "lhs end" should be the start and end of a box...
+                            |   "rhs start", "rhs end" should be the start and end of a box...
+                            |   "lhs end" and "rhs end" should both be equal to "conclustion"...
+                            |   "lhs start" / "rhs start" should be equal to the "or statement".
+                            |   But with
+                            |       "or statement" = $or
+                            |       "lhs start" = $ls
+                            |       "lhs end" = $le
+                            |       "rhs start" = $rs
+                            |       "rhs end" = $re
+                            |       "conclustion" = $concl
+                            |   the conditions were not satisfied.
+                    """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 }

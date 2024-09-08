@@ -34,7 +34,9 @@ class RuleParserSpec extends UnitSpec {
         // Elimination
         assert(rule.parse("^E(7)").get === AndElim(7))
         assert(rule.parse("->E(3,8)").get === ImpliesElim(3, 8))
-        assert(rule.parse("/E ( 7, 11,12,13 )").get === OrElim(7, 11, 12, 13))
+        assert(
+          rule.parse("/E (1, 7, 11,12,13 )").get === OrElim(1, 7, 11, 12, 13)
+        )
         assert(rule.parse("~E (4, 5)").get === NotElim(4, 5))
         assert(rule.parse("~~E ( 1 )").get === DoubleNegElim(1))
         assert(rule.parse("FE(7)").get === FalsityElim(7))

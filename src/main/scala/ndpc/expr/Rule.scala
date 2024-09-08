@@ -71,13 +71,14 @@ object Rule {
     }
     // ∨-elimination, ∨E: prove by assuming 𝝓, then assume φ and get the same result
     case class OrElim[A <: ValidItem](
+        or: A,
         leftAss: A,
         leftConcl: A,
         rightAss: A,
         rightConcl: A
     ) extends Rule[A] {
         override def toString(): String =
-            s"/E($leftAss, $leftConcl, $rightAss, $rightConcl)"
+            s"/E($or, $leftAss, $leftConcl, $rightAss, $rightConcl)"
     }
     // ¬-elimination, ¬E: 𝝓 and ¬𝝓 gives ⊥
     case class NotElim[A <: ValidItem](orig: A, negated: A) extends Rule[A] {
