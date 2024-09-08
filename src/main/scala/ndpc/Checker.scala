@@ -132,16 +132,15 @@ object Checker {
             // leftImp = l -> r, rightImp = r -> l, concl = l <-> r
             tryVerifyEquivIntro(it, lineNr, lines, concl, leftImp, rightImp)
         case ExistsIntro(orig) =>
-            // we can ensure that `exists` has 1+ quantifier (ensured at parser level)
-            // concl = exists [x, y, ...] f, where f = orig[x/?][y/?]...
-            // and x, y, ... should not be defined previously
+            // concl = exists x f, where f = orig[x/?], f no free vars
+            // and x should not be defined previously
             tryVerifyExistsIntro(it, lineNr, lines, concl, orig, env)
         case ForallIntro(const, conclForall) =>
-            // concl = forall [x, y, <C>,...] f, where f = conclForall[x/?][y/?]...
-            // and f free of C, concl free of C
-            // and const = C, a Var
+            // concl = forall sc f, where f = conclForall[sc/?], f no free vars
+            // and f free of sk
+            // and const = sk, a Var
             //  ..._but_ due to parser constraints, we should expect an 0-arity predAp
-            // and x, y, ... should not be defined previously
+            // and x should not be defined previously
             tryVerifyForallIntro(it, lineNr, lines, concl, const, conclForall, env)
         case _ => ???
         }
@@ -153,6 +152,8 @@ object Checker {
           s"line $currLine: $rule specified line numbers that's out of bound"
         )
 
+    private def inBound(it: Int, current: Int) = it < current && it > 0
+
     private def tryVerifyAndIntro(
         input: Pf[Int],
         lineNr: Int,
@@ -161,7 +162,7 @@ object Checker {
         left: Int,
         right: Int
     ): Result[String, Line[LF_]] =
-        if left < lines.length && right < lines.length then
+        if inBound(left, lineNr) && inBound(right, lineNr) then
             (lines(left - 1), lines(right - 1)) match {
                 case (Pf(l, _, _), Pf(r, _, _)) if (concl == And(l, r)) =>
                     Success(
@@ -182,7 +183,7 @@ object Checker {
         imp: Int,
         res: Int
     ): Result[String, Line[LF_]] =
-        if imp < lines.length && res < lines.length then
+        if inBound(imp, lineNr) && inBound(res, lineNr) then
             (lines(imp - 1), lines(res - 1)) match {
                 case (Pf(i, _, _), Pf(r, _, _)) if (concl == Implies(i, r)) =>
                     Success(
@@ -202,7 +203,7 @@ object Checker {
         concl: LF_,
         either: Int
     ): Result[String, Line[LF_]] =
-        if either < lines.length then
+        if inBound(either, lineNr) then
             (lines(either - 1), concl) match {
                 case (Pf(lf, _, _), Or(l, r)) if lf == l || lf == r =>
                     Success(input.copy(rule = OrIntro(lf)))
@@ -220,21 +221,20 @@ object Checker {
         concl: LF_,
         orig: Int,
         bottom: Int
-    ): Result[String, Line[LF_]] = try
-        (lines(orig - 1), lines(bottom - 1)) match {
-            case (Pf(o, _, _), Pf(b, _, _))
-                if (b == Falsity() && concl == Not(o)) =>
-                Success(
-                  input.copy(rule = NotIntro(o, b))
-                )
-            case (l, r) =>
-                Failure(
-                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~($orig) and \"bottom\" ($bottom) to be F"
-                )
-        }
-    catch
-        case e: ArrayIndexOutOfBoundsException =>
-            outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] =
+        if inBound(orig, lineNr) && inBound(bottom, lineNr) then
+            (lines(orig - 1), lines(bottom - 1)) match {
+                case (Pf(o, _, _), Pf(b, _, _))
+                    if (b == Falsity() && concl == Not(o)) =>
+                    Success(
+                      input.copy(rule = NotIntro(o, b))
+                    )
+                case (l, r) =>
+                    Failure(
+                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~($orig) and \"bottom\" ($bottom) to be F"
+                    )
+            }
+        else outOfBound(lineNr, input.rule)
 
     private def tryVerifyDoubleNegIntro(
         input: Pf[Int],
@@ -242,18 +242,17 @@ object Checker {
         lines: List[Line[Int]],
         concl: LF_,
         orig: Int
-    ): Result[String, Line[LF_]] = try
-        lines(orig - 1) match {
-            case Pf(o, _, _) if concl == Not(Not(o)) =>
-                Success(input.copy(rule = DoubleNegIntro(o)))
-            case l =>
-                Failure(
-                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~~($l)"
-                )
-        }
-    catch
-        case e: ArrayIndexOutOfBoundsException =>
-            outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] =
+        if inBound(orig, lineNr) then
+            lines(orig - 1) match {
+                case Pf(o, _, _) if concl == Not(Not(o)) =>
+                    Success(input.copy(rule = DoubleNegIntro(o)))
+                case l =>
+                    Failure(
+                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~~($l)"
+                    )
+            }
+        else outOfBound(lineNr, input.rule)
 
     private def tryVerifyFalsityIntro(
         input: Pf[Int],
@@ -262,22 +261,21 @@ object Checker {
         concl: LF_,
         orig: Int,
         negated: Int
-    ): Result[String, Line[LF_]] = try
-        (lines(orig - 1), lines(negated - 1)) match {
-            case (Pf(o, _, _), Pf(n, _, _))
-                // we don't allow orig and negated to be reversed, same for the others
-                if (n == Not(o) && concl == Falsity()) =>
-                Success(
-                  input.copy(rule = FalsityIntro(o, n))
-                )
-            case (l, r) =>
-                Failure(
-                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be F and that ~($orig) equals $negated"
-                )
-        }
-    catch
-        case e: ArrayIndexOutOfBoundsException =>
-            outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] =
+        if inBound(orig, lineNr) && inBound(negated, lineNr) then
+            (lines(orig - 1), lines(negated - 1)) match {
+                case (Pf(o, _, _), Pf(n, _, _))
+                    // we don't allow orig and negated to be reversed, same for the others
+                    if (n == Not(o) && concl == Falsity()) =>
+                    Success(
+                      input.copy(rule = FalsityIntro(o, n))
+                    )
+                case (l, r) =>
+                    Failure(
+                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be F and that ~($orig) equals $negated"
+                    )
+            }
+        else outOfBound(lineNr, input.rule)
 
     private def tryVerifyEquivIntro(
         input: Pf[Int],
@@ -286,21 +284,20 @@ object Checker {
         concl: LF_,
         leftImp: Int,
         rightImp: Int
-    ): Result[String, Line[LF_]] = try
-        (lines(leftImp - 1), lines(rightImp - 1)) match {
-            case (Pf(Implies(ll, lr), _, _), Pf(Implies(rl, rr), _, _))
-                if (ll == rr && lr == rl && concl == Equiv(ll, rr)) =>
-                Success(
-                  input.copy(rule = EquivIntro(ll, rr))
-                )
-            case (l, r) =>
-                Failure(
-                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to have the same lhs and rhs as \"left implication\" ($l) and \"right implication\" ($r)"
-                )
-        }
-    catch
-        case e: ArrayIndexOutOfBoundsException =>
-            outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] =
+        if inBound(leftImp, lineNr) && inBound(rightImp, lineNr) then
+            (lines(leftImp - 1), lines(rightImp - 1)) match {
+                case (Pf(Implies(ll, lr), _, _), Pf(Implies(rl, rr), _, _))
+                    if (ll == rr && lr == rl && concl == Equiv(ll, rr)) =>
+                    Success(
+                      input.copy(rule = EquivIntro(ll, rr))
+                    )
+                case (l, r) =>
+                    Failure(
+                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to have the same lhs and rhs as \"left implication\" ($l) and \"right implication\" ($r)"
+                    )
+            }
+        else outOfBound(lineNr, input.rule)
 
     private def tryVerifyExistsIntro(
         input: Pf[Int],
@@ -309,20 +306,20 @@ object Checker {
         concl: LF_,
         orig: Int,
         env: Set[String]
-    ): Result[String, Line[LF_]] = try
-        (lines(orig - 1), concl) match {
-            case (Pf(o, _, _), Exists(x, f))
-                if !env(x) &&
-                    isSubstitutionOf(o, f, x) =>
-                Success(input.copy(rule = ExistsIntro(o)))
-            case (l, c) =>
-                Failure(
-                  s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be \"original\" ($orig) with variables substituted"
-                )
-        }
-    catch
-        case e: ArrayIndexOutOfBoundsException =>
-            outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] =
+        if inBound(orig, lineNr) then
+            (lines(orig - 1), concl) match {
+                case (Pf(o, _, _), Exists(x, f))
+                    if !env(x) &&
+                        isSubstitutionOf(o, f, x) &&
+                        f.getVars().forall(env(_)) =>
+                    Success(input.copy(rule = ExistsIntro(o)))
+                case (l, c) =>
+                    Failure(
+                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be \"original\" ($orig) with variables substituted"
+                    )
+            }
+        else outOfBound(lineNr, input.rule)
 
     private def tryVerifyForallIntro(
         input: Pf[Int],
@@ -332,10 +329,18 @@ object Checker {
         const: Int,
         conclForall: Int,
         env: Set[String]
-    ): Result[String, Line[LF_]] = try ???
-    catch
-        case e: ArrayIndexOutOfBoundsException =>
-            outOfBound(lineNr, input.rule)
+    ): Result[String, Line[LF_]] =
+        if inBound(const, lineNr) && inBound(conclForall, lineNr) then
+            (lines(const - 1), lines(conclForall - 1), concl) match {
+                case (
+                      Pf(PredAp(Predicate(name, 0), Nil), _, _),
+                      Pf(fa, _, _),
+                      Forall(x, f)
+                    ) =>
+                    ???
+                case (c, fa, f) => ???
+            }
+        else outOfBound(lineNr, input.rule)
 
     private def isSubstitutionOf(
         original: LF_,
