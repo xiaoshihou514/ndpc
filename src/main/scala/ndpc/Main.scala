@@ -5,8 +5,8 @@ import ndpc.Assembler.compile
 import ndpc.Formatter.format
 
 object Main {
-    def main(args: Array[String]): Unit = {
-        val ret: Unit | Int = (args.toList) match {
+    def main(args: Array[String]): Unit =
+        (args.toList) match {
             case Nil | "--help" :: _ =>
                 println("""
                 |Natural deduction proof compiler
@@ -35,10 +35,8 @@ object Main {
                     case files =>
                         check(tail, false)
             case files => compile(files)
+        } match {
+            case i: Int  => sys.exit(i)
+            case _: Unit => sys.exit(0)
         }
-        sys.exit(ret match {
-            case i: Int  => i
-            case _: Unit => 0
-        })
-    }
 }

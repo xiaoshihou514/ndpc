@@ -127,7 +127,10 @@ object Checker {
             if concl == Truth() then
                 Success(it)
             else
-                Failure(s"line $lineNr: $rule expects \"conclusion\" ($concl) to be T")
+                Failure(s"""
+                        |line $lineNr:
+                        |   $rule expects \"conclusion\" ($concl) to be T
+                        """.stripMargin)
         case EquivIntro(leftImp, rightImp) =>
             // leftImp = l -> r, rightImp = r -> l, concl = l <-> r
             tryVerifyEquivIntro(it, lineNr, lines, concl, leftImp, rightImp)
@@ -148,9 +151,10 @@ object Checker {
     }
 
     private def outOfBound(currLine: Int, rule: Rule[_]) =
-        Failure(
-          s"line $currLine: $rule specified line numbers that's out of bound"
-        )
+        Failure(s"""
+                |line $currLine:
+                |   $rule specified line numbers that's out of bound
+                """.stripMargin)
 
     private def inBound(it: Int, current: Int) = it < current && it > 0
 
@@ -169,9 +173,12 @@ object Checker {
                       input.copy(rule = AndIntro(l, r))
                     )
                 case (l, r) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects \"lhs ^ rhs\" (($l) ^ ($r)) equals \"conclusion\" ($concl)"
-                    )
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "lhs ^ rhs" to be equal to "conclusion"
+                            |   in particular, "($l) ^ ($r)" to be equal to $concl
+                            |   but it's not satisfied
+                            """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -190,9 +197,12 @@ object Checker {
                       input.copy(rule = ImpliesIntro(i, r))
                     )
                 case (l, r) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects \"lhs -> rhs\" (($l) -> ($r)) equals \"conclustion\" ($concl)"
-                    )
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "lhs -> rhs" to be equal to "conclusion"
+                            |   in particular, "($l) -> ($r)" to be equal to $concl
+                            |   but it's not satisfied
+                        """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -208,9 +218,12 @@ object Checker {
                 case (Pf(lf, _, _), Or(l, r)) if lf == l || lf == r =>
                     Success(input.copy(rule = OrIntro(lf)))
                 case (e, concl) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects x / y or y / x, where \"x\" is $e, equals \"conclusion\" (concl)"
-                    )
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "x / y" to be equal to "conclusion", where either side is line $either
+                            |   in particular, $concl be of form "x / ($either)" or "($either) / x"
+                            |   but it's not satisfied
+                        """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -229,10 +242,13 @@ object Checker {
                     Success(
                       input.copy(rule = NotIntro(o, b))
                     )
-                case (l, r) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~($orig) and \"bottom\" ($bottom) to be F"
-                    )
+                case (o, b) =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to be equal to ~(original) and "bottom" to be F
+                            |   in particular, $concl to be equal to ~($o), and $b to be F
+                            |   but it's not satisfied
+                            """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -247,10 +263,13 @@ object Checker {
             lines(orig - 1) match {
                 case Pf(o, _, _) if concl == Not(Not(o)) =>
                     Success(input.copy(rule = DoubleNegIntro(o)))
-                case l =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) equals ~~($l)"
-                    )
+                case o =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to be equal to ~~(original)
+                            |   in particular, $concl to be equal to ~~($o)
+                            |   but it's not satisfied
+                            """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -270,10 +289,13 @@ object Checker {
                     Success(
                       input.copy(rule = FalsityIntro(o, n))
                     )
-                case (l, r) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be F and that ~($orig) equals $negated"
-                    )
+                case (o, n) =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to be F and that ~(original) to be equal to "negated"
+                            |   in particular, $concl to be F, and ~($o) to be equal to $n
+                            |   but it's not satisfied
+                            """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -293,9 +315,12 @@ object Checker {
                       input.copy(rule = EquivIntro(ll, rr))
                     )
                 case (l, r) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to have the same lhs and rhs as \"left implication\" ($l) and \"right implication\" ($r)"
-                    )
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to have the same lhs and rhs as "left implication" and "right implication"
+                            |   in particular, $concl to have the same lhs and rhs as $l and $r
+                            |   but it's not satisfied
+                            """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
@@ -314,10 +339,17 @@ object Checker {
                         isSubstitutionOf(o, f, x) &&
                         f.getVars().forall(env(_)) =>
                     Success(input.copy(rule = ExistsIntro(o)))
-                case (l, c) =>
-                    Failure(
-                      s"line $lineNr: rule ${input.rule} expects \"conclusion\" ($concl) to be \"original\" ($orig) with variables substituted"
-                    )
+                case (o, c) =>
+                    Failure(s"""
+                            |line $lineNr:
+                            |   rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
+                            |   and that the exist quantifier is a new variable...
+                            |   and that the body of the exists formula has no free variables.
+                            |   But with 
+                            |       "conclusion" = $c
+                            |       "original" = $o
+                            |   the relations are not satisfied
+                            """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
