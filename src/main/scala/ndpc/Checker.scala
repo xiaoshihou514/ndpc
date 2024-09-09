@@ -96,18 +96,19 @@ object Checker {
         ???
 
     private def tryVerify(
-        main: PfScope,
         input: Line,
-        lineNr: Int,
+        lineNr: Int
+    )(using
         lines: List[Line],
-        env: Set[String]
-    ): Result[String, Line] = {
+        main: PfScope,
+        env: Set[String],
+        knowledge: Set[Line],
+        findParent: Map[Line, PfScope]
+    ): Result[String, Option[String]] = {
         given inputContext: Line = input
         given lineNrContext: Int = lineNr
-        given linesContext: List[Line] = lines
-        given envContext: Set[String] = env
         input match {
-            case nonpf @ (Comment(_) | Empty()) => Success(nonpf)
+            case nonpf @ (Comment(_) | Empty()) => Success(None)
             // format: off
             case it @ Pf(concl, rule, _) => 
                 given conclusion: LFormula = concl
@@ -135,7 +136,7 @@ object Checker {
                     case TruthIntro() =>
                         // concl = T
                         if concl == Truth() then
-                            Success(it)
+                            Success(None)
                         else
                             Failure(s"""
                                     |$rule expects "conclusion" ($concl) to be T
@@ -201,20 +202,32 @@ object Checker {
     }
 
     private def outOfBound(currLine: Int, rule: Rule) =
-        Failure(s"$rule specified line numbers that's out of bound")
+        Failure(
+          s"$rule specified line numbers that's out of bound or trapped in boxes"
+        )
 
     private def inBound(it: Int, current: Int) = it < current && it > 0
+
+    private def verifyArgs(args: List[Int])(using
+        lineNr: Int,
+        lines: List[Line],
+        knowledgeBase: Set[Line]
+    ) = args.forall(x => inBound(x, lineNr) && knowledgeBase(lines(x - 1)))
+
+    private def lmap(lineNumber: Int)(using lines: List[Line]) =
+        lines(lineNumber - 1)
 
     private def tryVerifyAndIntro(left: Int, right: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
-        if inBound(left, lineNr) && inBound(right, lineNr) then
-            (lines(left - 1), lines(right - 1)) match {
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
+        if verifyArgs(List(left, right)) then
+            (lmap(left), lmap(right)) match {
                 case (Pf(l, _, _), Pf(r, _, _)) if (concl == And(l, r)) =>
-                    Success(input)
+                    Success(None)
                 case (l, r) =>
                     Failure(s"""
                             |rule ${input.rule} expects "lhs ^ rhs" to be equal to "conclusion"
@@ -224,16 +237,22 @@ object Checker {
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyImpliesIntro(imp: Int, res: Int)(using
+    private def tryVerifyImpliesIntro(ass: Int, res: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
-        if inBound(imp, lineNr) && inBound(res, lineNr) then
-            (lines(imp - 1), lines(res - 1)) match {
-                case (Pf(i, _, _), Pf(r, _, _)) if (concl == Implies(i, r)) =>
-                    Success(input)
+        concl: LFormula,
+        knowledge: Set[Line],
+        parentLookup: Map[Line, PfScope]
+    ): Result[String, Option[String]] =
+        if verifyArgs(List(ass, res)) then
+            (lmap(ass), lmap(res)) match {
+                // whether it's the begining of a box is checked beforehand
+                // so the rule being an Ass and ass and res being in the same box is sufficient
+                case (al @ Pf(a, Ass(), _), rl @ Pf(r, _, _))
+                    if (concl == Implies(a, r) &&
+                        parentLookup(al) == parentLookup(rl)) =>
+                    Success(None)
                 case (l, r) =>
                     Failure(s"""
                             |rule ${input.rule} expects "lhs -> rhs" to be equal to "conclusion"
@@ -247,12 +266,13 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
         if inBound(either, lineNr) then
-            (lines(either - 1), concl) match {
+            (lmap(either), concl) match {
                 case (Pf(lf, _, _), Or(l, r)) if lf == l || lf == r =>
-                    Success(input)
+                    Success(None)
                 case (e, concl) =>
                     Failure(s"""
                             |rule ${input.rule} expects "x / y" to be equal to "conclusion", where either side is line $either
@@ -266,13 +286,13 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
-        if inBound(orig, lineNr) && inBound(bottom, lineNr) then
-            (lines(orig - 1), lines(bottom - 1)) match {
-                case (Pf(o, _, _), Pf(b, _, _))
-                    if (b == Falsity() && concl == Not(o)) =>
-                    Success(input)
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
+        if verifyArgs(List(orig, bottom)) then
+            (lmap(orig), lmap(bottom)) match {
+                case (Pf(o, _, _), Pf(Falsity(), _, _)) if (concl == Not(o)) =>
+                    Success(None)
                 case (o, b) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be equal to ~(original) and "bottom" to be F
@@ -286,12 +306,13 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
         if inBound(orig, lineNr) then
-            lines(orig - 1) match {
+            lmap(orig) match {
                 case Pf(o, _, _) if concl == Not(Not(o)) =>
-                    Success(input)
+                    Success(None)
                 case o =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be equal to ~~(original)
@@ -305,14 +326,15 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
-        if inBound(orig, lineNr) && inBound(negated, lineNr) then
-            (lines(orig - 1), lines(negated - 1)) match {
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
+        if verifyArgs(List(orig, negated)) then
+            (lmap(orig), lmap(negated)) match {
                 case (Pf(o, _, _), Pf(n, _, _))
                     // we don't allow orig and negated to be reversed, same for the others
                     if (n == Not(o) && concl == Falsity()) =>
-                    Success(input)
+                    Success(None)
                 case (o, n) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be F and that ~(original) to be equal to "negated"
@@ -326,13 +348,14 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
-        if inBound(leftImp, lineNr) && inBound(rightImp, lineNr) then
-            (lines(leftImp - 1), lines(rightImp - 1)) match {
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
+        if verifyArgs(List(leftImp, rightImp)) then
+            (lmap(leftImp), lmap(rightImp)) match {
                 case (Pf(Implies(ll, lr), _, _), Pf(Implies(rl, rr), _, _))
                     if (ll == rr && lr == rl && concl == Equiv(ll, rr)) =>
-                    Success(input)
+                    Success(None)
                 case (l, r) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to have the same lhs and rhs as "left implication" and "right implication"
@@ -346,15 +369,17 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
         if inBound(orig, lineNr) then
-            (lines(orig - 1), concl) match {
+            (lmap(orig), concl) match {
                 case (Pf(o, _, _), Exists(x, f))
                     if !env(x) &&
-                        isSubstitutionOf(o, f, x) &&
-                        f.getVars().forall(env(_)) =>
-                    Success(input)
+                        isSubstitutionOf(o, f, x) =>
+                    // if the above holds then concl won't have any free variables
+                    // the proof is left as an exercise
+                    Success(None)
                 case (o, c) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
@@ -377,21 +402,20 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ): Result[String, Line] =
-        if inBound(const, lineNr) && inBound(conclForall, lineNr) then
-            (lines(const - 1), lines(conclForall - 1), concl) match {
+        concl: LFormula,
+        knowledge: Set[Line]
+    ): Result[String, Option[String]] =
+        if verifyArgs(List(const, conclForall)) then
+            (lmap(const), lmap(conclForall), concl) match {
                 case (
-                      Pf(c @ PredAp(Predicate(name, 0), Nil), _, _),
+                      Pf(PredAp(Predicate(c, 0), Nil), _, _),
                       Pf(fa, _, _),
                       Forall(x, f)
                     )
-                    if x == name &&
-                        isSubstitutionOf(fa, f, x) &&
+                    if fa.substitute(c, x) == f &&
                         !env(x) &&
-                        !f.getVars()(x) &&
-                        f.getVars().forall(env(_)) =>
-                    Success(input)
+                        !(f.getVars() intersect Set(c, x)).isEmpty =>
+                    Success(None)
                 case (c, fa, f) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
@@ -422,12 +446,13 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
+        concl: LFormula,
+        knowledge: Set[Line]
     ) =
         if inBound(orig, lineNr) then
-            (lines(orig - 1)) match {
-                case Pf(a @ And(l, r), _, _) if l == concl || r == concl =>
-                    Success(input)
+            (lmap(orig)) match {
+                case Pf(And(l, r), _, _) if l == concl || r == concl =>
+                    Success(None)
                 case a =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be either the lhs or rhs of "and"
@@ -441,12 +466,13 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
+        concl: LFormula,
+        knowledge: Set[Line]
     ) =
-        if inBound(ass, lineNr) && inBound(ass, lineNr) then
-            (lines(ass - 1), lines(imp - 1)) match {
+        if verifyArgs(List(ass, imp)) then
+            (lmap(ass), lmap(imp)) match {
                 case (Pf(a, _, _), Pf(i, _, _)) if i == Implies(a, concl) =>
-                    Success(input)
+                    Success(None)
                 case (a, i) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be the rhs of "implication" and "assumption" to be its lhs
@@ -467,32 +493,31 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
+        concl: LFormula,
+        knowledge: Set[Line],
+        pLookup: Map[Line, PfScope]
     ) =
-        if inBound(or, lineNr) &&
-            inBound(leftStart, lineNr) && inBound(rightStart, lineNr) &&
-            inBound(leftEnd, lineNr) && inBound(rightEnd, lineNr)
-        then
+        if verifyArgs(List(or, leftStart, rightStart, leftEnd, rightEnd)) then
             (
-              lines(or - 1),
-              lines(leftStart - 1),
-              lines(leftEnd - 1),
-              lines(rightStart - 1),
-              lines(rightEnd - 1)
+              lmap(or),
+              lmap(leftStart),
+              lmap(leftEnd),
+              lmap(rightStart),
+              lmap(rightEnd)
             ) match {
                 case (
                       or @ Pf(o, _, _),
-                      ls @ Pf(lsf, _, _),
+                      ls @ Pf(lsf, Ass(), _),
                       le @ Pf(lef, _, _),
-                      rs @ Pf(rsf, _, _),
+                      rs @ Pf(rsf, Ass(), _),
                       re @ Pf(ref, _, _)
                     )
-                    if main.isStartAndEndOfScope(ls, le) &&
-                        main.isStartAndEndOfScope(rs, re) &&
+                    if pLookup(ls) == pLookup(le) &&
+                        pLookup(rs) == pLookup(re) &&
                         lef == ref &&
                         lef == concl &&
                         o == Or(lsf, rsf) =>
-                    Success(input)
+                    Success(None)
 
                 case (or, ls, le, rs, re) =>
                     Failure(s"""
@@ -513,19 +538,17 @@ object Checker {
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyNotElim(
-        orig: Int,
-        negated: Int
-    )(using
+    private def tryVerifyNotElim(orig: Int, negated: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ) = if inBound(orig, lineNr) && inBound(negated, lineNr) then
-        (lines(orig - 1), lines(negated - 1)) match {
+        concl: LFormula,
+        knowledge: Set[Line]
+    ) = if verifyArgs(List(orig, negated)) then
+        (lmap(orig), lmap(negated)) match {
             case (Pf(o, _, _), Pf(n, _, _))
                 if n == Not(o) && concl == Falsity() =>
-                Success(input)
+                Success(None)
             case (o, n) =>
                 Failure(s"""
                         |rule ${input.rule} expects "~original" equals "negated", and "conclusion" equals F
@@ -538,11 +561,12 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
+        concl: LFormula,
+        knowledge: Set[Line]
     ) = if inBound(orig, lineNr) then
-        lines(orig - 1) match {
+        lmap(orig) match {
             case Pf(o, _, _) if o == Not(Not(concl)) =>
-                Success(input)
+                Success(None)
             case o =>
                 Failure(s"""
                         |rule ${input.rule} expects "~~conclusion" equals "original"
@@ -555,11 +579,13 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
+        concl: LFormula,
+        env: Set[String],
+        knowledge: Set[Line]
     ) = if inBound(bottom, lineNr) then
-        lines(bottom - 1) match {
-            case Pf(b, _, _) if b == Falsity() =>
-                Success(input)
+        lmap(bottom) match {
+            case Pf(Falsity(), _, _) if concl.getVars().forall(env(_)) =>
+                Success(None)
             case b =>
                 Failure(s"""
                         |rule ${input.rule} expects "bottom" to be equal to F
@@ -572,12 +598,13 @@ object Checker {
         input: Pf,
         lineNr: Int,
         lines: List[Line],
-        concl: LFormula
-    ) = if inBound(equiv, lineNr) && inBound(either, lineNr) then
-        (lines(equiv - 1), lines(either - 1)) match {
-            case (Pf(Equiv(l, r), _, _), Pf(ei, _, _))
-                if (l == ei && concl == r) && (r == ei && concl == l) =>
-                Success(input)
+        concl: LFormula,
+        knowledge: Set[Line]
+    ) = if verifyArgs(List(equiv, either)) then
+        (lmap(equiv), lmap(either)) match {
+            case (Pf(e, _, _), Pf(ei, _, _))
+                if e == Equiv(concl, ei) || e == Equiv(ei, concl) =>
+                Success(None)
             case (eq, ei) =>
                 Failure(s"""
                         |rule ${input.rule} expects "equiv" to be equal to "conclusion" <-> "either" OR "either" <-> "conclusion"
@@ -591,24 +618,25 @@ object Checker {
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
+        knowledge: Set[Line],
+        pLookup: Map[Line, PfScope],
         env: Set[String]
-    ) = if inBound(exists, lineNr) && inBound(ass, lineNr) && inBound(
-          assConcl,
-          lineNr
-        )
-    then
-        (lines(exists - 1), lines(ass - 1), lines(assConcl - 1)) match {
-            case (Pf(e @ Exists(x, f), _, _), Pf(a, _, _), Pf(ac, _, _))
-                if concl == ac && isSubstitutionOf(f, a, x) =>
-                // !!! IMPORTANT !!!
-                // There's a bug here, if we introduced `t` after line `ass`, the proof
-                // should be valid, but that requires us to get the valid env list at that time
+    ) = if verifyArgs(List(exists, ass, assConcl)) then
+        (lmap(exists), lmap(ass), lmap(assConcl)) match {
+            case (
+                  Pf(e @ Exists(x, f), _, _),
+                  al @ Pf(a, Ass(), _),
+                  cl @ Pf(ac, _, _)
+                )
+                if concl == ac &&
+                    pLookup(al) == pLookup(cl) &&
+                    isSubstitutionOf(f, a, x) =>
                 (a.getVars() removedAll e.getVars()).toList match {
                     case t :: Nil if env(t) =>
-                        Success(input)
+                        Success(None)
                     case _ =>
                         Failure(
-                          s"rule ${input.rule} expects assumed exist formula ($a) uses variables that was not defined previously"
+                          s"rule ${input.rule} expects implication from exists assumption to be free of assumed variable"
                         )
                 }
             case (e, a, ac) =>

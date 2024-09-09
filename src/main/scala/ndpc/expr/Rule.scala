@@ -3,8 +3,6 @@ package ndpc.expr
 import ndpc.expr.Formula._
 
 object Rule {
-    // We can put either in this (avoid code dup!)
-    // Still provides relatively strong type!
     sealed trait Rule
 
     // ∧-introduction, ∧I: you have to have already introduced both sides
