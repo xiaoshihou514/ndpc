@@ -187,11 +187,11 @@ object Checker {
                         tryVerifyExistsElim(exists, ass, assConcl)
                     case ForallElim(orig) => 
                         // orig = forall x. concl[c/x], c in env
-                        ???
-                    case ForallImpElim(ass, imp) => 
+                        tryVerifyForallElim(orig)
+                    case ForallImpElim(imp, ass) => 
                         // imp = forall x. f(x) -> g(x)
                         // ass = f(c), concl = g(c), c in env
-                        ???
+                        tryVerifyForallImpElim(imp, ass)
 
                     // The special ones
 
@@ -632,7 +632,7 @@ object Checker {
                     pLookup(al) == pLookup(cl) &&
                     isSubstitutionOf(f, a, x) =>
                 (a.getVars() removedAll e.getVars()).toList match {
-                    case t :: Nil if env(t) =>
+                    case t :: Nil if !ac.getVars()(t) =>
                         Success(None)
                     case _ =>
                         Failure(
@@ -641,8 +641,61 @@ object Checker {
                 }
             case (e, a, ac) =>
                 Failure(s"""
-                        |rule ${input.rule} expects
+                        |rule ${input.rule} expects reasons to be proofs
                 """.stripMargin)
+        }
+    else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyForallElim(orig: Int)(using
+        input: Pf,
+        lineNr: Int,
+        lines: List[Line],
+        concl: LFormula,
+        knowledge: Set[Line],
+        env: Set[String]
+    ) = if inBound(orig, lineNr) then
+        lmap(orig) match {
+            case Pf(Forall(x, conclF), _, _)
+                if !env(x) && isSubstitutionOf(concl, conclF, x) =>
+                (conclF.getVars() removedAll concl.getVars()).toList match {
+                    case t :: Nil if env(t) =>
+                        Success(None)
+                    case _ =>
+                        Failure(
+                          s"rule ${input.rule} expects substitution of forall uses bounded variable"
+                        )
+                }
+            case o =>
+                Failure(
+                  s"""
+                    |rule ${input.rule} expects "original" = forall "x". "conclusion"["y"/"x"]
+                    |in particular, $o = forall ?. $concl["y"/?]
+                    """.stripMargin
+                )
+        }
+    else outOfBound(lineNr, input.rule)
+
+    private def tryVerifyForallImpElim(imp: Int, ass: Int)(using
+        input: Pf,
+        lineNr: Int,
+        lines: List[Line],
+        concl: LFormula,
+        knowledge: Set[Line]
+    ) = if verifyArgs(List(imp, ass)) then
+        (lmap(imp), lmap(ass)) match {
+            case (Pf(Forall(x, Implies(af, i)), _, _), Pf(a, _, _))
+                if isSubstitutionOf(af, a, x) &&
+                    isSubstitutionOf(i, concl, x) &&
+                    (af.getVars() removedAll a.getVars()) ==
+                    (i.getVars() removedAll concl.getVars()) =>
+                Success(None)
+            case (i, a) =>
+                Failure(
+                  s"""
+                    |rule ${input.rule} expects "implication" = forall "x". "assumption"[?/x] -> "conclusion"[?/x]
+                    |in particular, $i = forall "x". ($a)[?/x] -> ($concl)[?/x]
+                    """.stripMargin
+                )
         }
     else outOfBound(lineNr, input.rule)
 }
