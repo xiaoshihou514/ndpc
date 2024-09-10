@@ -116,22 +116,16 @@ object Checker {
                 rule match {
                     // All the introductions
                     case AndIntro(left, right) => 
-                        // concl = left ^ right
                         tryVerifyAndIntro(left, right)
                     case ImpliesIntro(ass, res) =>
-                        // concl = ass -> res
                         tryVerifyImpliesIntro(ass, res)
                     case OrIntro(either) =>
-                        // concl = either / x OR concl = x / either
                         tryVerifyOrIntro(either)
                     case NotIntro(orig, bottom) =>
-                        // concl = ~orig, bottom = F
                         tryVerifyNotIntro(orig, bottom)
                     case DoubleNegIntro(orig) =>
-                        // concl = ~~orig
                         tryVerifyDoubleNegIntro(orig)
                     case FalsityIntro(orig, negated) =>
-                        // concl = F, negated = ~orig
                         tryVerifyFalsityIntro(orig, negated)
                     case TruthIntro() =>
                         // concl = T
@@ -142,55 +136,32 @@ object Checker {
                                     |$rule expects "conclusion" ($concl) to be T
                                     """.stripMargin)
                     case EquivIntro(leftImp, rightImp) =>
-                        // leftImp = l -> r, rightImp = r -> l, concl = l <-> r
                         tryVerifyEquivIntro(leftImp, rightImp)
                     case ExistsIntro(orig) =>
-                        // concl = exists x f, where f = orig[x/?], f no free vars
-                        // and x should not be defined previously
-                        tryVerifyExistsIntro(orig, env)
+                        tryVerifyExistsIntro(orig)
                     case ForallIntro(const, conclForall) =>
-                        // concl = forall sc f, where f = conclForall[sc/?], f no free vars
-                        // and f free of sk
-                        // and const = sk, a Var
-                        //  ..._but_ due to parser constraints, we should expect an 0-arity predAp
-                        // and x should not be defined previously
                         tryVerifyForallIntro(const, conclForall, env)
 
                     // All the eliminations
                     case AndElim(orig) =>
-                        // concl = orig ^ x OR concl = x ^ orig
                         tryVerifyAndElim(orig)
-                    case ImpliesElim(ass, imp) =>
-                        // imp = ass -> concl
-                        tryVerifyImpliesElim(ass, imp)
-                    case OrElim(or, ls, le, rs, re) =>
-                        // (ls, le), (rs, re) start and end of box
-                        // or = ls / rs
-                        // le = re = concl
-                        tryVerifyOrElim(or, ls, le, rs, re, main)
+                    case ImpliesElim(imp, ass) =>
+                        tryVerifyImpliesElim(imp, ass)
+                    case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
+                        tryVerifyOrElim(or, leftAss, leftConcl, rightAss, rightConcl)
                     case NotElim(orig, negated) => 
-                        // ~orig = negated
-                        // concl = F
                         tryVerifyNotElim(orig, negated)
                     case DoubleNegElim(orig) => 
-                        // ~~concl = orig
                         tryVerifyDoubleNegElim(orig)
                     case FalsityElim(bottom) => 
-                        // bottom = F
                         tryVerifyFalsityElim(bottom)
                     case EquivElim(equiv, either) => 
-                        // equiv = l <-> r, either = l OR either = r
                         tryVerifyEquivElim(equiv, either)
-                    case ExistsElim(exists, ass, assConcl) => 
-                        // exists = exists x. ass[c/x], c new var
-                        // concl = assConcl
-                        tryVerifyExistsElim(exists, ass, assConcl)
+                    case ExistsElim(exists, ass, conclExists) => 
+                        tryVerifyExistsElim(exists, ass, conclExists)
                     case ForallElim(orig) => 
-                        // orig = forall x. concl[c/x], c in env
                         tryVerifyForallElim(orig)
                     case ForallImpElim(imp, ass) => 
-                        // imp = forall x. f(x) -> g(x)
-                        // ass = f(c), concl = g(c), c in env
                         tryVerifyForallImpElim(imp, ass)
 
                     // The special ones
@@ -217,27 +188,29 @@ object Checker {
     private def lmap(lineNumber: Int)(using lines: List[Line]) =
         lines(lineNumber - 1)
 
-    private def tryVerifyAndIntro(left: Int, right: Int)(using
+    private def tryVerifyAndIntro(leftLine: Int, rightLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ): Result[String, Option[String]] =
-        if verifyArgs(List(left, right)) then
-            (lmap(left), lmap(right)) match {
-                case (Pf(l, _, _), Pf(r, _, _)) if (concl == And(l, r)) =>
+        if verifyArgs(List(leftLine, rightLine)) then
+            // concl = left ^ right
+            (lmap(leftLine), lmap(rightLine)) match {
+                case (Pf(left, _, _), Pf(right, _, _))
+                    if (concl == And(left, right)) =>
                     Success(None)
-                case (l, r) =>
+                case (left, right) =>
                     Failure(s"""
                             |rule ${input.rule} expects "lhs ^ rhs" to be equal to "conclusion"
-                            |in particular, "($l) ^ ($r)" to be equal to $concl
+                            |in particular, "($left) ^ ($right)" to be equal to $concl
                             |but it's not satisfied
                             """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyImpliesIntro(ass: Int, res: Int)(using
+    private def tryVerifyImpliesIntro(assLine: Int, resLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
@@ -245,35 +218,37 @@ object Checker {
         knowledge: Set[Line],
         parentLookup: Map[Line, PfScope]
     ): Result[String, Option[String]] =
-        if verifyArgs(List(ass, res)) then
-            (lmap(ass), lmap(res)) match {
-                // whether it's the begining of a box is checked beforehand
-                // so the rule being an Ass and ass and res being in the same box is sufficient
-                case (al @ Pf(a, Ass(), _), rl @ Pf(r, _, _))
-                    if (concl == Implies(a, r) &&
-                        parentLookup(al) == parentLookup(rl)) =>
+        if verifyArgs(List(assLine, resLine)) then
+            (lmap(assLine), lmap(resLine)) match {
+                // concl = ass -> res
+                // ass <==> res
+                case (a @ Pf(ass, Ass(), _), r @ Pf(res, _, _))
+                    if (concl == Implies(ass, res) &&
+                        parentLookup(a) == parentLookup(r)) =>
                     Success(None)
-                case (l, r) =>
+                case (ass, res) =>
                     Failure(s"""
-                            |rule ${input.rule} expects "lhs -> rhs" to be equal to "conclusion"
-                            |in particular, "($l) -> ($r)" to be equal to $concl
+                            |rule ${input.rule} expects "assumption -> implication" to be equal to "conclusion"
+                            |in particular, "($ass) -> ($res)" to be equal to $concl
                             |but it's not satisfied
                         """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyOrIntro(either: Int)(using
+    private def tryVerifyOrIntro(eitherLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ): Result[String, Option[String]] =
-        if inBound(either, lineNr) then
-            (lmap(either), concl) match {
-                case (Pf(lf, _, _), Or(l, r)) if lf == l || lf == r =>
+        if verifyArgs(List(eitherLine)) then
+            (lmap(eitherLine), concl) match {
+                // concl = either / x OR concl = x / either
+                case (Pf(either, _, _), Or(left, right))
+                    if either == left || either == right =>
                     Success(None)
-                case (e, concl) =>
+                case (either, _) =>
                     Failure(s"""
                             |rule ${input.rule} expects "x / y" to be equal to "conclusion", where either side is line $either
                             |in particular, $concl be of form "x / ($either)" or "($either) / x"
@@ -282,77 +257,86 @@ object Checker {
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyNotIntro(orig: Int, bottom: Int)(using
+    private def tryVerifyNotIntro(origLine: Int, bottomLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ): Result[String, Option[String]] =
-        if verifyArgs(List(orig, bottom)) then
-            (lmap(orig), lmap(bottom)) match {
-                case (Pf(o, _, _), Pf(Falsity(), _, _)) if (concl == Not(o)) =>
+        if verifyArgs(List(origLine, bottomLine)) then
+            (lmap(origLine), lmap(bottomLine)) match {
+                // concl = ~orig
+                // bottom = F
+                case (Pf(orig, _, _), Pf(Falsity(), _, _))
+                    if (concl == Not(orig)) =>
                     Success(None)
-                case (o, b) =>
+                case (orig, bottom) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be equal to ~(original) and "bottom" to be F
-                            |in particular, $concl to be equal to ~($o), and $b to be F
+                            |in particular, $concl to be equal to ~($orig), and $bottom to be F
                             |but it's not satisfied
                             """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyDoubleNegIntro(orig: Int)(using
+    private def tryVerifyDoubleNegIntro(origLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ): Result[String, Option[String]] =
-        if inBound(orig, lineNr) then
-            lmap(orig) match {
-                case Pf(o, _, _) if concl == Not(Not(o)) =>
+        if verifyArgs(List(origLine)) then
+            lmap(origLine) match {
+                // concl = ~~orig
+                case Pf(orig, _, _) if concl == Not(Not(orig)) =>
                     Success(None)
-                case o =>
+                case orig =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be equal to ~~(original)
-                            |in particular, $concl to be equal to ~~($o)
+                            |in particular, $concl to be equal to ~~($orig)
                             |but it's not satisfied
                             """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyFalsityIntro(orig: Int, negated: Int)(using
+    private def tryVerifyFalsityIntro(origLine: Int, negatedLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ): Result[String, Option[String]] =
-        if verifyArgs(List(orig, negated)) then
-            (lmap(orig), lmap(negated)) match {
-                case (Pf(o, _, _), Pf(n, _, _))
+        if verifyArgs(List(origLine, negatedLine)) then
+            (lmap(origLine), lmap(negatedLine)) match {
+                // concl = F
+                // ~orig = negated
+                case (Pf(orig, _, _), Pf(negated, _, _))
                     // we don't allow orig and negated to be reversed, same for the others
-                    if (n == Not(o) && concl == Falsity()) =>
+                    if (negated == Not(orig) && concl == Falsity()) =>
                     Success(None)
-                case (o, n) =>
+                case (orig, negated) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be F and that ~(original) to be equal to "negated"
-                            |in particular, $concl to be F, and ~($o) to be equal to $n
+                            |in particular, $concl to be F, and ~($orig) to be equal to $negated
                             |but it's not satisfied
                             """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyEquivIntro(leftImp: Int, rightImp: Int)(using
+    private def tryVerifyEquivIntro(leftImpLine: Int, rightImpLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ): Result[String, Option[String]] =
-        if verifyArgs(List(leftImp, rightImp)) then
-            (lmap(leftImp), lmap(rightImp)) match {
+        if verifyArgs(List(leftImpLine, rightImpLine)) then
+            (lmap(leftImpLine), lmap(rightImpLine)) match {
+                // leftImp = x -> y
+                // rightImp = y -> x
+                // concl = x <-> y
                 case (Pf(Implies(ll, lr), _, _), Pf(Implies(rl, rr), _, _))
                     if (ll == rr && lr == rl && concl == Equiv(ll, rr)) =>
                     Success(None)
@@ -365,38 +349,41 @@ object Checker {
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyExistsIntro(orig: Int, env: Set[String])(using
+    private def tryVerifyExistsIntro(origLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Set[Line],
+        env: Set[String]
     ): Result[String, Option[String]] =
-        if inBound(orig, lineNr) then
-            (lmap(orig), concl) match {
-                case (Pf(o, _, _), Exists(x, f))
+        if verifyArgs(List(origLine)) then
+            (lmap(origLine), concl) match {
+                // concl = exists x. orig[?/x]
+                // x free
+                case (Pf(orig, _, _), Exists(x, conclF))
                     if !env(x) &&
-                        isSubstitutionOf(o, f, x) =>
+                        isSubstitutionOf(orig, conclF, x) =>
                     // if the above holds then concl won't have any free variables
                     // the proof is left as an exercise
                     Success(None)
-                case (o, c) =>
+                case (orig, _) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
                             |and that the exist quantifier is a new variable "x"...
                             |and that the body of the exists formula has no free variables...
                             |and that the body of the exists formula is free of new variable "x"...
                             |But with 
-                            |    "conclusion" = $c
-                            |    "original" = $o
+                            |    "conclusion" = $concl
+                            |    "original" = $orig
                             |the relations are not satisfied
                             """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyForallIntro(
-        const: Int,
-        conclForall: Int,
+        constLine: Int,
+        conclForallLine: Int,
         env: Set[String]
     )(using
         input: Pf,
@@ -405,25 +392,29 @@ object Checker {
         concl: LFormula,
         knowledge: Set[Line]
     ): Result[String, Option[String]] =
-        if verifyArgs(List(const, conclForall)) then
-            (lmap(const), lmap(conclForall), concl) match {
+        if verifyArgs(List(constLine, conclForallLine)) then
+            (lmap(constLine), lmap(conclForallLine), concl) match {
+                // const = c
+                // concl = forall x. conclF[c/x]
+                // conclForall free of c
+                // x free
                 case (
                       Pf(PredAp(Predicate(c, 0), Nil), _, _),
-                      Pf(fa, _, _),
+                      Pf(conclForall, _, _),
                       Forall(x, f)
                     )
-                    if fa.substitute(c, x) == f &&
+                    if conclForall.substitute(c, x) == f &&
                         !env(x) &&
-                        !(f.getVars() intersect Set(c, x)).isEmpty =>
+                        !f.getVars()(c) =>
                     Success(None)
-                case (c, fa, f) =>
+                case (c, fa, _) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
                             |and that "const" introduced a variable...
                             |and that the forall quantifier is a new variable...
                             |and that the body of the exists formula has no free variables.
                             |But with 
-                            |    "conclusion" = $f
+                            |    "conclusion" = $concl
                             |    "original" = $fa
                             |    "const" = $c
                             |the relations are not satisfied
@@ -442,84 +433,101 @@ object Checker {
                 // original[t/x] == substituted?
                 .exists(t => original.substitute(t, x) == substituted)
 
-    private def tryVerifyAndElim(orig: Int)(using
+    private def tryVerifyAndElim(origLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ) =
-        if inBound(orig, lineNr) then
-            (lmap(orig)) match {
-                case Pf(And(l, r), _, _) if l == concl || r == concl =>
+        if verifyArgs(List(origLine)) then
+            (lmap(origLine)) match {
+                // orig = concl ^ x OR orig = x ^ concl
+                case Pf(And(left, right), _, _)
+                    if left == concl || right == concl =>
                     Success(None)
-                case a =>
+                case and =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be either the lhs or rhs of "and"
-                            |in particular, $concl to be the rhs or lhs of $a
+                            |in particular, $concl to be the rhs or lhs of $and
                             |but it's not satisfied
                     """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyImpliesElim(ass: Int, imp: Int)(using
+    private def tryVerifyImpliesElim(impLime: Int, assLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ) =
-        if verifyArgs(List(ass, imp)) then
-            (lmap(ass), lmap(imp)) match {
-                case (Pf(a, _, _), Pf(i, _, _)) if i == Implies(a, concl) =>
+        if verifyArgs(List(assLine, impLime)) then
+            (lmap(assLine), lmap(impLime)) match {
+                // imp = ass -> concl
+                case (Pf(ass, _, _), Pf(imp, _, _))
+                    if imp == Implies(ass, concl) =>
                     Success(None)
-                case (a, i) =>
+                case (ass, imp) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be the rhs of "implication" and "assumption" to be its lhs
-                            |in particular, $a -> $concl should be equal to $i
+                            |in particular, $ass -> $concl should be equal to $imp
                             |but it's not satisfied
                     """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
     private def tryVerifyOrElim(
-        or: Int,
-        leftStart: Int,
-        leftEnd: Int,
-        rightStart: Int,
-        rightEnd: Int,
-        main: PfScope
+        orLine: Int,
+        leftAssLine: Int,
+        leftConclLine: Int,
+        rightAssLine: Int,
+        rightConclLine: Int
     )(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line],
-        pLookup: Map[Line, PfScope]
+        pLookup: Map[Line, PfScope],
+        main: PfScope
     ) =
-        if verifyArgs(List(or, leftStart, rightStart, leftEnd, rightEnd)) then
+        if verifyArgs(
+              List(
+                orLine,
+                leftAssLine,
+                rightAssLine,
+                leftConclLine,
+                rightConclLine
+              )
+            )
+        then
             (
-              lmap(or),
-              lmap(leftStart),
-              lmap(leftEnd),
-              lmap(rightStart),
-              lmap(rightEnd)
+              lmap(orLine),
+              lmap(leftAssLine),
+              lmap(leftConclLine),
+              lmap(rightAssLine),
+              lmap(rightConclLine)
             ) match {
+                // leftAss <==> leftConcl
+                // RightAss <==> RightConcl
+                // or = leftAss / rightAss
+                // leftConcl = rightConcl = concl
                 case (
-                      or @ Pf(o, _, _),
-                      ls @ Pf(lsf, Ass(), _),
-                      le @ Pf(lef, _, _),
-                      rs @ Pf(rsf, Ass(), _),
-                      re @ Pf(ref, _, _)
+                      orl @ Pf(or, _, _),
+                      la @ Pf(leftAss, Ass(), _),
+                      lc @ Pf(leftConcl, _, _),
+                      ra @ Pf(rightAss, Ass(), _),
+                      rc @ Pf(rightConcl, _, _)
                     )
-                    if pLookup(ls) == pLookup(le) &&
-                        pLookup(rs) == pLookup(re) &&
-                        lef == ref &&
-                        lef == concl &&
-                        o == Or(lsf, rsf) =>
+                    if pLookup(la) == pLookup(lc) &&
+                        pLookup(ra) == pLookup(rc) &&
+                        leftConcl == rightConcl &&
+                        leftConcl == concl &&
+                        or == Or(leftAss, rightAss) =>
                     Success(None)
 
-                case (or, ls, le, rs, re) =>
+                case (or, la, lc, ra, rc) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to hold when either "lhs" or "rhs" is true
                             |"lhs start", "lhs end" should be the start and end of a box...
@@ -528,62 +536,67 @@ object Checker {
                             |"lhs start" / "rhs start" should be equal to the "or statement".
                             |But with
                             |    "or statement" = $or
-                            |    "lhs start" = $ls
-                            |    "lhs end" = $le
-                            |    "rhs start" = $rs
-                            |    "rhs end" = $re
+                            |    "lhs start" = $la
+                            |    "lhs end" = $lc
+                            |    "rhs start" = $ra
+                            |    "rhs end" = $rc
                             |    "conclustion" = $concl
                             |the conditions were not satisfied.
                     """.stripMargin)
             }
         else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyNotElim(orig: Int, negated: Int)(using
+    private def tryVerifyNotElim(origLine: Int, negatedLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
-    ) = if verifyArgs(List(orig, negated)) then
-        (lmap(orig), lmap(negated)) match {
-            case (Pf(o, _, _), Pf(n, _, _))
-                if n == Not(o) && concl == Falsity() =>
+    ) = if verifyArgs(List(origLine, negatedLine)) then
+        (lmap(origLine), lmap(negatedLine)) match {
+            // negated = ~orig
+            // concl = F
+            case (Pf(orig, _, _), Pf(negated, _, _))
+                if negated == Not(orig) && concl == Falsity() =>
                 Success(None)
-            case (o, n) =>
+            case (orig, negated) =>
                 Failure(s"""
                         |rule ${input.rule} expects "~original" equals "negated", and "conclusion" equals F
-                        |in particular, ~($orig) to be equal to $negated, and $concl to be equal to F
+                        |in particular, ~($origLine) to be equal to $negatedLine, and $concl to be equal to F
                 """.stripMargin)
         }
     else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyDoubleNegElim(orig: Int)(using
+    private def tryVerifyDoubleNegElim(origLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
-    ) = if inBound(orig, lineNr) then
-        lmap(orig) match {
-            case Pf(o, _, _) if o == Not(Not(concl)) =>
+    ) = if verifyArgs(List(origLine)) then
+        lmap(origLine) match {
+            // orig = ~~concl
+            case Pf(orig, _, _) if orig == Not(Not(concl)) =>
                 Success(None)
-            case o =>
+            case orig =>
                 Failure(s"""
                         |rule ${input.rule} expects "~~conclusion" equals "original"
-                        |in particular, ~~($concl) to be equal to $o
+                        |in particular, ~~($concl) to be equal to $orig
                 """.stripMargin)
         }
     else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyFalsityElim(bottom: Int)(using
+    private def tryVerifyFalsityElim(bottomLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         env: Set[String],
         knowledge: Set[Line]
-    ) = if inBound(bottom, lineNr) then
-        lmap(bottom) match {
+    ) = if verifyArgs(List(bottomLine)) then
+        lmap(bottomLine) match {
+            // bottom = F
+            // concl bounded
             case Pf(Falsity(), _, _) if concl.getVars().forall(env(_)) =>
                 Success(None)
             case b =>
@@ -594,26 +607,34 @@ object Checker {
         }
     else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyEquivElim(equiv: Int, either: Int)(using
+    private def tryVerifyEquivElim(equivLine: Int, eitherLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
-    ) = if verifyArgs(List(equiv, either)) then
-        (lmap(equiv), lmap(either)) match {
-            case (Pf(e, _, _), Pf(ei, _, _))
-                if e == Equiv(concl, ei) || e == Equiv(ei, concl) =>
+    ) = if verifyArgs(List(equivLine, eitherLine)) then
+        (lmap(equivLine), lmap(eitherLine)) match {
+            // equiv = either <-> concl OR equiv = concl <-> either
+            case (Pf(equiv, _, _), Pf(either, _, _))
+                if equiv == Equiv(concl, either) || equiv == Equiv(
+                  either,
+                  concl
+                ) =>
                 Success(None)
-            case (eq, ei) =>
+            case (equiv, either) =>
                 Failure(s"""
                         |rule ${input.rule} expects "equiv" to be equal to "conclusion" <-> "either" OR "either" <-> "conclusion"
-                        |in particular, $eq to be equal to ($concl) <-> ($ei) or reversed
+                        |in particular, $equiv to be equal to ($concl) <-> ($either) or reversed
                 """.stripMargin)
         }
     else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyExistsElim(exists: Int, ass: Int, assConcl: Int)(using
+    private def tryVerifyExistsElim(
+        existsLine: Int,
+        assLine: Int,
+        conclELine: Int
+    )(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
@@ -621,40 +642,47 @@ object Checker {
         knowledge: Set[Line],
         pLookup: Map[Line, PfScope],
         env: Set[String]
-    ) = if verifyArgs(List(exists, ass, assConcl)) then
-        (lmap(exists), lmap(ass), lmap(assConcl)) match {
+    ) = if verifyArgs(List(existsLine, assLine, conclELine)) then
+        (lmap(existsLine), lmap(assLine), lmap(conclELine)) match {
+            // ass <==> conclE
+            // exists = exists x. ass[?/x]
+            // concl = conclE
+            // conclE free of ?
             case (
-                  Pf(e @ Exists(x, f), _, _),
-                  al @ Pf(a, Ass(), _),
-                  cl @ Pf(ac, _, _)
+                  Pf(el @ Exists(x, f), _, _),
+                  al @ Pf(ass, Ass(), _),
+                  cl @ Pf(conclE, _, _)
                 )
-                if concl == ac &&
+                if concl == conclE &&
                     pLookup(al) == pLookup(cl) &&
-                    isSubstitutionOf(f, a, x) =>
-                (a.getVars() removedAll e.getVars()).toList match {
-                    case t :: Nil if !ac.getVars()(t) =>
+                    isSubstitutionOf(f, ass, x) =>
+                (ass.getVars() removedAll el.getVars()).toList match {
+                    case t :: Nil if !conclE.getVars()(t) =>
                         Success(None)
                     case _ =>
                         Failure(
                           s"rule ${input.rule} expects implication from exists assumption to be free of assumed variable"
                         )
                 }
-            case (e, a, ac) =>
+            case (exists, ass, conclE) =>
+                // TODO
                 Failure(s"""
                         |rule ${input.rule} expects reasons to be proofs
                 """.stripMargin)
         }
     else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyForallElim(orig: Int)(using
+    private def tryVerifyForallElim(origLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line],
         env: Set[String]
-    ) = if inBound(orig, lineNr) then
-        lmap(orig) match {
+    ) = if verifyArgs(List(origLine)) then
+        lmap(origLine) match {
+            // orig = forall x. concl[?/x]
+            // ? bounded
             case Pf(Forall(x, conclF), _, _)
                 if !env(x) && isSubstitutionOf(concl, conclF, x) =>
                 (conclF.getVars() removedAll concl.getVars()).toList match {
@@ -665,29 +693,30 @@ object Checker {
                           s"rule ${input.rule} expects substitution of forall uses bounded variable"
                         )
                 }
-            case o =>
+            case orig =>
                 Failure(
                   s"""
                     |rule ${input.rule} expects "original" = forall "x". "conclusion"["y"/"x"]
-                    |in particular, $o = forall ?. $concl["y"/?]
+                    |in particular, $orig = forall ?. $concl["y"/?]
                     """.stripMargin
                 )
         }
     else outOfBound(lineNr, input.rule)
 
-    private def tryVerifyForallImpElim(imp: Int, ass: Int)(using
+    private def tryVerifyForallImpElim(impLine: Int, assLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
-    ) = if verifyArgs(List(imp, ass)) then
-        (lmap(imp), lmap(ass)) match {
-            case (Pf(Forall(x, Implies(af, i)), _, _), Pf(a, _, _))
-                if isSubstitutionOf(af, a, x) &&
-                    isSubstitutionOf(i, concl, x) &&
-                    (af.getVars() removedAll a.getVars()) ==
-                    (i.getVars() removedAll concl.getVars()) =>
+    ) = if verifyArgs(List(impLine, assLine)) then
+        (lmap(impLine), lmap(assLine)) match {
+            // imp = forall x. ass[?/x] -> concl[?/x]
+            case (Pf(Forall(x, Implies(assF, conclF)), _, _), Pf(ass, _, _))
+                if isSubstitutionOf(assF, ass, x) &&
+                    isSubstitutionOf(conclF, concl, x) &&
+                    (assF.getVars() removedAll ass.getVars()) ==
+                    (conclF.getVars() removedAll concl.getVars()) =>
                 Success(None)
             case (i, a) =>
                 Failure(
