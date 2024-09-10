@@ -216,7 +216,7 @@ object Checker {
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line],
-        parentLookup: Map[Line, PfScope]
+        parent: Map[Line, PfScope]
     ): Result[String, Option[String]] =
         if verifyArgs(List(assLine, resLine)) then
             (lmap(assLine), lmap(resLine)) match {
@@ -224,7 +224,7 @@ object Checker {
                 // ass <==> res
                 case (a @ Pf(ass, Ass(), _), r @ Pf(res, _, _))
                     if (concl == Implies(ass, res) &&
-                        parentLookup(a) == parentLookup(r)) =>
+                        parent(a) == parent(r)) =>
                     Success(None)
                 case (ass, res) =>
                     Failure(s"""
@@ -400,12 +400,12 @@ object Checker {
                 // x free
                 case (
                       Pf(PredAp(Predicate(c, 0), Nil), _, _),
-                      Pf(conclForall, _, _),
+                      Pf(conclF, _, _),
                       Forall(x, f)
                     )
-                    if conclForall.substitute(c, x) == f &&
+                    if conclF.substitute(c, x) == f &&
                         !env(x) &&
-                        !f.getVars()(c) =>
+                        !conclF.getVars()(c) =>
                     Success(None)
                 case (c, fa, _) =>
                     Failure(s"""
@@ -489,7 +489,7 @@ object Checker {
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line],
-        pLookup: Map[Line, PfScope],
+        parent: Map[Line, PfScope],
         main: PfScope
     ) =
         if verifyArgs(
@@ -514,14 +514,14 @@ object Checker {
                 // or = leftAss / rightAss
                 // leftConcl = rightConcl = concl
                 case (
-                      orl @ Pf(or, _, _),
+                      Pf(or, _, _),
                       la @ Pf(leftAss, Ass(), _),
                       lc @ Pf(leftConcl, _, _),
                       ra @ Pf(rightAss, Ass(), _),
                       rc @ Pf(rightConcl, _, _)
                     )
-                    if pLookup(la) == pLookup(lc) &&
-                        pLookup(ra) == pLookup(rc) &&
+                    if parent(la) == parent(lc) &&
+                        parent(ra) == parent(rc) &&
                         leftConcl == rightConcl &&
                         leftConcl == concl &&
                         or == Or(leftAss, rightAss) =>
@@ -553,13 +553,13 @@ object Checker {
         concl: LFormula,
         knowledge: Set[Line]
     ) = if verifyArgs(List(origLine, negatedLine)) then
-        (lmap(origLine), lmap(negatedLine)) match {
+        (lmap(origLine), lmap(negatedLine), concl) match {
             // negated = ~orig
             // concl = F
-            case (Pf(orig, _, _), Pf(negated, _, _))
-                if negated == Not(orig) && concl == Falsity() =>
+            case (Pf(orig, _, _), Pf(negated, _, _), Falsity())
+                if negated == Not(orig) =>
                 Success(None)
-            case (orig, negated) =>
+            case (orig, negated, _) =>
                 Failure(s"""
                         |rule ${input.rule} expects "~original" equals "negated", and "conclusion" equals F
                         |in particular, ~($origLine) to be equal to $negatedLine, and $concl to be equal to F
@@ -617,10 +617,8 @@ object Checker {
         (lmap(equivLine), lmap(eitherLine)) match {
             // equiv = either <-> concl OR equiv = concl <-> either
             case (Pf(equiv, _, _), Pf(either, _, _))
-                if equiv == Equiv(concl, either) || equiv == Equiv(
-                  either,
-                  concl
-                ) =>
+                if equiv == Equiv(concl, either) ||
+                    equiv == Equiv(either, concl) =>
                 Success(None)
             case (equiv, either) =>
                 Failure(s"""
@@ -640,7 +638,7 @@ object Checker {
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line],
-        pLookup: Map[Line, PfScope],
+        parent: Map[Line, PfScope],
         env: Set[String]
     ) = if verifyArgs(List(existsLine, assLine, conclELine)) then
         (lmap(existsLine), lmap(assLine), lmap(conclELine)) match {
@@ -649,14 +647,14 @@ object Checker {
             // concl = conclE
             // conclE free of ?
             case (
-                  Pf(el @ Exists(x, f), _, _),
+                  Pf(ex @ Exists(x, assE), _, _),
                   al @ Pf(ass, Ass(), _),
                   cl @ Pf(conclE, _, _)
                 )
                 if concl == conclE &&
-                    pLookup(al) == pLookup(cl) &&
-                    isSubstitutionOf(f, ass, x) =>
-                (ass.getVars() removedAll el.getVars()).toList match {
+                    parent(al) == parent(cl) &&
+                    isSubstitutionOf(assE, ass, x) =>
+                (ass.getVars() removedAll assE.getVars()).toList match {
                     case t :: Nil if !conclE.getVars()(t) =>
                         Success(None)
                     case _ =>
@@ -684,8 +682,8 @@ object Checker {
             // orig = forall x. concl[?/x]
             // ? bounded
             case Pf(Forall(x, conclF), _, _)
-                if !env(x) && isSubstitutionOf(concl, conclF, x) =>
-                (conclF.getVars() removedAll concl.getVars()).toList match {
+                if isSubstitutionOf(concl, conclF, x) =>
+                (concl.getVars() removedAll conclF.getVars()).toList match {
                     case t :: Nil if env(t) =>
                         Success(None)
                     case _ =>
@@ -713,10 +711,10 @@ object Checker {
         (lmap(impLine), lmap(assLine)) match {
             // imp = forall x. ass[?/x] -> concl[?/x]
             case (Pf(Forall(x, Implies(assF, conclF)), _, _), Pf(ass, _, _))
-                if isSubstitutionOf(assF, ass, x) &&
-                    isSubstitutionOf(conclF, concl, x) &&
-                    (assF.getVars() removedAll ass.getVars()) ==
-                    (conclF.getVars() removedAll concl.getVars()) =>
+                if isSubstitutionOf(ass, assF, x) &&
+                    isSubstitutionOf(concl, conclF, x) &&
+                    (ass.getVars() removedAll assF.getVars()) ==
+                    (concl.getVars() removedAll conclF.getVars()) =>
                 Success(None)
             case (i, a) =>
                 Failure(
