@@ -27,9 +27,9 @@ object Formatter {
             case Pf(concl,rule,None) =>return " " * indent * 2 + 
                                                      concl.toString()+ " " + " " * (reasonAlign - concl.toString().length() - indent * 2) + "[" +
                                                      rule.toString() + "]"
-            case Pf(concl, rule, trailingComment) =>println(reasonAlign);return " " * indent * 2 + 
+            case Pf(concl, rule, Some(comment)) => return " " * indent * 2 + 
                                                      concl.toString()+ " " + " " * (reasonAlign - concl.toString().length() - indent * 2) + "[" +
-                                                     rule.toString() + "] " + trailingComment
+                                                     rule.toString() + "] -- " + comment
         }
     }
 
