@@ -8,7 +8,7 @@ object Formatter {
 
     private def maxOf(target1 : Int, target2: Int) : Int = if (target2 > target1) target2 else target1
 
-    def findReasonAlign(target : PfScope, ini_indent : Int = 0) : Int = {
+    private def findReasonAlign(target : PfScope, ini_indent : Int = 0) : Int = {
         var result = 0
         target.body.foreach((line)=> if (line.isInstanceOf[PfScope]){
                 //go deeper if we see another block
@@ -24,26 +24,31 @@ object Formatter {
         line match{
             case Empty() => return ""
             case Comment(contents) => return " " * indent * 2 + contents
-            case Pf(concl, rule, trailingComment) => return " " * indent * 2 + 
-                                                     concl.toString()+ " " + " " * (reasonAlign - concl.toString().length() - indent * 2) 
-                                                     rule.toString() + " " + trailingComment
+            case Pf(concl,rule,None) =>return " " * indent * 2 + 
+                                                     concl.toString()+ " " + " " * (reasonAlign - concl.toString().length() - indent * 2) + "[" +
+                                                     rule.toString() + "]"
+            case Pf(concl, rule, trailingComment) =>println(reasonAlign);return " " * indent * 2 + 
+                                                     concl.toString()+ " " + " " * (reasonAlign - concl.toString().length() - indent * 2) + "[" +
+                                                     rule.toString() + "] " + trailingComment
         }
     }
 
-    private def scopeFormatter(target : PfScope, currentIndent : Int, reasonAlign : Int) : String = {
+    def scopeFormatter(target : PfScope, currentIndent : Int, reasonAlign : Int) : String = {
         var result = ""
         target.body.foreach((line)=>
-            if (result != "") result + "\n"
             if (line.isInstanceOf[PfScope]){
-                result + scopeFormatter(line.asInstanceOf[PfScope], currentIndent + 1, reasonAlign)
+                result += scopeFormatter(line.asInstanceOf[PfScope], currentIndent + 1, reasonAlign)
             }else{
-                result + lineParser(line.asInstanceOf[Line], currentIndent, reasonAlign)
+                result += lineParser(line.asInstanceOf[Line], currentIndent, reasonAlign) + "\n"
             })
         return result
     }
     
-    def formatter(target:CheckedProof, currentIndent: Int = 0) : String = {
-        val thisScope = target.main
+    def formatter(target:UncheckedProof | CheckedProof) : String = {
+        val thisScope = target match{
+            case UncheckedProof(main, lines) => main
+            case CheckedProof(main) => main
+        }
         return scopeFormatter(thisScope , 0, findReasonAlign(thisScope))
     }
 }
