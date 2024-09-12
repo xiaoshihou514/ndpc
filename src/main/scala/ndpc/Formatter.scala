@@ -10,15 +10,13 @@ object Formatter {
 
     def findReasonAlign(target : PfScope[LF_], ini_indent : Int = 0) : Int = {
         var result = 0
-        for (line <- target.body){
-            if (line.isInstanceOf[PfScope[LF_]]){
+        target.body.foreach((line)=> if (line.isInstanceOf[PfScope[LF_]]){
                 //go deeper if we see another block
                 result = maxOf(result, findReasonAlign(line.asInstanceOf[PfScope[LF_]], ini_indent = ini_indent + 1))
             }else if (line.isInstanceOf[Pf[?]]){
                 // update result if we see a new useful line
                 result = maxOf(result, (line.asInstanceOf[Pf[?]]).concl.toString().length())
-            }
-        }
+            })
         return result + ini_indent * 2
     }
 
@@ -34,15 +32,13 @@ object Formatter {
 
     private def scopeFormatter(target : PfScope[LF_], currentIndent : Int, reasonAlign : Int) : String = {
         var result = ""
-        for (line <- target.body) {
+        target.body.foreach((line)=>
             if (result != "") result + "\n"
             if (line.isInstanceOf[PfScope[?]]){
                 result + scopeFormatter(line.asInstanceOf[PfScope[LF_]], currentIndent + 1, reasonAlign)
             }else{
                 result + lineParser(line.asInstanceOf[Line[?]], currentIndent, reasonAlign)
-            }
-
-        }
+            })
         return result
     }
     
