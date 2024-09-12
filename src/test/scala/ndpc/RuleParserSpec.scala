@@ -34,12 +34,14 @@ class RuleParserSpec extends UnitSpec {
         // Elimination
         assert(rule.parse("^E(7)").get === AndElim(7))
         assert(rule.parse("->E(3,8)").get === ImpliesElim(3, 8))
-        assert(rule.parse("/E ( 7, 11 )").get === OrElim(7, 11))
+        assert(
+          rule.parse("/E (1, 7, 11,12,13 )").get === OrElim(1, 7, 11, 12, 13)
+        )
         assert(rule.parse("~E (4, 5)").get === NotElim(4, 5))
         assert(rule.parse("~~E ( 1 )").get === DoubleNegElim(1))
-        assert(rule.parse("FE(7,1)").get === FalsityElim(7, 1))
+        assert(rule.parse("FE(7)").get === FalsityElim(7))
         assert(rule.parse("<->E (4,5)").get === EquivElim(4, 5))
-        assert(rule.parse("existsE(1,2)").get === ExistsElim(1, 2))
+        assert(rule.parse("existsE(1,2,3)").get === ExistsElim(1, 2, 3))
         assert(rule.parse("forallE (77)").get === ForallElim(77))
     }
 }

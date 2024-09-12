@@ -2,6 +2,7 @@ package ndpc.parsers
 
 import parsley.Parsley
 import parsley.Parsley.{some, atomic, lookAhead, pure, eof}
+import parsley.combinator.sepBy
 import parsley.character.satisfy
 import parsley.syntax.character.charLift
 import parsley.expr.{precedence, Ops, InfixL, Prefix}
@@ -16,7 +17,7 @@ import ndpc.parsers.Lexer.implicits.implicitSymbol
 object FormulaParser {
     // LTerm
     val variable = identifier.map(Variable.apply).label("variable")
-    val lterms = args(lterm)
+    val lterms = '(' ~> tolerant(sepBy(tolerant(lterm), ',')) <~ ')'
     lazy val funcAp: Parsley[FuncAp] =
         (identifier <~ spc <~> lterms)
             .label("function application")
@@ -61,24 +62,24 @@ object FormulaParser {
     lazy val forall =
         (("forall" ~> identifier <~ ".") <~> lformula)
         .label("forall statement")
-        .map { (res: (String, LF_)) =>
+        .map { (res: (String, LFormula)) =>
             Forall(res._1, res._2)
         }
     lazy val exists =
         (("exists" ~> identifier <~ ".")
         <~> lformula)
         .label("exists statement")
-        .map { (res: (String, LF_)) =>
+        .map { (res: (String, LFormula)) =>
             Exists(res._1, res._2)
         }
-    val atom: Parsley[LF_] = (
+    val atom: Parsley[LFormula] = (
         atomic(truth) <|>
         atomic(falsity) <|>
         atomic(equ) <|>
         atomic(predAp)
     ).label("Atom (T/F/equality/predicate application)")
-    .asInstanceOf[Parsley[LF_]] // come on scala, you can do this!
-    lazy val lformula: Parsley[LF_] = (
+    .asInstanceOf[Parsley[LFormula]] // come on scala, you can do this!
+    lazy val lformula: Parsley[LFormula] = (
         atomic(forall) <|>
         atomic(exists) <|>
         // "atom"-s connected by connectives

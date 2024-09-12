@@ -11,7 +11,7 @@ import parsley.errors.combinator._
 import parsley.debug._
 
 import ndpc.expr.Formula._
-import ndpc.expr.Rule.{Rule, ValidItem, Tick}
+import ndpc.expr.Rule.{Rule, Tick}
 import ndpc.parsers.FormulaParser
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 import ndpc.parsers.FormulaParser.lformula
@@ -22,39 +22,47 @@ import scala.io.Source
 import scala.util.Try
 
 object Parser {
-    sealed trait Line[A <: ValidItem]
-    case class Empty() extends Line[Int] {
+    sealed trait Line
+    case class Empty() extends Line {
         override def toString(): String = "<Empty Line>"
     }
-    case class Comment(contents: String) extends Line[Int] {
+    case class Comment(contents: String) extends Line {
         override def toString(): String = "<Comment>"
     }
-    case class Pf[A <: ValidItem](
-        val concl: LFormula[_],
-        val rule: Rule[A],
+    case class Pf(
+        val concl: LFormula,
+        val rule: Rule,
         val trailingComment: Option[Comment]
-    ) extends Line[A]
+    ) extends Line
 
-    case class PfScope[A <: ValidItem](var body: List[Line[A] | PfScope[A]])
+    case class PfScope(var body: List[Line | PfScope]) {
+        def isStartAndEndOfScope(line1: Line, line2: Line): Boolean =
+            (body.head == line1 && body.last == line2) ||
+                body.filter(_.isInstanceOf[PfScope])
+                    .exists(
+                      _.asInstanceOf[PfScope]
+                          .isStartAndEndOfScope(line1, line2)
+                    )
+    }
 
     private class State(
         var indentLevel: Int,
-        var cache: List[Line[Int]],
-        var scopeStack: List[PfScope[Int]]
+        var cache: List[Line],
+        var scopeStack: List[PfScope]
     ) {
         def getLast() = cache.last
 
-        def addLine(line: Line[Int]) = {
+        def addLine(line: Line) = {
             cache = cache :+ line
             this
         }
-        def addLineToTree(line: Line[Int]): State = {
+        def addLineToTree(line: Line): State = {
             // just append to current scope
             scopeStack.head.body = scopeStack.head.body :+ line
             this
         }
 
-        def pushScopeWith(line: Line[Int]): State = {
+        def pushScopeWith(line: Line): State = {
             val newScope = PfScope(List(line))
             // add new scope to current scope
             scopeStack.head.body = scopeStack.head.body :+ newScope
@@ -64,7 +72,7 @@ object Parser {
             this
         }
 
-        def popScopeWith(line: Line[Int]): State = {
+        def popScopeWith(line: Line): State = {
             val t = scopeStack.tail
             t.head.body = t.head.body :+ line
             indentLevel -= 2
@@ -73,7 +81,7 @@ object Parser {
         }
     }
 
-    case class UncheckedProof(main: PfScope[Int], lines: List[Line[Int]])
+    case class UncheckedProof(main: PfScope, lines: List[Line])
 
     private def emptyState() =
         State(0, List(), List(PfScope(List())))
@@ -97,20 +105,20 @@ object Parser {
             }
         ).as(Empty())
 
-        val pf: Parsley[Pf[Int]] = 
+        val pf: Parsley[Pf] = 
             state.update((
                 // TODO(xiaoshihou514): use lexeme
                 (lformula <~ spc) <~>
                 ("[" ~> rule <~ spc <~ "]") <~>
                 (lineComment.map(Option.apply) <|> '\n'.as(None))
             )
-            .map { (res: ((LF_, Rule[Int]), Option[Comment])) =>
+            .map { (res: ((LFormula, Rule), Option[Comment])) =>
                 Pf(res._1._1, res._1._2, res._2)
             }
             .map { pf => (s: State) =>
                 s.addLine(pf)
             }
-        ) ~> state.get.map(_.getLast().asInstanceOf[Pf[Int]])
+        ) ~> state.get.map(_.getLast().asInstanceOf[Pf])
 
         many(
             state.update((
@@ -138,12 +146,12 @@ object Parser {
                         } ~> state.gets(_.indentLevel - 2)
                     ).label("less indent than last line")
                 ) <~> pf.label("line of proof"))
-                ).map { (res: (Int, Line[Int])) => (s: State) =>
+                ).map { (res: (Int, Line)) => (s: State) =>
                     res match {
                         // these are not indent agnostic
                         case (_ , nonpf @ (Comment(_) | Empty())) =>
                             s.addLineToTree(nonpf)
-                        case (same, pf @ Pf[Int](_, rule, _)) if same == s.indentLevel => 
+                        case (same, pf @ Pf(_, rule, _)) if same == s.indentLevel => 
                             rule match {
                                 // pop scope if this line is a tick
                                 case Tick(_) => s.popScopeWith(pf)
