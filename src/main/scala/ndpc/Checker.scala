@@ -41,14 +41,18 @@ object Checker {
                     case _          => true
                 }
         }
-        if toJson then
-            println(buildErrorJson(errors.asInstanceOf[List[CheckError]]))
-        else println(buildErrorHuman(errors.asInstanceOf[List[CheckError]]))
+        if errors != Nil then
+            if toJson then
+                println(buildErrorJson(errors.asInstanceOf[List[CheckError]]))
+            else println(buildErrorHuman(errors.asInstanceOf[List[CheckError]]))
+        else println("All proofs are valid!")
         errors.length
 
-    private def buildErrorHuman(errors: List[CheckError]): String = ???
+    private def buildErrorHuman(errors: List[CheckError]): String =
+        errors.mkString
 
-    private def buildErrorJson(errors: List[CheckError]): String = ???
+    private def buildErrorJson(errors: List[CheckError]): String =
+        "buildErrorJson"
 
     // I really want consistent error handling here so I went for java exceptions,
     // which is well captured by scala.util.Try
@@ -99,7 +103,7 @@ object Checker {
             // TODO: put line numbers here
             case Some(l) =>
                 Failure(
-                  "Line $l uses rule given/premise, which should be positioned at the start of the proof only."
+                  s"Line $l uses rule given/premise, which should be positioned at the start of the proof only."
                 )
             case _ => // pass
         }
@@ -132,7 +136,7 @@ object Checker {
             .head match {
             case Pf(_, Ass(), _) => // pass
             case h =>
-                Failure(
+                return Failure(
                   "Line $l is the first line of a box, but does not use rule \"Assume\""
                 )
         }

@@ -20,7 +20,7 @@ object Main {
                 |  --json      print diagnostics in json
                 |format      format proof file
                 |  --apply     apply format to file instead of printing to stdout
-                |<default>   check proofs and generate pictures
+                |<default>   check proofs and generate html
                 """.stripMargin)
             case "format" :: tail =>
                 tail match
