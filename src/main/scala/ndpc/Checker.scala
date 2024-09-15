@@ -92,11 +92,32 @@ object Checker {
             }
         }
 
-    private def checkOne(upf: UncheckedProof): Result[String, CheckedProof] =
-        ???
+    private def checkOne(upf: UncheckedProof): Result[String, CheckedProof] = {
+        upf.lines
+            .dropWhile(_.isInstanceOf[Given | Premise])
+            .find(_.isInstanceOf[Given | Premise]) match {
+            // TODO: put line numbers here
+            case Some(l) =>
+                Failure(
+                  "Line $l uses rule given/premise, which should be positioned at the start of the proof only."
+                )
+            case _ => // pass
+        }
+
+        given lines: List[Line] = upf.lines
+        given main: PfScope = upf.main
+        given Set[String] = Set()
+        given Set[Line] = Set()
+        given Set[(Line, Line)] = Set()
+
+        tryVerify(main, 1) match {
+            case f @ Failure(_) => f
+            case _              => Success(CheckedProof(main))
+        }
+    }
 
     private def tryVerify(
-        input: Line,
+        input: PfScope,
         lineNr: Int
     )(using
         lines: List[Line],
@@ -104,11 +125,81 @@ object Checker {
         env: Set[String],
         knowledge: Set[Line],
         boxConcls: Set[(Line, Line)]
-    ) = {
-        given inputContext: Line = input
-        given lineNrContext: Int = lineNr
+    ): Result[String, Int] = {
+        // verify head
+        input.body
+            .dropWhile(_.isInstanceOf[Comment | Empty])
+            .head match {
+            case Pf(_, Ass(), _) => // pass
+            case h =>
+                Failure(
+                  "Line $l is the first line of a box, but does not use rule \"Assume\""
+                )
+        }
+
+        // build up state
+        val localKnowledge: Set[Line] = Set()
+
+        // no for loops :)
+        def go(
+            inputs: List[Line | PfScope],
+            lineNr: Int
+        ): Result[String, Int] = inputs match {
+            case Nil => Success(lineNr)
+            case input :: tail =>
+                input match {
+                    case p @ PfScope(_) =>
+                        tryVerify(p, lineNr) match {
+                            case f @ Failure(_) => f
+                            case Success(newLineNr) =>
+                                go(tail, newLineNr)
+                        }
+                    case line =>
+                        tryVerifyLine(
+                          line.asInstanceOf[Line],
+                          lineNr,
+                          knowledge union localKnowledge
+                        ) match {
+                            case f @ Failure(_) => f
+                            case Success(vars) =>
+                                env addAll vars
+                                localKnowledge add line.asInstanceOf[Line]
+                                go(tail, lineNr + 1)
+                        }
+                }
+        }
+
+        val result = go(input.body, lineNr)
+        // we should leave with nothing but the conclusion
+        // we may not need the vars also, but let's omit that for brecity
+        boxConcls add (
+          input.body
+              .dropWhile(_.isInstanceOf[Comment | Empty])
+              .head
+              .asInstanceOf[Line],
+          input.body.reverse
+              .dropWhile(_.isInstanceOf[Comment | Empty])
+              .head
+              .asInstanceOf[Line]
+        )
+        result
+    }
+
+    private def tryVerifyLine(
+        input: Line,
+        lineNr: Int,
+        knowledge: Set[Line]
+    )(using
+        lines: List[Line],
+        main: PfScope,
+        env: Set[String],
+        boxConcls: Set[(Line, Line)]
+    ): Result[String, List[String]] = {
+        given Set[Line] = knowledge
+        given Line = input
+        given Int = lineNr
         input match {
-            case nonpf @ (Comment(_) | Empty()) => Success(None)
+            case nonpf @ (Comment(_) | Empty()) => Success(Nil)
             // format: off
             case it @ Pf(concl, rule, _) => 
                 given conclusion: LFormula = concl
@@ -130,7 +221,7 @@ object Checker {
                     case TruthIntro() =>
                         // concl = T
                         if concl == Truth() then
-                            Success(None)
+                            Success(Nil)
                         else
                             Failure(s"""
                                     |$rule expects "conclusion" ($concl) to be T
@@ -180,10 +271,10 @@ object Checker {
                     case ForallIConst() =>
                         tryVerifyForallIConst()
                     case Given() | Premise() =>
-                        Success(Some(concl.getVars().toList))
+                        Success(concl.getVars().toList)
                     case Ass() =>
                         if concl.getVars().forall(env(_)) then
-                            Success(None)
+                            Success(Nil)
                         else
                             Failure(s"rule $rule expects assumed formula ($concl) to be bounded")
                     case Tick(orig) =>
@@ -221,7 +312,7 @@ object Checker {
             (lmap(leftLine), lmap(rightLine)) match {
                 case (Pf(left, _, _), Pf(right, _, _))
                     if (concl == And(left, right)) =>
-                    Success(None)
+                    Success(Nil)
                 case (left, right) =>
                     Failure(s"""
                             |rule ${input.rule} expects "lhs ^ rhs" to be equal to "conclusion"
@@ -245,7 +336,7 @@ object Checker {
                 // ass <==> res
                 case (a @ Pf(ass, Ass(), _), r @ Pf(res, _, _))
                     if (concl == Implies(ass, res) && boxConcls((a, r))) =>
-                    Success(None)
+                    Success(Nil)
                 case (ass, res) =>
                     Failure(s"""
                             |rule ${input.rule} expects "assumption -> implication" to be equal to "conclusion"
@@ -267,7 +358,7 @@ object Checker {
                 // concl = either / x OR concl = x / either
                 case (Pf(either, _, _), Or(left, right))
                     if either == left || either == right =>
-                    Success(None)
+                    Success(Nil)
                 case (either, _) =>
                     Failure(s"""
                             |rule ${input.rule} expects "x / y" to be equal to "conclusion", where either side is line $either
@@ -290,7 +381,7 @@ object Checker {
                 // bottom = F
                 case (Pf(orig, _, _), Pf(Falsity(), _, _))
                     if (concl == Not(orig)) =>
-                    Success(None)
+                    Success(Nil)
                 case (orig, bottom) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be equal to ~(original) and "bottom" to be F
@@ -311,7 +402,7 @@ object Checker {
             lmap(origLine) match {
                 // concl = ~~orig
                 case Pf(orig, _, _) if concl == Not(Not(orig)) =>
-                    Success(None)
+                    Success(Nil)
                 case orig =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be equal to ~~(original)
@@ -335,7 +426,7 @@ object Checker {
                 case (Pf(orig, _, _), Pf(negated, _, _))
                     // we don't allow orig and negated to be reversed, same for the others
                     if (negated == Not(orig) && concl == Falsity()) =>
-                    Success(None)
+                    Success(Nil)
                 case (orig, negated) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be F and that ~(original) to be equal to "negated"
@@ -359,7 +450,7 @@ object Checker {
                 // concl = x <-> y
                 case (Pf(Implies(ll, lr), _, _), Pf(Implies(rl, rr), _, _))
                     if (ll == rr && lr == rl && concl == Equiv(ll, rr)) =>
-                    Success(None)
+                    Success(Nil)
                 case (l, r) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to have the same lhs and rhs as "left implication" and "right implication"
@@ -386,7 +477,7 @@ object Checker {
                         isSubstitutionOf(orig, conclF, x) =>
                     // if the above holds then concl won't have any free variables
                     // the proof is left as an exercise
-                    Success(None)
+                    Success(Nil)
                 case (orig, _) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
@@ -426,7 +517,7 @@ object Checker {
                     if conclF.substitute(c, x) == f &&
                         !env(x) &&
                         !conclF.getVars()(c) =>
-                    Success(None)
+                    Success(Nil)
                 case (c, fa, _) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be "original" with variables substituted...
@@ -465,7 +556,7 @@ object Checker {
                 // orig = concl ^ x OR orig = x ^ concl
                 case Pf(And(left, right), _, _)
                     if left == concl || right == concl =>
-                    Success(None)
+                    Success(Nil)
                 case and =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be either the lhs or rhs of "and"
@@ -487,7 +578,7 @@ object Checker {
                 // imp = ass -> concl
                 case (Pf(ass, _, _), Pf(imp, _, _))
                     if imp == Implies(ass, concl) =>
-                    Success(None)
+                    Success(Nil)
                 case (ass, imp) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to be the rhs of "implication" and "assumption" to be its lhs
@@ -545,7 +636,7 @@ object Checker {
                         leftConcl == rightConcl &&
                         leftConcl == concl &&
                         or == Or(leftAss, rightAss) =>
-                    Success(None)
+                    Success(Nil)
 
                 case (or, la, lc, ra, rc) =>
                     Failure(s"""
@@ -578,7 +669,7 @@ object Checker {
             // concl = F
             case (Pf(orig, _, _), Pf(negated, _, _), Falsity())
                 if negated == Not(orig) =>
-                Success(None)
+                Success(Nil)
             case (orig, negated, _) =>
                 Failure(s"""
                         |rule ${input.rule} expects "~original" equals "negated", and "conclusion" equals F
@@ -597,7 +688,7 @@ object Checker {
         lmap(origLine) match {
             // orig = ~~concl
             case Pf(orig, _, _) if orig == Not(Not(concl)) =>
-                Success(None)
+                Success(Nil)
             case orig =>
                 Failure(s"""
                         |rule ${input.rule} expects "~~conclusion" equals "original"
@@ -618,7 +709,7 @@ object Checker {
             // bottom = F
             // concl bounded
             case Pf(Falsity(), _, _) if concl.getVars().forall(env(_)) =>
-                Success(None)
+                Success(Nil)
             case b =>
                 Failure(s"""
                         |rule ${input.rule} expects "bottom" to be equal to F
@@ -639,7 +730,7 @@ object Checker {
             case (Pf(equiv, _, _), Pf(either, _, _))
                 if equiv == Equiv(concl, either) ||
                     equiv == Equiv(either, concl) =>
-                Success(None)
+                Success(Nil)
             case (equiv, either) =>
                 Failure(s"""
                         |rule ${input.rule} expects "equiv" to be equal to "conclusion" <-> "either" OR "either" <-> "conclusion"
@@ -676,7 +767,7 @@ object Checker {
                     isSubstitutionOf(assE, ass, x) =>
                 (ass.getVars() removedAll assE.getVars()).toList match {
                     case t :: Nil if !conclE.getVars()(t) =>
-                        Success(None)
+                        Success(Nil)
                     case _ =>
                         Failure(
                           s"rule ${input.rule} expects implication from exists assumption to be free of assumed variable"
@@ -705,7 +796,7 @@ object Checker {
                 if isSubstitutionOf(concl, conclF, x) =>
                 (concl.getVars() removedAll conclF.getVars()).toList match {
                     case t :: Nil if env(t) =>
-                        Success(None)
+                        Success(Nil)
                     case _ =>
                         Failure(
                           s"rule ${input.rule} expects substitution of forall uses bounded variable"
@@ -735,7 +826,7 @@ object Checker {
                     isSubstitutionOf(concl, conclF, x) &&
                     (ass.getVars() removedAll assF.getVars()) ==
                     (concl.getVars() removedAll conclF.getVars()) =>
-                Success(None)
+                Success(Nil)
             case (i, a) =>
                 Failure(
                   s"""
@@ -755,7 +846,7 @@ object Checker {
         // x bounded
         case Or(t @ PredAp(Predicate(x, 0), Nil), notT)
             if Not(t) == notT && env(x) =>
-            Success(None)
+            Success(Nil)
         case _ =>
             Failure(
               s"rule ${input.rule} expects conclusion ($concl) to be of form x / ~x"
@@ -775,7 +866,7 @@ object Checker {
             // not = ~y
             case (Pf(Implies(left, right), _, _), Pf(Not(x), _, _))
                 if right == x && concl == Not(left) =>
-                Success(None)
+                Success(Nil)
             case (implies, negated) =>
                 Failure(s"""
                     |rule ${input.rule} expects "implication" = "x" -> "y"...
@@ -802,7 +893,7 @@ object Checker {
             // concl = F
             case (Pf(orig, _, _), Pf(negated, _, _))
                 if negated == Not(orig) && concl == Falsity() =>
-                Success(None)
+                Success(Nil)
             case (orig, negated) =>
                 Failure(s"""
                     |rule ${input.rule} expects "negated" = ~"original" and "conclusion" = F
@@ -825,7 +916,7 @@ object Checker {
         // WARN: not sure if we should expect a predAp
         // TODO: support funcAp
         case Eq(Variable(l), Variable(r)) if l == r && env(l) =>
-            Success(None)
+            Success(Nil)
         case _ =>
             Failure(s"""
                     |rule ${input.rule} expects "conclusion" ($concl) = "x" = "x"
@@ -844,7 +935,7 @@ object Checker {
             // concl = orig[a/b]
             case (Pf(orig, _, _), Pf(Eq(Variable(a), Variable(b)), _, _))
                 if orig.substitute(a, b) == concl =>
-                Success(None)
+                Success(Nil)
             case (orig, eq) =>
                 Failure(s"""
                         |rule ${input.rule} expects "conclusion"[x/y] = "original"
@@ -868,7 +959,7 @@ object Checker {
             // eq = a = b
             // concl = b = a
             case (Pf(Eq(l, r), _, _)) if concl == Eq(r, l) =>
-                Success(None)
+                Success(Nil)
             case (eq) =>
                 Failure(s"""
                         |rule ${input.rule} expects "eq" = x = y, "conclusion" = y = x
@@ -905,7 +996,7 @@ object Checker {
     ) = if verifyArgs(List(origLine)) then
         lmap(origLine) match {
             case Pf(orig, _, _) if orig == concl =>
-                Success(None)
+                Success(Nil)
             case orig =>
                 Failure(
                   s"rule ${input.rule} expects \"conclusion\" ($concl) to be equal to \"original\" ($orig)"
