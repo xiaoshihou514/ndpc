@@ -36,13 +36,13 @@ object Parser {
     ) extends Line
 
     case class PfScope(var body: List[Line | PfScope]) {
-        def isStartAndEndOfScope(line1: Line, line2: Line): Boolean =
-            (body.head == line1 && body.last == line2) ||
-                body.filter(_.isInstanceOf[PfScope])
-                    .exists(
-                      _.asInstanceOf[PfScope]
-                          .isStartAndEndOfScope(line1, line2)
-                    )
+        def exists(cond: Line => Boolean): Boolean =
+            body.exists(x =>
+                x match {
+                    case ps @ PfScope(_) => ps.exists(cond)
+                    case l               => cond(l.asInstanceOf[Line])
+                }
+            )
     }
 
     private class State(
@@ -75,6 +75,14 @@ object Parser {
         def popScopeWith(line: Line): State = {
             val t = scopeStack.tail
             t.head.body = t.head.body :+ line
+            indentLevel -= 2
+            scopeStack = t
+            this
+        }
+
+        def popScopeWithTick(tick: Line): State = {
+            scopeStack.head.body = scopeStack.head.body :+ tick
+            val t = scopeStack.tail
             indentLevel -= 2
             scopeStack = t
             this
@@ -154,7 +162,7 @@ object Parser {
                         case (same, pf @ Pf(_, rule, _)) if same == s.indentLevel => 
                             rule match {
                                 // pop scope if this line is a tick
-                                case Tick(_) => s.popScopeWith(pf)
+                                case Tick(_) => s.popScopeWithTick(pf)
                                 case _ => s.addLineToTree(pf)
                             }
                         case (indented, pf) if indented == s.indentLevel + 2 => 

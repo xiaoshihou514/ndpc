@@ -70,7 +70,9 @@ object Checker {
                 }
                 .map { (contents: String) =>
                     parse(contents) match {
-                        case Success(ast) => ast
+                        case Success(ast) => 
+                            println(ast)
+                            ast
                         case Failure(reason) =>
                             throw new ParserException(reason.toString())
                     }
@@ -96,28 +98,42 @@ object Checker {
             }
         }
 
+    private def isPremise(line: Line | PfScope) =
+        line match
+            case Pf(_, Given() | Premise(), _) => true
+            case _                             => false
+
+    private def isComment(line: Line | PfScope) =
+        line match {
+            case Empty() | Comment(_) => true
+            case _                    => false
+        }
+
     private def checkOne(upf: UncheckedProof): Result[String, CheckedProof] = {
-        upf.lines
-            .dropWhile(_.isInstanceOf[Given | Premise])
-            .find(_.isInstanceOf[Given | Premise]) match {
-            // TODO: put line numbers here
-            case Some(l) =>
-                Failure(
-                  s"Line $l uses rule given/premise, which should be positioned at the start of the proof only."
-                )
-            case _ => // pass
-        }
+        val pfs = upf.main.body.dropWhile(x => isPremise(x) || isComment(x))
+        if pfs.exists(supposedlyPf =>
+                supposedlyPf match {
+                    case l @ Pf(_, _, _) => isPremise(l)
+                    case ps @ PfScope(_) => ps.exists(isPremise(_))
+                    case _               => false
+                }
+            )
+        then
+            // TODO: put line number here
+            Failure(
+              "Did not expect \"Assume\" and \"Premise\" to be used in places other than the start of proof"
+            )
+        else
+            given lines: List[Line] = upf.lines
+            given main: PfScope = upf.main
+            given Set[String] = Set()
+            given Set[Line] = Set()
+            given Set[(Line, Line)] = Set()
 
-        given lines: List[Line] = upf.lines
-        given main: PfScope = upf.main
-        given Set[String] = Set()
-        given Set[Line] = Set()
-        given Set[(Line, Line)] = Set()
-
-        tryVerify(main, 1) match {
-            case f @ Failure(_) => f
-            case _              => Success(CheckedProof(main))
-        }
+            tryVerify(main, 1) match {
+                case f @ Failure(_) => f
+                case _              => Success(CheckedProof(main))
+            }
     }
 
     private def tryVerify(
@@ -132,13 +148,14 @@ object Checker {
     ): Result[String, Int] = {
         // verify head
         input.body
-            .dropWhile(_.isInstanceOf[Comment | Empty])
+            .dropWhile(x => isComment(x) || isPremise(x))
             .head match {
             case Pf(_, Ass(), _) => // pass
-            case h =>
+            case pf @ Pf(_, _, _) =>
                 return Failure(
-                  "Line $l is the first line of a box, but does not use rule \"Assume\""
+                  s"Line $pf is the first line of a box, but does not use rule \"Assume\""
                 )
+            case _ => // pass
         }
 
         // build up state
@@ -153,6 +170,7 @@ object Checker {
             case input :: tail =>
                 input match {
                     case p @ PfScope(_) =>
+                        given Set[Line] = knowledge addAll localKnowledge
                         tryVerify(p, lineNr) match {
                             case f @ Failure(_) => f
                             case Success(newLineNr) =>
@@ -176,16 +194,18 @@ object Checker {
         val result = go(input.body, lineNr)
         // we should leave with nothing but the conclusion
         // we may not need the vars also, but let's omit that for brecity
-        boxConcls add (
+        val concl = (
           input.body
-              .dropWhile(_.isInstanceOf[Comment | Empty])
+              .dropWhile(isComment(_))
               .head
               .asInstanceOf[Line],
           input.body.reverse
-              .dropWhile(_.isInstanceOf[Comment | Empty])
+              .dropWhile(isComment(_))
               .head
               .asInstanceOf[Line]
         )
+        boxConcls add concl
+        knowledge addAll concl.toList
         result
     }
 
@@ -244,8 +264,8 @@ object Checker {
                         tryVerifyImpliesElim(imp, ass)
                     case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
                         tryVerifyOrElim(or, leftAss, leftConcl, rightAss, rightConcl)
-                    case NotElim(orig, negated) => 
-                        tryVerifyNotElim(orig, negated)
+                    case NotElim(negated, orig) => 
+                        tryVerifyNotElim(negated, orig)
                     case DoubleNegElim(orig) => 
                         tryVerifyDoubleNegElim(orig)
                     case FalsityElim(bottom) => 
@@ -277,10 +297,7 @@ object Checker {
                     case Given() | Premise() =>
                         Success(concl.getVars().toList)
                     case Ass() =>
-                        if concl.getVars().forall(env(_)) then
-                            Success(Nil)
-                        else
-                            Failure(s"rule $rule expects assumed formula ($concl) to be bounded")
+                        Success(concl.getVars().toList)
                     case Tick(orig) =>
                         tryVerifyTick(orig)
                 }
@@ -661,7 +678,7 @@ object Checker {
             }
         else outOfBound(lineNr)
 
-    private def tryVerifyNotElim(origLine: Int, negatedLine: Int)(using
+    private def tryVerifyNotElim(negatedLine: Int, origLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
@@ -677,7 +694,7 @@ object Checker {
             case (orig, negated, _) =>
                 Failure(s"""
                         |rule ${input.rule} expects "~original" equals "negated", and "conclusion" equals F
-                        |in particular, ~($origLine) to be equal to $negatedLine, and $concl to be equal to F
+                        |in particular, ~($orig) to be equal to $negated, and $concl to be equal to F
                 """.stripMargin)
         }
     else outOfBound(lineNr)
@@ -763,12 +780,12 @@ object Checker {
             // conclE free of ?
             case (
                   Pf(ex @ Exists(x, assE), _, _),
-                  al @ Pf(ass, Ass(), _),
+                  al @ Pf(ass, _, _),
                   cl @ Pf(conclE, _, _)
                 )
                 if concl == conclE &&
                     boxConcls((al, cl)) &&
-                    isSubstitutionOf(assE, ass, x) =>
+                    isSubstitutionOf(ass, assE, x) =>
                 (ass.getVars() removedAll assE.getVars()).toList match {
                     case t :: Nil if !conclE.getVars()(t) =>
                         Success(Nil)
@@ -778,6 +795,10 @@ object Checker {
                         )
                 }
             case (exists, ass, conclE) =>
+                println(exists)
+                println(ass)
+                println(conclE)
+                println(boxConcls)
                 // TODO
                 Failure(s"""
                         |rule ${input.rule} expects reasons to be proofs

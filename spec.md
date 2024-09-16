@@ -17,8 +17,9 @@ forall n.(~odd (n) -> even(n)) [premise]
     -- indenting here creates a "box"
     odd (c)               [ass]
     even(c) / odd (c)     [/I(...)]
-    even(c) / odd (c)     [tick(8)] -- signify done
-    -- hence "box" ends here
+    even(c) / odd (c)     [tick(8)] -- signify done, you either do this...
+    -- ...or have a deindented line below
+    -- "box" ends here
 
     -- there has to be something that acts as a flag
     ~odd (c)              [ass]

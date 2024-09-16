@@ -76,8 +76,8 @@ object Rule {
             s"/E($or, $leftAss, $leftConcl, $rightAss, $rightConcl)"
     }
     // ¬-elimination, ¬E: 𝝓 and ¬𝝓 gives ⊥
-    case class NotElim(orig: Int, negated: Int) extends Rule {
-        override def toString(): String = s"~E($orig, $negated)"
+    case class NotElim(negated: Int, orig: Int) extends Rule {
+        override def toString(): String = s"~E($negated, $orig)"
     }
     // ¬¬Elimination, ¬¬E: From ¬¬𝝓, deduce 𝝓
     // 1 ¬¬𝝓    proved this somehow
