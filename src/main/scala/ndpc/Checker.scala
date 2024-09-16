@@ -3,11 +3,12 @@ package ndpc
 import ndpc.Parser._
 import ndpc.expr.Rule._
 import ndpc.expr.Formula._
+import ndpc.Utils._
 
 import scala.io.Source
 import scala.util.Try
-import parsley.{Success, Failure}
 import scala.collection.mutable.Set
+import parsley.{Success, Failure}
 import parsley.Result
 
 case class CheckedProof(main: PfScope)
@@ -42,17 +43,16 @@ object Checker {
                 }
         }
         if errors != Nil then
-            if toJson then
-                println(buildErrorJson(errors.asInstanceOf[List[CheckError]]))
-            else println(buildErrorHuman(errors.asInstanceOf[List[CheckError]]))
-        else println("All proofs are valid!")
+            if toJson then buildErrorJson(errors.asInstanceOf[List[CheckError]])
+            else buildErrorHuman(errors.asInstanceOf[List[CheckError]])
+        else ok("All proofs are valid!")
         errors.length
 
-    private def buildErrorHuman(errors: List[CheckError]): String =
-        errors.mkString
+    private def buildErrorHuman(errors: List[CheckError]) =
+        error(errors.mkString)
 
-    private def buildErrorJson(errors: List[CheckError]): String =
-        "buildErrorJson"
+    private def buildErrorJson(errors: List[CheckError]) =
+        println("buildErrorJson")
 
     // I really want consistent error handling here so I went for java exceptions,
     // which is well captured by scala.util.Try
@@ -70,7 +70,7 @@ object Checker {
                 }
                 .map { (contents: String) =>
                     parse(contents) match {
-                        case Success(ast) => 
+                        case Success(ast) =>
                             println(ast)
                             ast
                         case Failure(reason) =>
@@ -205,7 +205,6 @@ object Checker {
               .asInstanceOf[Line]
         )
         boxConcls add concl
-        knowledge addAll concl.toList
         result
     }
 
@@ -233,6 +232,7 @@ object Checker {
                     case AndIntro(left, right) => 
                         tryVerifyAndIntro(left, right)
                     case ImpliesIntro(ass, res) =>
+                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyImpliesIntro(ass, res)
                     case OrIntro(either) =>
                         tryVerifyOrIntro(either)
@@ -263,6 +263,7 @@ object Checker {
                     case ImpliesElim(imp, ass) =>
                         tryVerifyImpliesElim(imp, ass)
                     case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
+                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyOrElim(or, leftAss, leftConcl, rightAss, rightConcl)
                     case NotElim(negated, orig) => 
                         tryVerifyNotElim(negated, orig)
@@ -273,6 +274,7 @@ object Checker {
                     case EquivElim(equiv, either) => 
                         tryVerifyEquivElim(equiv, either)
                     case ExistsElim(exists, ass, conclExists) => 
+                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyExistsElim(exists, ass, conclExists)
                     case ForallElim(orig) => 
                         tryVerifyForallElim(orig)
