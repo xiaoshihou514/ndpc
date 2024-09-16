@@ -153,7 +153,7 @@ object Checker {
             input.body
                 .dropWhile(x => isComment(x) || isPremise(x))
                 .head match {
-                case Pf(_, Ass(), _) => // pass
+                case Pf(_, Ass() | ForallIConst(), _) => // pass
                 case pf @ Pf(_, _, _) =>
                     boundary.break(Failure(
                       s"Line $pf is the first line of a box, but does not use rule \"Assume\""
@@ -232,6 +232,7 @@ object Checker {
                     case OrIntro(either) =>
                         tryVerifyOrIntro(either)
                     case NotIntro(orig, bottom) =>
+                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyNotIntro(orig, bottom)
                     case DoubleNegIntro(orig) =>
                         tryVerifyDoubleNegIntro(orig)
@@ -250,6 +251,7 @@ object Checker {
                     case ExistsIntro(orig) =>
                         tryVerifyExistsIntro(orig)
                     case ForallIntro(const, conclForall) =>
+                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyForallIntro(const, conclForall, env)
 
                     // All the eliminations
@@ -525,16 +527,13 @@ object Checker {
             (lmap(constLine), lmap(conclForallLine), concl) match {
                 // const = c
                 // concl = forall x. conclF[c/x]
-                // conclForall free of c
                 // x free
                 case (
                       Pf(PredAp(Predicate(c, 0), Nil), _, _),
                       Pf(conclF, _, _),
                       Forall(x, f)
                     )
-                    if conclF.substitute(c, x) == f &&
-                        !env(x) &&
-                        !conclF.getVars()(c) =>
+                    if conclF.substitute(c, x) == f && !env(x) =>
                     Success(Nil)
                 case (c, fa, _) =>
                     Failure(s"""
