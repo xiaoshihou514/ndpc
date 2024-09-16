@@ -10,6 +10,7 @@ import scala.util.Try
 import scala.collection.mutable.Set
 import parsley.{Success, Failure}
 import parsley.Result
+import scala.util.boundary
 
 case class CheckedProof(main: PfScope)
 
@@ -146,66 +147,60 @@ object Checker {
         knowledge: Set[Line],
         boxConcls: Set[(Line, Line)]
     ): Result[String, Int] = {
-        // verify head
-        input.body
-            .dropWhile(x => isComment(x) || isPremise(x))
-            .head match {
-            case Pf(_, Ass(), _) => // pass
-            case pf @ Pf(_, _, _) =>
-                return Failure(
-                  s"Line $pf is the first line of a box, but does not use rule \"Assume\""
-                )
-            case _ => // pass
-        }
+        // it's readable, but pretty ugly IMO
+        boundary:
+            // verify head
+            input.body
+                .dropWhile(x => isComment(x) || isPremise(x))
+                .head match {
+                case Pf(_, Ass(), _) => // pass
+                case pf @ Pf(_, _, _) =>
+                    boundary.break(Failure(
+                      s"Line $pf is the first line of a box, but does not use rule \"Assume\""
+                    ))
+                case _ => // pass
+            }
 
-        // build up state
-        val localKnowledge: Set[Line] = Set()
+            // build up state
+            val localKnowledge: Set[Line] = Set()
 
-        // no for loops :)
-        def go(
-            inputs: List[Line | PfScope],
-            lineNr: Int
-        ): Result[String, Int] = inputs match {
-            case Nil => Success(lineNr)
-            case input :: tail =>
-                input match {
+            var offset = 0
+            for (line <- input.body) do {
+                line match {
                     case p @ PfScope(_) =>
                         given Set[Line] = knowledge addAll localKnowledge
-                        tryVerify(p, lineNr) match {
-                            case f @ Failure(_) => f
-                            case Success(newLineNr) =>
-                                go(tail, newLineNr)
+                        tryVerify(p, lineNr + offset) match {
+                            case f @ Failure(_)   => boundary.break(f)
+                            case Success(elapsed) => offset = offset + elapsed
                         }
                     case line =>
                         tryVerifyLine(
                           line.asInstanceOf[Line],
-                          lineNr,
+                          lineNr + offset,
                           knowledge union localKnowledge
                         ) match {
-                            case f @ Failure(_) => f
+                            case f @ Failure(_) => boundary.break(f) 
                             case Success(vars) =>
                                 env addAll vars
                                 localKnowledge add line.asInstanceOf[Line]
-                                go(tail, lineNr + 1)
                         }
                 }
-        }
+                offset = offset + 1
+            }
 
-        val result = go(input.body, lineNr)
-        // we should leave with nothing but the conclusion
-        // we may not need the vars also, but let's omit that for brecity
-        val concl = (
-          input.body
-              .dropWhile(isComment(_))
-              .head
-              .asInstanceOf[Line],
-          input.body.reverse
-              .dropWhile(isComment(_))
-              .head
-              .asInstanceOf[Line]
-        )
-        boxConcls add concl
-        result
+            // we should leave with nothing but the conclusion
+            // we may not need the vars also, but let's omit that for brecity
+            boxConcls add (
+              input.body
+                  .dropWhile(isComment(_))
+                  .head
+                  .asInstanceOf[Line],
+              input.body.reverse
+                  .dropWhile(isComment(_))
+                  .head
+                  .asInstanceOf[Line]
+            )
+            Success(offset)
     }
 
     private def tryVerifyLine(
@@ -797,11 +792,7 @@ object Checker {
                         )
                 }
             case (exists, ass, conclE) =>
-                println(exists)
-                println(ass)
-                println(conclE)
-                println(boxConcls)
-                // TODO
+                // TODO: more helpful error msg
                 Failure(s"""
                         |rule ${input.rule} expects reasons to be proofs
                 """.stripMargin)
