@@ -151,12 +151,13 @@ object Checker {
         boundary:
             // verify head
             input.body
-                .dropWhile(x => isComment(x) || isPremise(x))
+                .dropWhile(x => isComment(x))
                 .head match {
                 case Pf(_, Ass() | ForallIConst(), _) => // pass
+                case Pf(_, Given() | Premise(), _) => // pass
                 case pf @ Pf(_, _, _) =>
                     boundary.break(Failure(
-                      s"Line $pf is the first line of a box, but does not use rule \"Assume\""
+                      s"Line $pf is the first line of a box, but is not an assumption/given/premise/forall I const"
                     ))
                 case _ => // pass
             }
@@ -236,7 +237,7 @@ object Checker {
                         tryVerifyNotIntro(orig, bottom)
                     case DoubleNegIntro(orig) =>
                         tryVerifyDoubleNegIntro(orig)
-                    case FalsityIntro(orig, negated) =>
+                    case FalsityIntro(negated, orig) =>
                         tryVerifyFalsityIntro(orig, negated)
                     case TruthIntro() =>
                         // concl = T

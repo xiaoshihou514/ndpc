@@ -80,8 +80,8 @@ object Parser {
             this
         }
 
-        def popScopeWithTick(tick: Line): State = {
-            scopeStack.head.body = scopeStack.head.body :+ tick
+        def popScopeWithTick(line: Line): State = {
+            scopeStack.head.body = scopeStack.head.body :+ line
             val t = scopeStack.tail
             indentLevel -= 2
             scopeStack = t
@@ -96,29 +96,18 @@ object Parser {
 
     // format: off
     private val p: Parsley[UncheckedProof] = emptyState().makeRef { state =>
-        val lineComment = ("--" ~> manyTill(item, '\n'))
+        val comment = ("--" ~> manyTill(item, '\n'))
             .map(_.mkString)
             .map(Comment.apply)
 
-        // in linewise parsers we only append to the lines list since we don't know our indent
-        val comment = state.update(
-            lineComment.map { c => (s: State) =>
-                s.addLine(c)
-            }
-        ) ~> state.get.map(_.getLast())
-
-        val empty = state.update(
-            manyTill(" " <|> "\t", '\n').map { _ => (s: State) =>
-                s.addLine(Empty())
-            }
-        ).as(Empty())
+        val empty = manyTill(" " <|> "\t", '\n').as(Empty())
 
         val pf: Parsley[Pf] = 
             state.update((
                 // TODO(xiaoshihou514): use lexeme
                 (lformula <~ spc) <~>
                 ("[" ~> rule <~ spc <~ "]") <~>
-                (lineComment.map(Option.apply) <|> '\n'.as(None))
+                (comment.map(Option.apply) <|> '\n'.as(None))
             )
             .map { (res: ((LFormula, Rule), Option[Comment])) =>
                 Pf(res._1._1, res._1._2, res._2)
@@ -134,7 +123,7 @@ object Parser {
                 (
                     state.gets(_.indentLevel) <~> (
                     atomic(empty).label("empty line") <|>
-                    atomic(spc ~> lineComment).label("line comment")
+                    atomic(spc ~> comment).label("line comment")
                 )) <|>
                 // a line of proof has to have the correct indents
                 ((
