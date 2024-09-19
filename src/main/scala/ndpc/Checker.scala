@@ -71,9 +71,7 @@ object Checker {
                 }
                 .map { (contents: String) =>
                     parse(contents) match {
-                        case Success(ast) =>
-                            println(ast)
-                            ast
+                        case Success(ast) => ast
                         case Failure(reason) =>
                             throw new ParserException(reason.toString())
                     }
@@ -188,7 +186,8 @@ object Checker {
                                 )
                             case Success(vars) =>
                                 env addAll vars
-                                localKnowledge add line.asInstanceOf[Line]
+                                if line.isInstanceOf[Pf] then
+                                    localKnowledge add line.asInstanceOf[Line]
                         }
                         offset = offset + 1
                 }
@@ -957,7 +956,8 @@ object Checker {
             // eq = a = b
             // concl = orig[a/b]
             case (Pf(orig, _, _), Pf(Eq(Variable(a), Variable(b)), _, _))
-                if orig.substitute(a, b) == concl =>
+                if orig.substitute(a, b) == concl ||
+                    orig.substitute(b, a) == concl =>
                 Success(Nil)
             case (orig, eq) =>
                 Failure(s"""
@@ -966,6 +966,7 @@ object Checker {
                         |In particular,
                         |   "eq" = $eq
                         |   "conclusion" = $concl
+                        |   "original" = $orig
                         |But the relations are not satisfied
                 |""".stripMargin)
         }

@@ -11,7 +11,7 @@ import parsley.debug._
 
 import ndpc.expr.Formula._
 import ndpc.parsers.Utils._
-import ndpc.parsers.Lexer.{identifier, symbol}
+import ndpc.parsers.Lexer.{identifier, symbol, lexeme}
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 
 object FormulaParser {
@@ -19,7 +19,7 @@ object FormulaParser {
     val variable = identifier.map(Variable.apply).label("variable")
     val lterms = '(' ~> tolerant(sepBy(tolerant(lterm), ',')) <~ ')'
     lazy val funcAp: Parsley[FuncAp] =
-        (identifier <~ spc <~> lterms)
+        (lexeme(identifier) <~> lterms)
             .label("function application")
             .map { (res: (String, List[LTerm])) =>
                 FuncAp(
@@ -39,7 +39,7 @@ object FormulaParser {
     // a subset of first ordet logic in our syntax system.
     lazy val predAp: Parsley[PredAp] =
         (
-          (identifier <~ spc) <~> (lterms <|> pure(List()))
+          (lexeme(identifier)) <~> (lterms <|> pure(List()))
         )
             .label("predicate application")
             .map { (res: (String, List[LTerm])) =>

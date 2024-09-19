@@ -1,0 +1,27 @@
+a = b / a = c               [given]
+a = b / c = b               [given]
+P(a) / P(b)                 [given]
+  
+  a = b                     [ass]
+  a = b                     [tick(4)]
+
+  a = c                     [ass]
+    a = b                   [ass]
+    a = b                   [tick(7)]
+
+    c = b                   [ass]
+    a = b                   [=sub(6,9)]
+  a = b                     [/E(2,7,8,9,10)]
+
+a = b                       [/E(1,4,5,6,11)]
+
+  P(a)                      [ass]
+  P(b)                      [=sub(13,12)]
+  P(a) ^ P(b)               [^I(13,14)]
+  P(a) ^ P(b)               [tick(15)]
+
+  P(b)                      [ass]
+  P(a)                      [=sub(17,12)]
+  P(a) ^ P(b)               [^I(18,17)]
+
+P(a) ^ P(b)                 [/E(3,13,16,17,19)]

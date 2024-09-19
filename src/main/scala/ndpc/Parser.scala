@@ -20,6 +20,7 @@ import ndpc.parsers.Utils._
 
 import scala.io.Source
 import scala.util.Try
+import ndpc.parsers.Lexer.lexeme
 
 object Parser {
     sealed trait Line
@@ -104,9 +105,8 @@ object Parser {
 
         val pf: Parsley[Pf] = 
             state.update((
-                // TODO(xiaoshihou514): use lexeme
-                (lformula <~ spc) <~>
-                ("[" ~> rule <~ spc <~ "]") <~>
+                (lexeme(lformula)) <~>
+                ("[" ~> lexeme(rule) <~ "]") <~>
                 (comment.map(Option.apply) <|> '\n'.as(None))
             )
             .map { (res: ((LFormula, Rule), Option[Comment])) =>

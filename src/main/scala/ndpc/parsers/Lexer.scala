@@ -47,5 +47,5 @@ object Lexer {
     val number = lexer.lexeme.natural.decimal.label("number").map(_.toInt)
     val symbol = lexer.lexeme.symbol
     val implicits = lexer.lexeme.symbol.implicits
-    val lexeme = x => lexer.lexeme(x)
+    def lexeme[A](p: Parsley[A]): Parsley[A] = lexer.lexeme(p)
 }

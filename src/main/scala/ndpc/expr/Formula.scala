@@ -19,7 +19,7 @@ object Formula {
         def getVars(): Set[String] = Set(name)
         def substitute(from: String, to: String): LTerm =
             if name == from then Variable(to)
-            else this
+            else this.copy()
     }
     // 3. If f is an n-ary function symbol in L, and t1...tn are L-terms, then f (t1...tn) is an L-term.
     case class FuncAp(f: Function, args: List[LTerm]) extends LTerm {
