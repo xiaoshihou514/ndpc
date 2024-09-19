@@ -122,8 +122,8 @@ object Rule {
         override def toString(): String = "MT"
     }
     // Proof by contradiction
-    case class PC(orig: Int, neg: Int) extends Rule {
-        override def toString(): String = s"PC($orig, $neg)"
+    case class PC(orig: Int, bottom: Int) extends Rule {
+        override def toString(): String = s"PC($orig, $bottom)"
     }
     // forall a. a = a
     case class Refl() extends Rule {

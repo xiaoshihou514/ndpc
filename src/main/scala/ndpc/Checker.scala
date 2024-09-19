@@ -148,17 +148,19 @@ object Checker {
         boxConcls: Set[(Line, Line)]
     ): Result[String, Int] = {
         // it's readable, but pretty ugly IMO
-        boundary:
+        boundary {
             // verify head
             input.body
                 .dropWhile(x => isComment(x))
                 .head match {
                 case Pf(_, Ass() | ForallIConst(), _) => // pass
-                case Pf(_, Given() | Premise(), _) => // pass
+                case Pf(_, Given() | Premise(), _)    => // pass
                 case pf @ Pf(_, _, _) =>
-                    boundary.break(Failure(
-                      s"Line $pf is the first line of a box, but is not an assumption/given/premise/forall I const"
-                    ))
+                    boundary.break(
+                      Failure(
+                        s"Line $pf is the first line of a box, but is not an assumption/given/premise/forall I const"
+                      )
+                    )
                 case _ => // pass
             }
 
@@ -180,13 +182,16 @@ object Checker {
                           lineNr + offset,
                           knowledge union localKnowledge
                         ) match {
-                            case f @ Failure(_) => boundary.break(f) 
+                            case Failure(reason) =>
+                                boundary.break(
+                                  Failure(s"line ${lineNr + offset}:$reason")
+                                )
                             case Success(vars) =>
                                 env addAll vars
                                 localKnowledge add line.asInstanceOf[Line]
                         }
+                        offset = offset + 1
                 }
-                offset = offset + 1
             }
 
             // we should leave with nothing but the conclusion
@@ -202,6 +207,7 @@ object Checker {
                   .asInstanceOf[Line]
             )
             Success(offset)
+        }
     }
 
     private def tryVerifyLine(
@@ -246,7 +252,7 @@ object Checker {
                         else
                             Failure(s"""
                                     |$rule expects "conclusion" ($concl) to be T
-                                    """.stripMargin)
+                                    |""".stripMargin)
                     case EquivIntro(leftImp, rightImp) =>
                         tryVerifyEquivIntro(leftImp, rightImp)
                     case ExistsIntro(orig) =>
@@ -284,8 +290,9 @@ object Checker {
                         tryVerifyLEM()
                     case MT(imp, negated) =>
                         tryVerifyMT(imp, negated)
-                    case PC(orig, negated) =>
-                        tryVerifyPC(orig, negated)
+                    case PC(orig, bottom) =>
+                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
+                        tryVerifyPC(orig, bottom)
                     case Refl() =>
                         tryVerifyRefl()
                     case EqSub(orig, eq) =>
@@ -339,7 +346,7 @@ object Checker {
                             |rule ${input.rule} expects "lhs ^ rhs" to be equal to "conclusion"
                             |in particular, "($left) ^ ($right)" to be equal to $concl
                             |but it's not satisfied
-                            """.stripMargin)
+                            |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -363,7 +370,7 @@ object Checker {
                             |rule ${input.rule} expects "assumption -> implication" to be equal to "conclusion"
                             |in particular, "($ass) -> ($res)" to be equal to $concl
                             |but it's not satisfied
-                        """.stripMargin)
+                        |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -385,7 +392,7 @@ object Checker {
                             |rule ${input.rule} expects "x / y" to be equal to "conclusion", where either side is line $either
                             |in particular, $concl be of form "x / ($either)" or "($either) / x"
                             |but it's not satisfied
-                        """.stripMargin)
+                        |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -408,7 +415,7 @@ object Checker {
                             |rule ${input.rule} expects "conclusion" to be equal to ~(original) and "bottom" to be F
                             |in particular, $concl to be equal to ~($orig), and $bottom to be F
                             |but it's not satisfied
-                            """.stripMargin)
+                            |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -429,7 +436,7 @@ object Checker {
                             |rule ${input.rule} expects "conclusion" to be equal to ~~(original)
                             |in particular, $concl to be equal to ~~($orig)
                             |but it's not satisfied
-                            """.stripMargin)
+                            |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -453,7 +460,7 @@ object Checker {
                             |rule ${input.rule} expects "conclusion" to be F and that ~(original) to be equal to "negated"
                             |in particular, $concl to be F, and ~($orig) to be equal to $negated
                             |but it's not satisfied
-                            """.stripMargin)
+                            |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -477,7 +484,7 @@ object Checker {
                             |rule ${input.rule} expects "conclusion" to have the same lhs and rhs as "left implication" and "right implication"
                             |in particular, $concl to have the same lhs and rhs as $l and $r
                             |but it's not satisfied
-                            """.stripMargin)
+                            |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -509,7 +516,7 @@ object Checker {
                             |    "conclusion" = $concl
                             |    "original" = $orig
                             |the relations are not satisfied
-                            """.stripMargin)
+                            |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -533,8 +540,7 @@ object Checker {
                       Pf(PredAp(Predicate(c, 0), Nil), _, _),
                       Pf(conclF, _, _),
                       Forall(x, f)
-                    )
-                    if conclF.substitute(c, x) == f && !env(x) =>
+                    ) if conclF.substitute(c, x) == f && !env(x) =>
                     Success(Nil)
                 case (c, fa, _) =>
                     Failure(s"""
@@ -547,7 +553,7 @@ object Checker {
                             |    "original" = $fa
                             |    "const" = $c
                             |the relations are not satisfied
-                        """.stripMargin)
+                        |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -580,7 +586,7 @@ object Checker {
                             |rule ${input.rule} expects "conclusion" to be either the lhs or rhs of "and"
                             |in particular, $concl to be the rhs or lhs of $and
                             |but it's not satisfied
-                    """.stripMargin)
+                    |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -602,7 +608,7 @@ object Checker {
                             |rule ${input.rule} expects "conclusion" to be the rhs of "implication" and "assumption" to be its lhs
                             |in particular, $ass -> $concl should be equal to $imp
                             |but it's not satisfied
-                    """.stripMargin)
+                    |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -655,7 +661,6 @@ object Checker {
                         leftConcl == concl &&
                         or == Or(leftAss, rightAss) =>
                     Success(Nil)
-
                 case (or, la, lc, ra, rc) =>
                     Failure(s"""
                             |rule ${input.rule} expects "conclusion" to hold when either "lhs" or "rhs" is true
@@ -671,7 +676,7 @@ object Checker {
                             |    "rhs end" = $rc
                             |    "conclustion" = $concl
                             |the conditions were not satisfied.
-                    """.stripMargin)
+                    |""".stripMargin)
             }
         else outOfBound(lineNr)
 
@@ -692,7 +697,7 @@ object Checker {
                 Failure(s"""
                         |rule ${input.rule} expects "~original" equals "negated", and "conclusion" equals F
                         |in particular, ~($orig) to be equal to $negated, and $concl to be equal to F
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 
@@ -711,7 +716,7 @@ object Checker {
                 Failure(s"""
                         |rule ${input.rule} expects "~~conclusion" equals "original"
                         |in particular, ~~($concl) to be equal to $orig
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 
@@ -732,7 +737,7 @@ object Checker {
                 Failure(s"""
                         |rule ${input.rule} expects "bottom" to be equal to F
                         |in particular, $b to be equal to F
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 
@@ -753,7 +758,7 @@ object Checker {
                 Failure(s"""
                         |rule ${input.rule} expects "equiv" to be equal to "conclusion" <-> "either" OR "either" <-> "conclusion"
                         |in particular, $equiv to be equal to ($concl) <-> ($either) or reversed
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 
@@ -795,7 +800,7 @@ object Checker {
                 // TODO: more helpful error msg
                 Failure(s"""
                         |rule ${input.rule} expects reasons to be proofs
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 
@@ -825,7 +830,7 @@ object Checker {
                   s"""
                     |rule ${input.rule} expects "original" = forall "x". "conclusion"["y"/"x"]
                     |in particular, $orig = forall ?. $concl["y"/?]
-                    """.stripMargin
+                    |""".stripMargin
                 )
         }
     else outOfBound(lineNr)
@@ -850,7 +855,7 @@ object Checker {
                   s"""
                     |rule ${input.rule} expects "implication" = forall "x". "assumption"[?/x] -> "conclusion"[?/x]
                     |in particular, $i = forall "x". ($a)[?/x] -> ($concl)[?/x]
-                    """.stripMargin
+                    |""".stripMargin
                 )
         }
     else outOfBound(lineNr)
@@ -895,32 +900,32 @@ object Checker {
                     |   "implication" = $implies
                     |   "negated" = $negated
                     |But the relations are not satisfied
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 
-    private def tryVerifyPC(origLine: Int, negatedLine: Int)(using
+    private def tryVerifyPC(negatedLine: Int, bottomLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
-    ) = if verifyArgs(List(origLine, negatedLine)) then
-        (lmap(origLine), lmap(negatedLine)) match {
-            // negated = ~orig
-            // concl = F
-            case (Pf(orig, _, _), Pf(negated, _, _))
-                if negated == Not(orig) && concl == Falsity() =>
+    ) = if verifyArgs(List(negatedLine, bottomLine)) then
+        (lmap(negatedLine), lmap(bottomLine)) match {
+            // bottom = F
+            // concl = ~orig
+            case (Pf(negated, _, _), Pf(Falsity(), _, _))
+                if Not(concl) == negated =>
                 Success(Nil)
-            case (orig, negated) =>
+            case (negated, bottom) =>
                 Failure(s"""
-                    |rule ${input.rule} expects "negated" = ~"original" and "conclusion" = F
+                    |rule ${input.rule} expects "bottom" = "F" and "conclusion" = ~"original"
                     |In particular,
                     |   "conclusion" = $concl
+                    |   "bottom" = $bottom
                     |   "negated" = $negated
-                    |   "original" = $orig
                     |But the relations are not satisfied
-            """.stripMargin)
+            |""".stripMargin)
         }
     else outOfBound(lineNr)
 
@@ -938,7 +943,7 @@ object Checker {
         case _ =>
             Failure(s"""
                     |rule ${input.rule} expects "conclusion" ($concl) = "x" = "x"
-                """.stripMargin)
+                |""".stripMargin)
     }
 
     private def tryVerifyEqSub(origLine: Int, eqLine: Int)(using
@@ -962,7 +967,7 @@ object Checker {
                         |   "eq" = $eq
                         |   "conclusion" = $concl
                         |But the relations are not satisfied
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 
@@ -985,7 +990,7 @@ object Checker {
                         |   "eq" = $eq
                         |   "conclusion" = $concl
                         |But the relations are not satisfied
-                """.stripMargin)
+                |""".stripMargin)
         }
     else outOfBound(lineNr)
 

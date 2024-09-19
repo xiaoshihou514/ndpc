@@ -1,7 +1,7 @@
 package ndpc.parsers
 
 import parsley.Parsley
-import parsley.Parsley.{some, atomic, lookAhead, pure, eof}
+import parsley.Parsley.{some, atomic, lookAhead, pure, eof, notFollowedBy}
 import parsley.combinator.sepBy
 import parsley.character.satisfy
 import parsley.syntax.character.charLift
@@ -55,23 +55,14 @@ object FormulaParser {
                 Eq(res._1, res._2)
             }
     // T followed by some keyword
-    val truth = symbol.softKeyword("T").label("truth") as (Truth())
+    val truth =
+        (symbol.softKeyword("T").label("truth") as Truth())
+            <~ notFollowedBy('(')
     // F followed by some keyword
-    val falsity = symbol.softKeyword("F").label("falsity") as (Falsity())
+    val falsity =
+        (symbol.softKeyword("F").label("falsity") as Falsity())
+            <~ notFollowedBy('(')
     // format: off
-    lazy val forall =
-        (("forall" ~> identifier <~ ".") <~> lformula)
-        .label("forall statement")
-        .map { (res: (String, LFormula)) =>
-            Forall(res._1, res._2)
-        }
-    lazy val exists =
-        (("exists" ~> identifier <~ ".")
-        <~> lformula)
-        .label("exists statement")
-        .map { (res: (String, LFormula)) =>
-            Exists(res._1, res._2)
-        }
     val atom: Parsley[LFormula] = (
         atomic(truth) <|>
         atomic(falsity) <|>
@@ -80,14 +71,14 @@ object FormulaParser {
     ).label("Atom (T/F/equality/predicate application)")
     .asInstanceOf[Parsley[LFormula]] // come on scala, you can do this!
     lazy val lformula: Parsley[LFormula] = (
-        atomic(forall) <|>
-        atomic(exists) <|>
         // "atom"-s connected by connectives
         precedence(
-            tolerant('(' ~> tolerant(lformula) <~ ')') <|>
-            tolerant(atom)
+            tolerant(atom) <|>
+            tolerant(symbol.openParen ~> tolerant(lformula) <~ symbol.closingParen)
         )(
             Ops(Prefix)("~" as Not.apply),
+            Ops(Prefix)(("forall" ~> identifier <~ ".") <**> pure(ident => f => Forall(ident, f))),
+            Ops(Prefix)(("exists" ~> identifier <~ ".") <**> pure(ident => f => Exists(ident, f))),
             Ops(InfixL)("^" as And.apply),
             Ops(InfixL)("/" as Or.apply),
             Ops(InfixL)("->" as Implies.apply),
