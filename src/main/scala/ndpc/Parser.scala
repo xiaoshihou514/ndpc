@@ -28,7 +28,7 @@ object Parser {
         override def toString(): String = "<Empty Line>"
     }
     case class Comment(contents: String) extends Line {
-        override def toString(): String = "<Comment>"
+        override def toString(): String = contents
     }
     case class Pf(
         val concl: LFormula,

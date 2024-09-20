@@ -11,7 +11,7 @@ forall n.(~even(n) -> odd (n)) [premise]
 forall n.(~odd (n) -> even(n)) [premise]
   c [forall I const] -- example comment
   ~even(c) -> odd (c) [forallE(1)]
-  ~odd (c) -> even(c) [some reson]
+  ~odd (c) -> even(c) [some reason]
   odd (c) / ~odd (c)
 
     -- indenting here creates a "box"
