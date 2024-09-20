@@ -50,7 +50,7 @@ object Checker {
         errors.length
 
     private def buildErrorHuman(errors: List[CheckError]) =
-        error(errors.mkString)
+        error(errors.mkString("\n\n"))
 
     private def buildErrorJson(errors: List[CheckError]) =
         println("buildErrorJson")
@@ -87,15 +87,19 @@ object Checker {
                 case scala.util.Failure(exception) => {
                     exception match {
                         case ParserException(reason) =>
-                            Failure(SyntaxError(reason))
+                            Failure(SyntaxError(s"${fileInfo(input)}$reason"))
                         case CheckException(reason) =>
-                            Failure(SemanticsError(reason))
+                            Failure(
+                              SemanticsError(s"${fileInfo(input)}$reason")
+                            )
                         case throwable @ _ =>
                             Failure(IOError(throwable.toString()))
                     }
                 }
             }
         }
+
+    private def fileInfo(fname: String) = s"File $fname:\n"
 
     private def isPremise(line: Line | PfScope) =
         line match
@@ -536,10 +540,10 @@ object Checker {
                 // concl = forall x. conclF[c/x]
                 // x free
                 case (
-                      Pf(PredAp(Predicate(c, 0), Nil), _, _),
+                      Pf(c @ PredAp(_, Nil), _, _),
                       Pf(conclF, _, _),
                       Forall(x, f)
-                    ) if conclF.substitute(c, x) == f && !env(x) =>
+                    ) if conclF.substitute(c, PredAp(x, Nil)) == f && !env(x) =>
                     Success(Nil)
                 case (c, fa, _) =>
                     Failure(s"""
@@ -561,11 +565,17 @@ object Checker {
         substituted: LFormula,
         x: String
     ): Boolean =
+        println(s"original: $original, substituted: $substituted, x: $x")
         original == substituted ||
             original
                 .getVars()
                 // original[t/x] == substituted?
-                .exists(t => original.substitute(t, x) == substituted)
+                .exists(t =>
+                    original.substitute(
+                      PredAp(t, Nil),
+                      PredAp(x, Nil)
+                    ) == substituted
+                )
 
     private def tryVerifyAndElim(origLine: Int)(using
         input: Pf,
@@ -866,8 +876,8 @@ object Checker {
     ) = concl match {
         // concl = x / ~x
         // x bounded
-        case Or(t @ PredAp(Predicate(x, 0), Nil), notT)
-            if Not(t) == notT && env(x) =>
+        case Or(t @ PredAp(_, _), notT)
+            if Not(t) == notT && t.getVars().forall(env) =>
             Success(Nil)
         case _ =>
             Failure(
@@ -935,9 +945,8 @@ object Checker {
     ) = concl match {
         // concl = a = a
         // a bounded
-        // WARN: not sure if we should expect a predAp
-        // TODO: support funcAp
-        case Eq(Variable(l), Variable(r)) if l == r && env(l) =>
+        case Eq(l @ PredAp(_, _), r @ PredAp(_, _))
+            if l == r && l.getVars().forall(env) =>
             Success(Nil)
         case _ =>
             Failure(s"""
@@ -955,7 +964,7 @@ object Checker {
         (lmap(origLine), lmap(eqLine)) match {
             // eq = a = b
             // concl = orig[a/b]
-            case (Pf(orig, _, _), Pf(Eq(Variable(a), Variable(b)), _, _))
+            case (Pf(orig, _, _), Pf(Eq(a, b), _, _))
                 if orig.substitute(a, b) == concl ||
                     orig.substitute(b, a) == concl =>
                 Success(Nil)
@@ -1003,7 +1012,7 @@ object Checker {
         knowledge: Set[Line],
         env: Set[String]
     ) = concl match {
-        case PredAp(Predicate(c, 0), Nil) if !env(c) =>
+        case PredAp(c, Nil) if !env(c) =>
             Success(List(c))
         case _ =>
             Failure(

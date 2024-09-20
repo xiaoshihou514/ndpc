@@ -4,109 +4,31 @@ import ndpc.parsers.FormulaParser._
 import ndpc.expr.Formula._
 import scala.language.implicitConversions // yes, I know what I am doing
 
-given Conversion[String, Variable] with
-    def apply(s: String): Variable = Variable(s)
-def Fn = Function
-def P = Predicate
+given Conversion[String, PredAp] with
+    def apply(s: String): PredAp = PredAp(s, Nil)
 
 class FormulaParserSpec extends UnitSpec {
-    "A variable" should "be any non keyword string" in {
-        assert(variable.parse("valid").get == Variable("valid"))
-        assert(variable.parse("abc ").get == Variable("abc"))
-    }
-
-    "A function application" should "be a function followed by (, some lterms and a )" in {
-        val example = FuncAp(
-          Fn("foo", 3),
-          List("x", "y", "z")
-        )
-        assert(funcAp.parse("foo(x, y, z)").get == example)
-        assert(funcAp.parse("foo  (x , y,z  )").get == example)
-        val nested1 = FuncAp(
-          Fn("bar", 1),
-          List(example)
-        )
-        val nested2 = FuncAp(
-          Fn("bar", 2),
-          List(example, ("kk"))
-        )
-        val nested3 = FuncAp(
-          Fn("baz", 6),
-          List(nested2, "h", "j", "k", "l", nested1)
-        )
-        assert(funcAp.parse("bar (foo(x,y,z))").get == nested1)
-        assert(funcAp.parse("bar (foo(x,y,z)    , kk)").get == nested2)
-        assert(
-          funcAp
-              .parse(
-                "baz (bar (foo(x,y,z)    , kk), h, j  ,  k,l, bar (foo(x,y  ,z)))"
-              )
-              .get == nested3
-        )
-    }
-
-    "An LTerm" should "be a funcap or a variable" in {
-        assert(lterm.parse("par").get == Variable("par"))
-        assert(lterm.parse("sley").get == Variable("sley"))
-        val example = FuncAp(
-          Fn("foo", 3),
-          List("x", "y", "z")
-        )
-        assert(lterm.parse("foo(x, y, z)").get == example)
-        assert(lterm.parse("foo  (x , y,z  )").get == example)
-        val nested1 = FuncAp(
-          Fn("bar", 1),
-          List(example)
-        )
-        val nested2 = FuncAp(
-          Fn("bar", 2),
-          List(example, ("kk"))
-        )
-        val nested3 = FuncAp(
-          Fn("baz", 6),
-          List(nested2, "h", "j", "k", "l", nested1)
-        )
-        assert(lterm.parse("bar (foo(x,y,z))").get == nested1)
-        assert(lterm.parse("bar (foo(x,y,z)    , kk)").get == nested2)
-        assert(
-          lterm
-              .parse(
-                "baz (bar (foo(x,y,z)    , kk), h, j  ,  k,l, bar (foo(x,y  ,z)))"
-              )
-              .get == nested3
-        )
-    }
-
     "A predAp" should "be a predicate applied to multiple lterms" in {
-        val example1 = PredAp(
-          P("foo", 3),
-          List("x", "y", "z")
-        )
+        val example1 = PredAp("foo", List("x", "y", "z"))
         assert(predAp.parse("foo ( x, y, z )").get == example1)
         assert(lformula.parse("foo ( x, y, z )").get == example1)
         val example2 = PredAp(
-          P("foo", 2),
+          "foo",
           List(
-            FuncAp(
-              Fn("bar", 2),
-              List("ss", "l")
-            ),
+            PredAp("bar", List("ss", "l")),
             "w"
           )
         )
         assert(predAp.parse("foo( bar(ss,l), w)").get == example2)
         assert(lformula.parse("foo( bar(ss,l), w)").get == example2)
         val example3 = PredAp(
-          P("foo", 2),
+          "foo",
           List(
-            FuncAp(
-              Fn("bar", 2),
+            PredAp(
+              "bar",
               List(
                 "ss",
-                FuncAp(
-                  Fn("wacc", 4),
-                  List("w", "a", "c", "c")
-                )
+                PredAp("wacc", List("w", "a", "c", "c"))
               )
             ),
             "w"
@@ -122,38 +44,29 @@ class FormulaParserSpec extends UnitSpec {
               .parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)")
               .get == example3
         )
-        val sugar = PredAp(
-          P("foo", 0),
-          Nil
-        )
+        val sugar = PredAp("foo", Nil)
         assert(predAp.parse("foo^bar").get == sugar)
     }
 
-    "eq" should "be an lterm = an lterm" in {
+    "eq" should "be an predAp = an predAp" in {
         val example1 = Eq("a", "bb")
         assert(equ.parse("a   = bb").get == example1)
         assert(lformula.parse("a   = bb").get == example1)
         val example2 = Eq(
           "x",
-          FuncAp(
-            Fn("wuu", 2),
+          PredAp(
+            "wuu",
             List("a", "wa")
           )
         )
         assert(equ.parse("x=  wuu (  a, wa)").get == example2)
         assert(lformula.parse("x=  wuu (  a, wa)").get == example2)
         val example3 = Eq(
-          FuncAp(
-            Fn("jkjk", 0),
-            Nil
-          ),
-          FuncAp(
-            Fn("u", 1),
+          PredAp("jkjk", Nil),
+          PredAp(
+            "u",
             List(
-              FuncAp(
-                Fn("qo", 2),
-                List("j", "w")
-              )
+              PredAp("qo", List("j", "w"))
             )
           )
         )
@@ -170,13 +83,13 @@ class FormulaParserSpec extends UnitSpec {
 
     "An atom in a LFormula" should "be a predAp / T / F" in {
         val atom1 = PredAp(
-          P("TStartFunc", 3),
+          "TStartFunc",
           List(
-            FuncAp(
-              Fn("FStartFunc", 2),
+            PredAp(
+              "FStartFunc",
               List("a", "b")
             ),
-            FuncAp(Fn("fs", 0), Nil),
+            PredAp("fs", Nil),
             "j"
           )
         )
@@ -187,13 +100,13 @@ class FormulaParserSpec extends UnitSpec {
 
     "An lformula" should "be connectives + lfromula / forall(lformula) / exists(lformula)" in {
         val atomWithBrackets = PredAp(
-          P("TStartFunc", 3),
+          "TStartFunc",
           List(
-            FuncAp(
-              Fn("FStartFunc", 2),
+            PredAp(
+              "FStartFunc",
               List("a", "b")
             ),
-            FuncAp(Fn("fs", 0), Nil),
+            PredAp("fs", Nil),
             "j"
           )
         )
@@ -265,12 +178,12 @@ class FormulaParserSpec extends UnitSpec {
 
         val connectives_6 = And(
           Implies(
-            PredAp(P("p", 0), Nil),
-            PredAp(P("q", 0), Nil)
+            PredAp("p", Nil),
+            PredAp("q", Nil)
           ),
           Implies(
-            Not(PredAp(P("p", 0), Nil)),
-            PredAp(P("r", 0), Nil)
+            Not(PredAp("p", Nil)),
+            PredAp("r", Nil)
           )
         )
         assert(lformula.parse("(p -> q) ^ (~p -> r)").get == connectives_6)
@@ -278,8 +191,8 @@ class FormulaParserSpec extends UnitSpec {
         val connectives_7 = And(
           Eq("p", "q"),
           Implies(
-            Not(PredAp(P("p", 0), Nil)),
-            PredAp(P("r", 0), Nil)
+            Not(PredAp("p", Nil)),
+            PredAp("r", Nil)
           )
         )
         assert(
@@ -302,13 +215,13 @@ class FormulaParserSpec extends UnitSpec {
             "A",
             Or(
               PredAp(
-                P("foo", 3),
+                "foo",
                 List("𝝓", "φ", "A")
               ),
               Exists(
                 "B",
                 PredAp(
-                  P("bar", 2),
+                  "bar",
                   List("𝝓", "B")
                 )
               )
@@ -325,12 +238,12 @@ class FormulaParserSpec extends UnitSpec {
 
         val precedence = Implies(
           And(
-            PredAp(P("a", 0), Nil),
-            PredAp(P("b", 0), Nil)
+            PredAp("a", Nil),
+            PredAp("b", Nil)
           ),
           Equiv(
-            PredAp(P("a", 0), Nil),
-            PredAp(P("a", 0), Nil)
+            PredAp("a", Nil),
+            PredAp("a", Nil)
           )
         )
         assert(lformula.parse("a^b->(a<->a)").get == precedence)
@@ -342,10 +255,10 @@ class FormulaParserSpec extends UnitSpec {
           "x",
           Implies(
             And(
-              PredAp(P("dragon", 1), List("x")),
-              PredAp(P("green", 1), List("x"))
+              PredAp("dragon", List("x")),
+              PredAp("green", List("x"))
             ),
-            PredAp(P("fly", 1), List("x"))
+            PredAp("fly", List("x"))
           )
         )
         assert(
@@ -358,10 +271,10 @@ class FormulaParserSpec extends UnitSpec {
     "An LFormula" should "respect braces" in {
         val precedence =
             And(
-              PredAp(P("a", 0), Nil),
+              PredAp("a", Nil),
               Implies(
-                PredAp(P("a", 0), Nil),
-                PredAp(P("b", 0), Nil)
+                PredAp("a", Nil),
+                PredAp("b", Nil)
               )
             )
         assert(
