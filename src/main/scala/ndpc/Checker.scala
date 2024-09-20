@@ -99,7 +99,7 @@ object Checker {
             }
         }
 
-    private def fileInfo(fname: String) = s"File $fname:\n"
+    private def fileInfo(fname: String) = s"File $fname, "
 
     private def isPremise(line: Line | PfScope) =
         line match
@@ -285,8 +285,8 @@ object Checker {
                         tryVerifyExistsElim(exists, ass, conclExists)
                     case ForallElim(orig) => 
                         tryVerifyForallElim(orig)
-                    case ForallImpElim(imp, ass) => 
-                        tryVerifyForallImpElim(imp, ass)
+                    case ForallImpElim(ass, imp) => 
+                        tryVerifyForallImpElim(ass, imp)
 
                     // The special ones
                     case LEM() =>
@@ -543,7 +543,7 @@ object Checker {
                       Pf(c @ PredAp(_, Nil), _, _),
                       Pf(conclF, _, _),
                       Forall(x, f)
-                    ) if conclF.substitute(c, PredAp(x, Nil)) == f && !env(x) =>
+                    ) if conclF.substitutes(c, PredAp(x, Nil))(f) && !env(x) =>
                     Success(Nil)
                 case (c, fa, _) =>
                     Failure(s"""
@@ -565,16 +565,15 @@ object Checker {
         substituted: LFormula,
         x: String
     ): Boolean =
-        println(s"original: $original, substituted: $substituted, x: $x")
         original == substituted ||
             original
                 .getVars()
                 // original[t/x] == substituted?
                 .exists(t =>
-                    original.substitute(
+                    original.substitutes(
                       PredAp(t, Nil),
                       PredAp(x, Nil)
-                    ) == substituted
+                    )(substituted)
                 )
 
     private def tryVerifyAndElim(origLine: Int)(using
@@ -844,7 +843,7 @@ object Checker {
         }
     else outOfBound(lineNr)
 
-    private def tryVerifyForallImpElim(impLine: Int, assLine: Int)(using
+    private def tryVerifyForallImpElim(assLine: Int, impLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
@@ -965,8 +964,8 @@ object Checker {
             // eq = a = b
             // concl = orig[a/b]
             case (Pf(orig, _, _), Pf(Eq(a, b), _, _))
-                if orig.substitute(a, b) == concl ||
-                    orig.substitute(b, a) == concl =>
+                if orig.substitutes(a, b)(concl) ||
+                    orig.substitutes(b, a)(concl) =>
                 Success(Nil)
             case (orig, eq) =>
                 Failure(s"""
