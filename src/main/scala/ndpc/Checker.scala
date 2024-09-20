@@ -152,15 +152,29 @@ object Checker {
         // it's readable, but pretty ugly IMO
         boundary {
             // verify head
-            input.body
+            val head = input.body
                 .dropWhile(x => isComment(x))
-                .head match {
+                .head
+            head match {
                 case Pf(_, Ass() | ForallIConst(), _) => // pass
                 case Pf(_, Given() | Premise(), _)    => // pass
                 case pf @ Pf(_, _, _) =>
                     boundary.break(
                       Failure(
                         s"Line $pf is the first line of a box, but is not an assumption/given/premise/forall I const"
+                      )
+                    )
+                case _ => // pass
+            }
+
+            val tail = input.body.reverse
+                .dropWhile(isComment(_))
+                .head
+            tail match {
+                case scope @ PfScope(_) =>
+                    boundary.break(
+                      Failure(
+                        s"Box ended with another box, in particular, $scope"
                       )
                     )
                 case _ => // pass
@@ -198,17 +212,13 @@ object Checker {
             }
 
             // we should leave with nothing but the conclusion
-            // we may not need the vars also, but let's omit that for brecity
-            boxConcls add (
-              input.body
-                  .dropWhile(isComment(_))
-                  .head
-                  .asInstanceOf[Line],
-              input.body.reverse
-                  .dropWhile(isComment(_))
-                  .head
-                  .asInstanceOf[Line]
-            )
+            // we can also reuse the variables, but let's omit that for brecity
+            // it's possible that this scope is main and we did not begin with any premises
+            if head.isInstanceOf[Line] then
+                boxConcls add (
+                  head.asInstanceOf[Line],
+                  tail.asInstanceOf[Line],
+                )
             Success(offset)
         }
     }
@@ -797,17 +807,22 @@ object Checker {
                     boxConcls((al, cl)) &&
                     isSubstitutionOf(ass, assE, x) =>
                 (ass.getVars() removedAll assE.getVars()).toList match {
-                    case t :: Nil if !conclE.getVars()(t) =>
-                        Success(Nil)
+                    case Nil                              => Success(Nil)
+                    case t :: Nil if !conclE.getVars()(t) => Success(Nil)
                     case _ =>
                         Failure(
                           s"rule ${input.rule} expects implication from exists assumption to be free of assumed variable"
                         )
                 }
             case (exists, ass, conclE) =>
-                // TODO: more helpful error msg
                 Failure(s"""
-                        |rule ${input.rule} expects reasons to be proofs
+                        |rule ${input.rule} expects "concl" = "conclE"
+                        |...and that "ass" and "conclE" be the start and end of a box
+                        |...and "exists" = exists "x"' ass[?/x]
+                        |but with "exists" = $exists
+                        |         "ass" = $ass
+                        |         "conclE" = $conclE
+                        |         "concl" = $concl
                 |""".stripMargin)
         }
     else outOfBound(lineNr)
@@ -826,8 +841,8 @@ object Checker {
             case Pf(Forall(x, conclF), _, _)
                 if isSubstitutionOf(concl, conclF, x) =>
                 (concl.getVars() removedAll conclF.getVars()).toList match {
-                    case t :: Nil if env(t) =>
-                        Success(Nil)
+                    case Nil                => Success(Nil)
+                    case t :: Nil if env(t) => Success(Nil)
                     case _ =>
                         Failure(
                           s"rule ${input.rule} expects substitution of forall uses bounded variable"

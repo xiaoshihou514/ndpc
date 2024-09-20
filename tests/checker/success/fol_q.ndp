@@ -1,0 +1,11 @@
+forall x. likes(x, John) [premise]
+forall y. (likes(John, y) -> y = Jack) [premise]
+  ~(John = Jack) [ass]
+  likes(John, John) [forallE(1)]
+  likes(John, John) -> John = Jack [forallE(2)]
+  John = Jack [->E(5,4)]
+  F [~E(3,6)]
+John = Jack[PC(3,7)]
+
+
+  
