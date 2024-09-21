@@ -28,7 +28,7 @@ object Parser {
         override def toString(): String = "<Empty Line>"
     }
     case class Comment(contents: String) extends Line {
-        override def toString(): String = "<Comment>"
+        override def toString(): String = contents
     }
     case class Pf(
         val concl: LFormula,
@@ -96,7 +96,7 @@ object Parser {
         State(0, List(), List(PfScope(List())))
 
     // format: off
-    private val p: Parsley[UncheckedProof] = emptyState().makeRef { state =>
+    private def p(): Parsley[UncheckedProof] = emptyState().makeRef { state =>
         val comment = ("--" ~> manyTill(item, '\n'))
             .map(_.mkString)
             .map(Comment.apply)
@@ -165,5 +165,5 @@ object Parser {
     } <~ eof
     // format: on
 
-    def parse(input: String) = p.parse(input)
+    def parse(input: String) = p().parse(input)
 }

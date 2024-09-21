@@ -62,17 +62,17 @@ object RuleParser {
             // ~~E and ~~I
             atomic(
               "~~" ~> (
-                'E'.as((prev: Int) => DoubleNegElim(prev))
+                lexeme('E').as((prev: Int) => DoubleNegElim(prev))
                 .label("Double negation elimination") <|>
-                'I'.as((prev: Int) => DoubleNegIntro(prev))
+                lexeme('I').as((prev: Int) => DoubleNegIntro(prev))
                 .label("Double negation introduction")) <*> arg(number)
             ) <|>
             // ~E and ~I
             atomic(
               "~" ~> (
-                'E'.as((list: List[Int]) => NotElim(list(0), list(1)))
+                lexeme('E').as((list: List[Int]) => NotElim(list(0), list(1)))
                 .label("Not elimination") <|>
-                'I'.as((list: List[Int]) => NotIntro(list(0), list(1)))
+                lexeme('I').as((list: List[Int]) => NotIntro(list(0), list(1)))
                 .label("Not introduction")) <*> nNums(2)
             ) <|>
             // FE and FI
@@ -82,9 +82,9 @@ object RuleParser {
             // somehow if I change the order it won't work...
             (
               "<->" ~> (
-                  'I'.as((list: List[Int]) => EquivIntro(list(0), list(1)))
+                  lexeme('I').as((list: List[Int]) => EquivIntro(list(0), list(1)))
                   .label("Equiv introduction") <|>
-                  'E'.as((list: List[Int]) => EquivElim(list(0), list(1))))
+                  lexeme('E').as((list: List[Int]) => EquivElim(list(0), list(1))))
                   .label("Equiv elimination") <*> nNums(2)
             ) <|>
             // format: on

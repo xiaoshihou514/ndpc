@@ -50,7 +50,7 @@ object Checker {
         errors.length
 
     private def buildErrorHuman(errors: List[CheckError]) =
-        error(errors.mkString)
+        error(errors.mkString("\n\n"))
 
     private def buildErrorJson(errors: List[CheckError]) =
         println("buildErrorJson")
@@ -87,15 +87,19 @@ object Checker {
                 case scala.util.Failure(exception) => {
                     exception match {
                         case ParserException(reason) =>
-                            Failure(SyntaxError(reason))
+                            Failure(SyntaxError(s"${fileInfo(input)}$reason"))
                         case CheckException(reason) =>
-                            Failure(SemanticsError(reason))
+                            Failure(
+                              SemanticsError(s"${fileInfo(input)}$reason")
+                            )
                         case throwable @ _ =>
                             Failure(IOError(throwable.toString()))
                     }
                 }
             }
         }
+
+    private def fileInfo(fname: String) = s"File $fname, "
 
     private def isPremise(line: Line | PfScope) =
         line match
@@ -148,15 +152,29 @@ object Checker {
         // it's readable, but pretty ugly IMO
         boundary {
             // verify head
-            input.body
+            val head = input.body
                 .dropWhile(x => isComment(x))
-                .head match {
+                .head
+            head match {
                 case Pf(_, Ass() | ForallIConst(), _) => // pass
                 case Pf(_, Given() | Premise(), _)    => // pass
                 case pf @ Pf(_, _, _) =>
                     boundary.break(
                       Failure(
                         s"Line $pf is the first line of a box, but is not an assumption/given/premise/forall I const"
+                      )
+                    )
+                case _ => // pass
+            }
+
+            val tail = input.body.reverse
+                .dropWhile(isComment(_))
+                .head
+            tail match {
+                case scope @ PfScope(_) =>
+                    boundary.break(
+                      Failure(
+                        s"Box ended with another box, in particular, $scope"
                       )
                     )
                 case _ => // pass
@@ -194,17 +212,13 @@ object Checker {
             }
 
             // we should leave with nothing but the conclusion
-            // we may not need the vars also, but let's omit that for brecity
-            boxConcls add (
-              input.body
-                  .dropWhile(isComment(_))
-                  .head
-                  .asInstanceOf[Line],
-              input.body.reverse
-                  .dropWhile(isComment(_))
-                  .head
-                  .asInstanceOf[Line]
-            )
+            // we can also reuse the variables, but let's omit that for brecity
+            // it's possible that this scope is main and we did not begin with any premises
+            if head.isInstanceOf[Line] then
+                boxConcls add (
+                  head.asInstanceOf[Line],
+                  tail.asInstanceOf[Line],
+                )
             Success(offset)
         }
     }
@@ -281,8 +295,8 @@ object Checker {
                         tryVerifyExistsElim(exists, ass, conclExists)
                     case ForallElim(orig) => 
                         tryVerifyForallElim(orig)
-                    case ForallImpElim(imp, ass) => 
-                        tryVerifyForallImpElim(imp, ass)
+                    case ForallImpElim(ass, imp) => 
+                        tryVerifyForallImpElim(ass, imp)
 
                     // The special ones
                     case LEM() =>
@@ -536,10 +550,10 @@ object Checker {
                 // concl = forall x. conclF[c/x]
                 // x free
                 case (
-                      Pf(PredAp(Predicate(c, 0), Nil), _, _),
+                      Pf(c @ PredAp(_, Nil), _, _),
                       Pf(conclF, _, _),
                       Forall(x, f)
-                    ) if conclF.substitute(c, x) == f && !env(x) =>
+                    ) if conclF.substitutes(c, PredAp(x, Nil))(f) && !env(x) =>
                     Success(Nil)
                 case (c, fa, _) =>
                     Failure(s"""
@@ -565,7 +579,12 @@ object Checker {
             original
                 .getVars()
                 // original[t/x] == substituted?
-                .exists(t => original.substitute(t, x) == substituted)
+                .exists(t =>
+                    original.substitutes(
+                      PredAp(t, Nil),
+                      PredAp(x, Nil)
+                    )(substituted)
+                )
 
     private def tryVerifyAndElim(origLine: Int)(using
         input: Pf,
@@ -788,17 +807,22 @@ object Checker {
                     boxConcls((al, cl)) &&
                     isSubstitutionOf(ass, assE, x) =>
                 (ass.getVars() removedAll assE.getVars()).toList match {
-                    case t :: Nil if !conclE.getVars()(t) =>
-                        Success(Nil)
+                    case Nil                              => Success(Nil)
+                    case t :: Nil if !conclE.getVars()(t) => Success(Nil)
                     case _ =>
                         Failure(
                           s"rule ${input.rule} expects implication from exists assumption to be free of assumed variable"
                         )
                 }
             case (exists, ass, conclE) =>
-                // TODO: more helpful error msg
                 Failure(s"""
-                        |rule ${input.rule} expects reasons to be proofs
+                        |rule ${input.rule} expects "concl" = "conclE"
+                        |...and that "ass" and "conclE" be the start and end of a box
+                        |...and "exists" = exists "x"' ass[?/x]
+                        |but with "exists" = $exists
+                        |         "ass" = $ass
+                        |         "conclE" = $conclE
+                        |         "concl" = $concl
                 |""".stripMargin)
         }
     else outOfBound(lineNr)
@@ -817,8 +841,8 @@ object Checker {
             case Pf(Forall(x, conclF), _, _)
                 if isSubstitutionOf(concl, conclF, x) =>
                 (concl.getVars() removedAll conclF.getVars()).toList match {
-                    case t :: Nil if env(t) =>
-                        Success(Nil)
+                    case Nil                => Success(Nil)
+                    case t :: Nil if env(t) => Success(Nil)
                     case _ =>
                         Failure(
                           s"rule ${input.rule} expects substitution of forall uses bounded variable"
@@ -834,7 +858,7 @@ object Checker {
         }
     else outOfBound(lineNr)
 
-    private def tryVerifyForallImpElim(impLine: Int, assLine: Int)(using
+    private def tryVerifyForallImpElim(assLine: Int, impLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
@@ -866,8 +890,8 @@ object Checker {
     ) = concl match {
         // concl = x / ~x
         // x bounded
-        case Or(t @ PredAp(Predicate(x, 0), Nil), notT)
-            if Not(t) == notT && env(x) =>
+        case Or(t @ PredAp(_, _), notT)
+            if Not(t) == notT && t.getVars().forall(env) =>
             Success(Nil)
         case _ =>
             Failure(
@@ -935,9 +959,8 @@ object Checker {
     ) = concl match {
         // concl = a = a
         // a bounded
-        // WARN: not sure if we should expect a predAp
-        // TODO: support funcAp
-        case Eq(Variable(l), Variable(r)) if l == r && env(l) =>
+        case Eq(l @ PredAp(_, _), r @ PredAp(_, _))
+            if l == r && l.getVars().forall(env) =>
             Success(Nil)
         case _ =>
             Failure(s"""
@@ -955,9 +978,9 @@ object Checker {
         (lmap(origLine), lmap(eqLine)) match {
             // eq = a = b
             // concl = orig[a/b]
-            case (Pf(orig, _, _), Pf(Eq(Variable(a), Variable(b)), _, _))
-                if orig.substitute(a, b) == concl ||
-                    orig.substitute(b, a) == concl =>
+            case (Pf(orig, _, _), Pf(Eq(a, b), _, _))
+                if orig.substitutes(a, b)(concl) ||
+                    orig.substitutes(b, a)(concl) =>
                 Success(Nil)
             case (orig, eq) =>
                 Failure(s"""
@@ -1003,7 +1026,7 @@ object Checker {
         knowledge: Set[Line],
         env: Set[String]
     ) = concl match {
-        case PredAp(Predicate(c, 0), Nil) if !env(c) =>
+        case PredAp(c, Nil) if !env(c) =>
             Success(List(c))
         case _ =>
             Failure(

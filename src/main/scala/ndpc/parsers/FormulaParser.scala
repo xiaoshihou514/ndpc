@@ -15,43 +15,28 @@ import ndpc.parsers.Lexer.{identifier, symbol, lexeme}
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 
 object FormulaParser {
-    // LTerm
-    val variable = identifier.map(Variable.apply).label("variable")
-    val lterms = '(' ~> tolerant(sepBy(tolerant(lterm), ',')) <~ ')'
-    lazy val funcAp: Parsley[FuncAp] =
-        (lexeme(identifier) <~> lterms)
-            .label("function application")
-            .map { (res: (String, List[LTerm])) =>
-                FuncAp(
-                  Function(res._1, res._2.length),
-                  res._2
-                )
-            }
-
-    // funcAp needs to have a higher precedence (or the function name is parsed as a variable!)
-    lazy val lterm = (atomic(funcAp) <|> variable).label(
-      "lterm (function application or variable)"
-    )
 
     // LFormula
     // we introduce a bit of syntax sugar here, if a predicate has arity 0,
-    // you can omit the parenthesis, this makes propositional logic strictly
-    // a subset of first ordet logic in our syntax system.
+    // you can omit the parenthesis.
+    // we don't really need the original semantics anyway
+
+    val predAps =
+        symbol.openParen ~> lexeme(
+          sepBy(lexeme(predAp), lexeme(','))
+        ) <~ symbol.closingParen
     lazy val predAp: Parsley[PredAp] =
         (
-          (lexeme(identifier)) <~> (lterms <|> pure(List()))
+          (lexeme(identifier)) <~> (predAps <|> pure(Nil))
         )
             .label("predicate application")
-            .map { (res: (String, List[LTerm])) =>
-                PredAp(
-                  Predicate(res._1, res._2.length),
-                  res._2
-                )
+            .map { (res: (String, List[PredAp])) =>
+                PredAp(res._1, res._2)
             }
     val equ =
-        (lterm <~> "=" ~> lterm)
+        (predAp <~> "=" ~> predAp)
             .label("equality")
-            .map { (res: (LTerm, LTerm)) =>
+            .map { (res: (PredAp, PredAp)) =>
                 Eq(res._1, res._2)
             }
     // T followed by some keyword
@@ -76,6 +61,7 @@ object FormulaParser {
             tolerant(atom) <|>
             tolerant(symbol.openParen ~> tolerant(lformula) <~ symbol.closingParen)
         )(
+            Ops(InfixL)("=" as Eq.apply),
             Ops(Prefix)("~" as Not.apply),
             Ops(Prefix)(("forall" ~> identifier <~ ".") <**> pure(ident => f => Forall(ident, f))),
             Ops(Prefix)(("exists" ~> identifier <~ ".") <**> pure(ident => f => Exists(ident, f))),

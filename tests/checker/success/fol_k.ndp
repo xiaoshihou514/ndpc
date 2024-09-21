@@ -1,0 +1,15 @@
+forall x. (A(x) / B(x))     [premise]
+forall y. ~A(y)             [premise]
+  c                         [forall I const]
+  A(c) / B(c)               [forallE(1)]
+  ~A(c)                     [forallE(2)]
+
+    A(c)                    [ass]
+    F                       [~E(5,6)]
+    B(c)                    [FE(7)]
+    B(c)                    [tick(8)]
+
+    B(c)                    [ass]
+    B(c)                    [tick(10)]
+  B(c)                      [/E(4,6,9,10,11)]
+forall x. B(x)            [forallI(3,11)]

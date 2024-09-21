@@ -1,0 +1,5 @@
+  R(c, c)       [ass]
+  R(c, c)       [tick(1)]
+R(c,c) -> R(c, c) [->I(1, 2)]
+exists y. (R(c, y) -> R(y, c)) [existsI(3)]
+exists x. exists y. (R(x, y) -> R(y, x)) [existsI(4)]
