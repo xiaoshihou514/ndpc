@@ -891,9 +891,7 @@ object Checker {
         env: Set[String]
     ) = concl match {
         // concl = x / ~x
-        // x bounded
-        case Or(t @ PredAp(_, _), notT)
-            if Not(t) == notT && t.getVars().forall(env) =>
+        case Or(t @ PredAp(_, _), notT) if Not(t) == notT =>
             Success(Nil)
         case _ =>
             Failure(
