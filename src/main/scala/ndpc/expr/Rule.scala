@@ -32,8 +32,8 @@ object Rule {
     // 2 ...
     // 3 ¬𝝓 and this
     // 4 ⊥ ⊥I(1, 3)
-    case class FalsityIntro(negated: Int, orig: Int) extends Rule {
-        override def toString(): String = s"FI($negated, $orig)"
+    case class FalsityIntro(orig: Int, negated: Int) extends Rule {
+        override def toString(): String = s"FI($orig, $negated)"
     }
     // ⊤-introduction, You can introduce ⊤ anywhere (for all the good it does you).
     case class TruthIntro() extends Rule {

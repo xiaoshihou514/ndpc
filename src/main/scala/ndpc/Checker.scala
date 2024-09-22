@@ -256,7 +256,7 @@ object Checker {
                         tryVerifyNotIntro(orig, bottom)
                     case DoubleNegIntro(orig) =>
                         tryVerifyDoubleNegIntro(orig)
-                    case FalsityIntro(negated, orig) =>
+                    case FalsityIntro(orig, negated) =>
                         tryVerifyFalsityIntro(orig, negated)
                     case TruthIntro() =>
                         // concl = T
@@ -512,9 +512,9 @@ object Checker {
         if verifyArgs(List(origLine)) then
             (lmap(origLine), concl) match {
                 // concl = exists x. orig[?/x]
-                // x free
+                // x free in orig
                 case (Pf(orig, _, _), Exists(x, conclF))
-                    if !env(x) &&
+                    if !orig.getVars()(x) &&
                         isSubstitutionOf(orig, conclF, x) =>
                     // if the above holds then concl won't have any free variables
                     // the proof is left as an exercise
@@ -548,12 +548,14 @@ object Checker {
             (lmap(constLine), lmap(conclForallLine), concl) match {
                 // const = c
                 // concl = forall x. conclF[c/x]
-                // x free
+                // x free in conclF
                 case (
                       Pf(c @ PredAp(_, Nil), _, _),
                       Pf(conclF, _, _),
                       Forall(x, f)
-                    ) if conclF.substitutes(c, PredAp(x, Nil))(f) && !env(x) =>
+                    )
+                    if conclF.substitutes(c, PredAp(x, Nil))(f) &&
+                        !conclF.getVars()(x) =>
                     Success(Nil)
                 case (c, fa, _) =>
                     Failure(s"""
@@ -608,15 +610,15 @@ object Checker {
             }
         else outOfBound(lineNr)
 
-    private def tryVerifyImpliesElim(impLime: Int, assLine: Int)(using
+    private def tryVerifyImpliesElim(impLine: Int, assLine: Int)(using
         input: Pf,
         lineNr: Int,
         lines: List[Line],
         concl: LFormula,
         knowledge: Set[Line]
     ) =
-        if verifyArgs(List(assLine, impLime)) then
-            (lmap(assLine), lmap(impLime)) match {
+        if verifyArgs(List(assLine, impLine)) then
+            (lmap(assLine), lmap(impLine)) match {
                 // imp = ass -> concl
                 case (Pf(ass, _, _), Pf(imp, _, _))
                     if imp == Implies(ass, concl) =>
