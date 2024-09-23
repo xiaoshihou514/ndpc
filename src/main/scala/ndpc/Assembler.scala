@@ -1,5 +1,5 @@
 package ndpc
 
 object Assembler {
-    def compile(input: List[String]): Int = ???
+    def compile(input: List[String]): Int = 0
 }

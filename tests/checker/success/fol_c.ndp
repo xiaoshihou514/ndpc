@@ -1,0 +1,25 @@
+-- I am going to comment a lot in this file
+            -- because
+        --I
+    --      can
+
+exists x.       ~P(x)   [given] ------------This is still a comment
+    --~P(c) [ass]
+  ~P(c) [ass]
+ -- you can put comments
+    --everywhere
+    forall x.P(x) [ass]
+ --hjkl
+-- but your proofs have to have the correct indent
+-- also the rules take in line numbers...
+        -- ...as if there are no comments/empty lines!
+    P(c) [forallE(3)]
+    F   [FI(4,2)]--sameAsNotElimination
+    F[tick(5)]
+-- bam! invalid indent for comments!
+    -- no post lexer used even!
+  ~(forall x.P(x) )[~I (3,6)]
+  ~(forall x.P(x))  [tick(7)]
+
+-- empty line too
+~(forall    x   .P(x)   )   [existsE(   1,2 , 8)]

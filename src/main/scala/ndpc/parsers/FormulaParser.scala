@@ -1,7 +1,8 @@
 package ndpc.parsers
 
 import parsley.Parsley
-import parsley.Parsley.{some, atomic, lookAhead, pure, eof}
+import parsley.Parsley.{some, atomic, lookAhead, pure, eof, notFollowedBy}
+import parsley.combinator.sepBy
 import parsley.character.satisfy
 import parsley.syntax.character.charLift
 import parsley.expr.{precedence, Ops, InfixL, Prefix}
@@ -10,94 +11,64 @@ import parsley.debug._
 
 import ndpc.expr.Formula._
 import ndpc.parsers.Utils._
-import ndpc.parsers.Lexer.{identifier, symbol}
+import ndpc.parsers.Lexer.{identifier, symbol, lexeme}
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 
 object FormulaParser {
-    // utils
-    // need to hint scala about the type we want
-    private val neg: (LF_ => LF_) = LFormula.Not.apply
-    private val and: ((LF_, LF_) => LF_) = LFormula.And.apply
-    private val or: ((LF_, LF_) => LF_) = LFormula.Or.apply
-    private val implies: ((LF_, LF_) => LF_) = LFormula.Implies.apply
-    private val equiv: ((LF_, LF_) => LF_) = LFormula.Equiv.apply
-
-    // LTerm
-    val variable = identifier.map(LTerm.Variable.apply).label("variable")
-    val lterms = args(lterm)
-    lazy val funcAp: Parsley[LTerm.FuncAp] =
-        (identifier <~ spc <~> lterms)
-            .label("function application")
-            .map { (res: (String, List[LTerm])) =>
-                LTerm.FuncAp(
-                  Function(res._1, res._2.length),
-                  res._2
-                )
-            }
-
-    // funcAp needs to have a higher precedence (or the function name is parsed as a variable!)
-    lazy val lterm = (atomic(funcAp) <|> variable).label(
-      "lterm (function application or variable)"
-    )
 
     // LFormula
     // we introduce a bit of syntax sugar here, if a predicate has arity 0,
-    // you can omit the parenthesis, this makes propositional logic strictly
-    // a subset of first ordet logic in our syntax system.
-    lazy val predAp: Parsley[LFormula.PredAp] =
+    // you can omit the parenthesis.
+    // we don't really need the original semantics anyway
+
+    val predAps =
+        symbol.openParen ~> lexeme(
+          sepBy(lexeme(predAp), lexeme(','))
+        ) <~ symbol.closingParen
+    lazy val predAp: Parsley[PredAp] =
         (
-          (identifier <~ spc) <~> (lterms <|> pure(List()))
+          (lexeme(identifier)) <~> (predAps <|> pure(Nil))
         )
             .label("predicate application")
-            .map { (res: (String, List[LTerm])) =>
-                LFormula.PredAp(
-                  Predicate(res._1, res._2.length),
-                  res._2
-                )
+            .map { (res: (String, List[PredAp])) =>
+                PredAp(res._1, res._2)
             }
     val equ =
-        (lterm <~> "=" ~> lterm)
+        (predAp <~> "=" ~> predAp)
             .label("equality")
-            .map { (res: (LTerm, LTerm)) =>
-                LFormula.Eq(res._1, res._2)
+            .map { (res: (PredAp, PredAp)) =>
+                Eq(res._1, res._2)
             }
     // T followed by some keyword
-    val truth = symbol.softKeyword("T").label("truth") as (LFormula.Truth)
+    val truth =
+        (symbol.softKeyword("T").label("truth") as Truth())
+            <~ notFollowedBy('(')
     // F followed by some keyword
-    val falsity = symbol.softKeyword("F").label("falsity") as (LFormula.Falsity)
+    val falsity =
+        (symbol.softKeyword("F").label("falsity") as Falsity())
+            <~ notFollowedBy('(')
     // format: off
-    lazy val forall =
-        (("forall" ~> some(identifier) <~ ".") <~> lformula)
-        .label("forall statement")
-        .map { (res: (List[String], LF_)) =>
-            LFormula.Forall(res._1, res._2)
-        }
-    lazy val exists =
-        (("exists" ~> some(identifier) <~ ".")
-        <~> lformula)
-        .label("exists statement")
-        .map { (res: (List[String], LF_)) =>
-            LFormula.Exists(res._1, res._2)
-        }
-    val atom: Parsley[LF_] = (
+    val atom: Parsley[LFormula] = (
         atomic(truth) <|>
         atomic(falsity) <|>
         atomic(equ) <|>
         atomic(predAp)
     ).label("Atom (T/F/equality/predicate application)")
-    lazy val lformula: Parsley[LF_] = (
-        atomic(forall) <|>
-        atomic(exists) <|>
+    .asInstanceOf[Parsley[LFormula]] // come on scala, you can do this!
+    lazy val lformula: Parsley[LFormula] = (
         // "atom"-s connected by connectives
         precedence(
-            tolerant('(' ~> tolerant(lformula) <~ ')') <|>
-            tolerant(atom)
+            tolerant(atom) <|>
+            tolerant(symbol.openParen ~> tolerant(lformula) <~ symbol.closingParen)
         )(
-            Ops(Prefix)("~" as neg),
-            Ops(InfixL)("^" as and),
-            Ops(InfixL)("/" as or),
-            Ops(InfixL)("->" as implies),
-            Ops(InfixL)("<->" as equiv)
+            Ops(InfixL)("=" as Eq.apply),
+            Ops(Prefix)("~" as Not.apply),
+            Ops(Prefix)(("forall" ~> identifier <~ ".") <**> pure(ident => f => Forall(ident, f))),
+            Ops(Prefix)(("exists" ~> identifier <~ ".") <**> pure(ident => f => Exists(ident, f))),
+            Ops(InfixL)("^" as And.apply),
+            Ops(InfixL)("/" as Or.apply),
+            Ops(InfixL)("->" as Implies.apply),
+            Ops(InfixL)("<->" as Equiv.apply)
         )
     ).label("Lformula (forall statement/exists statement/lformula and logical connectives)")
     // format: on

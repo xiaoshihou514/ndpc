@@ -13,182 +13,90 @@ import ndpc.parsers.Utils._
 import ndpc.parsers.Lexer._
 
 object RuleParser {
-    private val numbers =
-        tolerant(args(number)).label("numbers separated by comma")
     private def unary(
         kw: String,
-        to: BigInt => Rule[BigInt]
-    ): Parsley[Rule[BigInt]] =
+        to: Int => Rule
+    ): Parsley[Rule] =
         tolerant(
           (kw ~> tolerant(arg(number)).map(to))
         )
+    private def nNums(n: Int) = tolerant(nargs(number, n))
     private def binary(
         kw: String,
-        to: ((BigInt, BigInt)) => Rule[BigInt]
-    ): Parsley[Rule[BigInt]] =
-        tolerant((kw ~> tolerant(args(number))).map { (l: List[BigInt]) =>
+        to: ((Int, Int)) => Rule
+    ): Parsley[Rule] =
+        tolerant((kw ~> tolerant(nNums(2))).map { (l: List[Int]) =>
             to((l(0), l(1)))
         })
 
-    val rule = "LEM"
-        .as(Rule.Builtin(Special.LEM()))
-        .label("Law of Exclueded Middle") <|>
-        "refl".as(Rule.Builtin(Special.Refl())).label("REFLective rule") <|>
-        "given".as(Rule.Builtin(Special.Given())).label("Given") <|>
-        "premise".as(Rule.Builtin(Special.Premise())).label("Premise") <|>
-        "ass".as(Rule.Builtin(Special.Ass())).label("ASSume") <|>
-        "TI".as(Rule.Intro(Introduction.Truth()))
-            .label("Truth Introduction") <|>
-        // forall I const
-        atomic(
-          "forall" ~> some(' ') ~> 'I' ~> some(' ') ~> "const".as(
-            Rule.Builtin(Special.ForallIConst())
-          )
-        ).label("Forall constant introduction") <|>
-        binary(
-          "MT",
-          Special.MT[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
-        ).label("Modus Tollens") <|>
-        binary(
-          "PC",
-          Special.PC[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
-        ).label("Proof by Contradiction") <|>
-        binary(
-          "=sub",
-          Special.EqSub[BigInt].apply.tupled.andThen(Rule.Builtin[BigInt].apply)
-        ).label("substitution") <|>
-        unary(
-          "sym",
-          Special.Sym[BigInt].apply.andThen(Rule.Builtin[BigInt].apply)
-        ).label("rule of SYMmetry") <|>
-        unary(
-          "tick",
-          Special.Tick[BigInt].apply.andThen(Rule.Builtin[BigInt].apply)
-        ).label("the 'Tick'") <|>
-        atomic(
-          binary(
-            "^I",
-            Introduction
-                .And[BigInt]
-                .apply
-                .tupled
-                .andThen(Rule.Intro[BigInt].apply)
-          )
-        ).label("And introduction") <|>
-        unary(
-          "^E",
-          Elimination.And[BigInt].apply.andThen(Rule.Elim[BigInt].apply)
-        ).label("And elimination") <|>
-        atomic(
-          binary(
-            "->I",
-            Introduction
-                .Implies[BigInt]
-                .apply
-                .tupled
-                .andThen(Rule.Intro[BigInt].apply)
-          )
-        ).label("Implication introduction") <|>
-        binary(
-          "->E",
-          Elimination
-              .Implies[BigInt]
-              .apply
-              .tupled
-              .andThen(Rule.Elim[BigInt].apply)
-        ).label("Implication elimination") <|>
-        atomic(
-          unary(
-            "/I",
-            Introduction.Or[BigInt].apply.andThen(Rule.Intro[BigInt].apply)
-          )
-        ).label("Or introduction") <|>
-        binary(
-          "/E",
-          Elimination.Or[BigInt].apply.tupled.andThen(Rule.Elim[BigInt].apply)
-        ).label("Or Elimination") <|>
-        // ~~E and ~~I
-        atomic(
-          "~~" ~> ('E'
-              .as((prev: BigInt) => Rule.Elim(Elimination.DoubleNeg(prev)))
-              .label("Double negation elimination") <|>
-              'I'.as((prev: BigInt) => Rule.Intro(Introduction.DoubleNeg(prev)))
-                  .label("Double negation introduction")) <~> arg(number)
-        ).map { (res: (BigInt => Rule[BigInt], BigInt)) => res._1(res._2) } <|>
-        // ~E and ~I
-        atomic(
-          "~" ~> ('E'
-              .as((list: List[BigInt]) =>
-                  Rule.Elim(Elimination.Not(list(0), list(1)))
+    val rule: Parsley[Rule] =
+        "LEM".as(LEM()).label("Law of Exclueded Middle") <|>
+            "refl".as(Refl()).label("REFLective rule") <|>
+            "given".as(Given()).label("Given") <|>
+            "premise".as(Premise()).label("Premise") <|>
+            "ass".as(Ass()).label("ASSume") <|>
+            "TI".as(TruthIntro()).label("Truth Introduction") <|>
+            // forall I const
+            atomic(
+              "forall" ~> some(' ') ~> 'I' ~> some(' ') ~> "const".as(
+                (ForallIConst())
               )
-              .label("Not elimination") <|>
-              'I'.as((list: List[BigInt]) =>
-                  Rule.Intro(Introduction.Not(list(0), list(1)))
-              ).label("Not introduction")) <~> numbers
-        ).map { (res: (List[BigInt] => Rule[BigInt], List[BigInt])) =>
-            res._1(res._2)
-        } <|>
-        // FE and FI
-        ('F' ~> ('E'
-            .as((i: BigInt, j: BigInt) => Rule.Elim(Elimination.Falsity(i, j)))
-            .label("Falsity elimination") <|>
-            'I'.as((i: BigInt, j: BigInt) =>
-                Rule.Intro(Introduction.Falsity(i, j))
-            ).label("Falsity introduction")) <~> numbers).map {
-            (res: ((BigInt, BigInt) => Rule[BigInt], List[BigInt])) =>
-                res._1(res._2(0), res._2(1))
-        } <|>
-        // <->E and <->I
-        (
-          "<->" ~> ('E'
-              .as((list: List[BigInt]) =>
-                  Rule.Elim(Elimination.Equiv(list(0), list(1)))
-              )
-              .label("Equiv elimination") <|>
-              'I'.as((list: List[BigInt]) =>
-                  Rule.Intro(Introduction.Equiv(list(0), list(1)))
-              ).label("Equiv introduction")) <~> numbers
-        ).map { (res: (List[BigInt] => Rule[BigInt], List[BigInt])) =>
-            res._1(res._2)
-        } <|>
-        atomic(
-          unary(
-            "existsI",
-            Introduction.Exists[BigInt].apply.andThen(Rule.Intro[BigInt].apply)
-          )
-        ).label("Exists introduction") <|>
-        binary(
-          "existsE",
-          Elimination
-              .Exists[BigInt]
-              .apply
-              .tupled
-              .andThen(Rule.Elim[BigInt].apply)
-        ).label("Exists elimination") <|>
-        atomic(
-          binary(
-            "forallI",
-            Introduction
-                .Forall[BigInt]
-                .apply
-                .tupled
-                .andThen(Rule.Intro[BigInt].apply)
-          )
-        ).label("Forall elimination") <|>
-        atomic(
-          unary(
-            "forallE",
-            Elimination.Forall[BigInt].apply.andThen(Rule.Elim[BigInt].apply)
-          )
-        ).label("Forall introduction") <|>
-        atomic(
-          binary(
-            "forall->E",
-            Elimination
-                .ForallImp[BigInt]
-                .apply
-                .tupled
-                .andThen(Rule.Elim[BigInt].apply)
-          )
-        ).label("Forall implies elimination")
+            ).label("Forall constant introduction") <|>
+            binary("MT", MT.apply).label("Modus Tollens") <|>
+            binary("PC", PC.apply).label("Proof by Contradiction") <|>
+            binary("=sub", EqSub.apply).label("substitution") <|>
+            unary("sym", Sym.apply).label("rule of SYMmetry") <|>
+            unary("tick", Tick.apply).label("the 'Tick'") <|>
+            atomic(binary("^I", AndIntro.apply))
+                .label("And introduction") <|>
+            unary("^E", AndElim.apply).label("And elimination") <|>
+            atomic(binary("->I", ImpliesIntro.apply))
+                .label("Implication introduction") <|>
+            binary("->E", ImpliesElim.apply)
+                .label("Implication elimination") <|>
+            atomic(unary("/I", OrIntro.apply)).label("Or introduction") <|>
+            tolerant(("/E" ~> tolerant(nNums(5))).map { (l: List[Int]) =>
+                OrElim(l(0), l(1), l(2), l(3), l(4))
+            }).label("Or Elimination") <|> 
+            // format: off
+            // ~~E and ~~I
+            atomic(
+              "~~" ~> (
+                lexeme('E').as((prev: Int) => DoubleNegElim(prev))
+                .label("Double negation elimination") <|>
+                lexeme('I').as((prev: Int) => DoubleNegIntro(prev))
+                .label("Double negation introduction")) <*> arg(number)
+            ) <|>
+            // ~E and ~I
+            atomic(
+              "~" ~> (
+                lexeme('E').as((list: List[Int]) => NotElim(list(0), list(1)))
+                .label("Not elimination") <|>
+                lexeme('I').as((list: List[Int]) => NotIntro(list(0), list(1)))
+                .label("Not introduction")) <*> nNums(2)
+            ) <|>
+            // FE and FI
+            atomic("FE") ~> arg(number).map {(res: Int) => FalsityElim(res)} <|>
+            "FI" ~> nNums(2).map{(res: List[Int]) => FalsityIntro(res(0), res(1))} <|>
+            // <->E and <->I
+            // somehow if I change the order it won't work...
+            (
+              "<->" ~> (
+                  lexeme('I').as((list: List[Int]) => EquivIntro(list(0), list(1)))
+                  .label("Equiv introduction") <|>
+                  lexeme('E').as((list: List[Int]) => EquivElim(list(0), list(1))))
+                  .label("Equiv elimination") <*> nNums(2)
+            ) <|>
+            // format: on
+            atomic(unary("existsI", ExistsIntro.apply))
+                .label("Exists introduction") <|>
+            tolerant(("existsE" ~> tolerant(nNums(3))).map { (l: List[Int]) =>
+                ExistsElim(l(0), l(1), l(2))
+            }).label("Exists elimination") <|>
+            atomic(binary("forallI", ForallIntro.apply))
+                .label("Forall elimination") <|>
+            atomic(unary("forallE", ForallElim.apply))
+                .label("Forall introduction") <|>
+            atomic(binary("forall->E", ForallImpElim.apply))
+                .label("Forall implies elimination")
 }

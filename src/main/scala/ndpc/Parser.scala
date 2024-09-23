@@ -1,6 +1,7 @@
 package ndpc
 
 import parsley.Parsley
+import parsley.Result
 import parsley.state.{RefMaker, forP}
 import parsley.Parsley.{many, atomic, pure, eof}
 import parsley.combinator.manyTill
@@ -10,26 +11,42 @@ import parsley.errors.combinator._
 import parsley.debug._
 
 import ndpc.expr.Formula._
-import ndpc.expr.Rule.{Rule, Special}
+import ndpc.expr.Rule.{Rule, Tick}
 import ndpc.parsers.FormulaParser
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 import ndpc.parsers.FormulaParser.lformula
 import ndpc.parsers.RuleParser.rule
 import ndpc.parsers.Utils._
 
+import scala.io.Source
+import scala.util.Try
+import ndpc.parsers.Lexer.lexeme
+
 object Parser {
     sealed trait Line
-    case class Empty() extends Line
-    case class Comment(contents: String) extends Line
+    case class Empty() extends Line {
+        override def toString(): String = "<Empty Line>"
+    }
+    case class Comment(contents: String) extends Line {
+        override def toString(): String = contents
+    }
     case class Pf(
-        concl: LFormula[_],
-        rule: Rule[BigInt],
-        trailingComment: Option[Comment]
+        val concl: LFormula,
+        val rule: Rule,
+        val trailingComment: Option[Comment]
     ) extends Line
 
-    case class PfScope(var body: List[Line | PfScope])
+    case class PfScope(var body: List[Line | PfScope]) {
+        def flatten(): List[Line] =
+            body.map(l =>
+                l match {
+                    case s @ PfScope(_) => s.flatten()
+                    case _              => List(l.asInstanceOf[Line])
+                }
+            ).flatten
+    }
 
-    class State(
+    private class State(
         var indentLevel: Int,
         var cache: List[Line],
         var scopeStack: List[PfScope]
@@ -63,46 +80,42 @@ object Parser {
             scopeStack = t
             this
         }
+
+        def popScopeWithTick(line: Line): State = {
+            scopeStack.head.body = scopeStack.head.body :+ line
+            val t = scopeStack.tail
+            indentLevel -= 2
+            scopeStack = t
+            this
+        }
     }
 
     case class UncheckedProof(main: PfScope, lines: List[Line])
 
-    def emptyState() =
+    private def emptyState() =
         State(0, List(), List(PfScope(List())))
 
     // format: off
-    val p: Parsley[UncheckedProof] = emptyState().makeRef { state =>
-        val lineComment = ("--" ~> manyTill(item, '\n'))
+    private def p(): Parsley[UncheckedProof] = emptyState().makeRef { state =>
+        val comment = ("--" ~> manyTill(item, '\n'))
             .map(_.mkString)
             .map(Comment.apply)
 
-        // in linewise parsers we only append to the lines list since we don't know our indent
-        val comment = state.update(
-            lineComment.map { c => (s: State) =>
-                s.addLine(c)
-            }
-        ) ~> state.get.map(_.getLast())
+        val empty = manyTill(" " <|> "\t", '\n').as(Empty())
 
-        val empty = state.update(
-            manyTill(" " <|> "\t", '\n').map { _ => (s: State) =>
-                s.addLine(Empty())
-            }
-        ).as(Empty())
-
-        val pf = 
+        val pf: Parsley[Pf] = 
             state.update((
-                // TODO(xiaoshihou514): use lexeme
-                (lformula <~ spc) <~>
-                ("[" ~> rule <~ spc <~ "]") <~>
-                (lineComment.map(Option.apply) <|> '\n'.as(None))
+                (lexeme(lformula)) <~>
+                ("[" ~> lexeme(rule) <~ "]") <~>
+                (comment.map(Option.apply) <|> '\n'.as(None))
             )
-            .map { (res: ((LF_, Rule[BigInt]), Option[Comment])) =>
+            .map { (res: ((LFormula, Rule), Option[Comment])) =>
                 Pf(res._1._1, res._1._2, res._2)
             }
             .map { pf => (s: State) =>
                 s.addLine(pf)
             }
-        ) ~> state.get.map(_.getLast())
+        ) ~> state.get.map(_.getLast().asInstanceOf[Pf])
 
         many(
             state.update((
@@ -110,7 +123,7 @@ object Parser {
                 (
                     state.gets(_.indentLevel) <~> (
                     atomic(empty).label("empty line") <|>
-                    atomic(spc ~> lineComment).label("line comment")
+                    atomic(spc ~> comment).label("line comment")
                 )) <|>
                 // a line of proof has to have the correct indents
                 ((
@@ -138,7 +151,7 @@ object Parser {
                         case (same, pf @ Pf(_, rule, _)) if same == s.indentLevel => 
                             rule match {
                                 // pop scope if this line is a tick
-                                case Rule.Builtin(Special.Tick(_)) => s.popScopeWith(pf)
+                                case Tick(_) => s.popScopeWithTick(pf)
                                 case _ => s.addLineToTree(pf)
                             }
                         case (indented, pf) if indented == s.indentLevel + 2 => 
@@ -152,5 +165,5 @@ object Parser {
     } <~ eof
     // format: on
 
-    def parse(input: String) = p.parse(input)
+    def parse(input: String) = p().parse(input)
 }

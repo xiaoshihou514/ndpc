@@ -1,0 +1,6 @@
+forall x. ~P(x) [given]
+  exists x. P(x) [ass]
+    F [ass]
+    F [tick(3)]
+  F [tick(4)]
+~(exists x. P(x)) [~I(2,5)]
