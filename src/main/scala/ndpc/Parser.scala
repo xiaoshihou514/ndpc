@@ -37,13 +37,13 @@ object Parser {
     ) extends Line
 
     case class PfScope(var body: List[Line | PfScope]) {
-        def exists(cond: Line => Boolean): Boolean =
-            body.exists(x =>
-                x match {
-                    case ps @ PfScope(_) => ps.exists(cond)
-                    case l               => cond(l.asInstanceOf[Line])
+        def flatten(): List[Line] =
+            body.map(l =>
+                l match {
+                    case s @ PfScope(_) => s.flatten()
+                    case _              => List(l.asInstanceOf[Line])
                 }
-            )
+            ).flatten
     }
 
     private class State(
