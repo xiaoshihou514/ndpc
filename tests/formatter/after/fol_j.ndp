@@ -1,0 +1,15 @@
+(forall x. (x = a)) / x = b                  [premise]
+g(a) = b                                     [premise]
+forall x. (forall y. (g(x) = g(y) -> x = y)) [premise]
+g(b) = a / g(b) = b                          [premise]
+  g(b) = a                                   [ass]
+  g(g(a)) = a                                [=sub(5, 2)]
+  g(g(a)) = a                                [tick(6)]
+
+  g(b) = b                                   [ass]
+  g(b) = g(a)                                [=sub(8, 2)]
+  forall y. (g(b) = g(y) -> b = y)           [forallE(3)]
+  b = a                                      [forall->E(9, 10)] -- you can't do it all in one go
+  g(a) = a                                   [=sub(8, 11)]
+  g(g(a)) = a                                [=sub(12, 12)]
+g(g(a)) = a                                  [/E(4, 5, 7, 8, 13)]

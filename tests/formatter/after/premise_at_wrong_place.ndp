@@ -1,0 +1,5 @@
+p ^ q    [premise]
+r        [premise]
+q        [^E(1)]
+whatever [premise]
+q ^ r    [^I(3, 2)]

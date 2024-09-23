@@ -1,0 +1,12 @@
+R -> ~I [premise]
+I / f   [premise]
+~f      [premise]
+  I     [ass]
+  ~(~I) [~~I(4)]
+  ~R    [MT]
+  ~R    [tick(6)]
+
+  f     [ass]
+  F     [FI(8, 3)]
+  ~R    [FE(9)]
+~R      [/E(2, 4, 7, 8, 10)]

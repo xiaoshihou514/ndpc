@@ -1,0 +1,12 @@
+D / B     [premise]
+~(D / ~C) [premise]
+B -> C    [premise]
+  D       [ass]
+  D / ~C  [/I(4)]
+  F       [FI(5, 2)]
+  C       [FE(6)]
+  C       [tick(7)]
+
+  B       [ass]
+  C       [->E(3, 9)]
+C         [/E(1, 4, 8, 9, 10)]

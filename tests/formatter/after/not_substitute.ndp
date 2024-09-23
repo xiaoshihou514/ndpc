@@ -1,0 +1,7 @@
+~(exists x. (P(x)))             [given]
+  c                             [forall I const]
+    P(c)                        [ass]
+    exists x. (P(x))            [existsI(3)]
+    F                           [~E(1, 4)]
+  ~P(c)                         [~I(3, 5)]
+(forall x. (~P(x))) -> whatever [forallI(2, 6)]

@@ -1,0 +1,3 @@
+  p ^ q    [ass]
+  p        [^E(1)]
+p ^ q -> p [->I(1, 2)] -- is this the correct syntax???

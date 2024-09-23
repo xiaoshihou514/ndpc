@@ -1,0 +1,15 @@
+exists x. (~P(x))      [given]
+
+  ~P(c)                [ass]
+
+    forall x. (P(x))   [ass]
+    P(c)               [forallI(3, 2)]
+    F                  [FI(2, 4)]
+    F                  [tick(5)]
+
+
+  ~(forall x. (P(x)))  [~I(3, 6)]
+  ~(forall x. (P(x)))  [tick(7)]
+
+
+~(forall x. (P(x)))    [existsE(1, 2, 8)]

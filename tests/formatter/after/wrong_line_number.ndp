@@ -1,0 +1,16 @@
+(exists x. (F(x))) / G(x)                     [given]
+  F(c) / G(c)                                 [ass]
+  -- start of or introduction, pt 1
+    F(c)                                      [ass]
+    exists x. (F(x))                          [existsI(3)]
+    (exists x. (F(x))) / (exists x. (G(x)))   [/I(3)] -- should be 4
+    (exists x. (F(x))) / G(x)                 [tick(5)]
+
+
+  -- start of or introduction, pt 2
+    G(c)                                      [ass]
+    exists x. (G(x))                          [existsI(7)]
+    (exists x. (F(x))) / (exists x. (G(x)))   [/I(8)]
+
+  (exists x. (F(x))) / (exists x. (G(x)))     [/E(2, 3, 6, 7, 9)]
+(exists x. (F(x))) / (exists x. (G(x)))       [existsE(1, 2, 10)]

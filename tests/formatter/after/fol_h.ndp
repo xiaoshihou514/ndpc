@@ -1,0 +1,8 @@
+(forall x. (F(x))) ^ (forall x. (G(x))) [given]
+  c                                     [forall I const]
+  forall x. (F(x))                      [^E(1)]
+  F(c)                                  [forallE(3)]
+  forall x. (G(x))                      [^E(1)]
+  G(c)                                  [forallE(5)]
+  F(c) ^ G(c)                           [^I(4, 6)]
+forall x. (F(x) ^ G(x))                 [forallI(2, 7)]

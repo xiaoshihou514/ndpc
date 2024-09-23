@@ -1,0 +1,9 @@
+forall x. ~P(x) [given]
+  exists x. P(x) [ass]
+    P(c) [ass]
+    ~P(c) [forallE(1)]
+    F [~E(4,3)]
+    F [tick(5)]
+  F [existsE(2,3,666)] -- out of bound
+  F [tick(7)]
+~(exists x. P(x)) [~I(2,8)]

@@ -1,0 +1,11 @@
+forall x. (~P(x))   [given]
+  exists x. (P(x))  [ass]
+    P(c)            [ass]
+    F               [tick(5)]
+
+    F               [tick(4)]
+
+  F                 [existsE(2, 3, 5)] -- surely this would work...
+  F                 [tick(7)]
+
+~(exists x. (P(x))) [~I(2, 8)]
