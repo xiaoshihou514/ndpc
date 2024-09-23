@@ -22,40 +22,55 @@ extension [A](xs: List[A])
     }
 
 object Checker {
-    // just controller exceptions that can be pattern matched
-    private case class ParserException(val reason: EnrichedErr) extends Exception
-    private object ParserException:
-        def unapply(e: ParserException): Option[EnrichedErr] = Some(e.reason)
-    private case class CheckException(val reason: EnrichedErr) extends Exception
-    private object CheckException:
-        def unapply(e: CheckException): Option[EnrichedErr] = Some(e.reason)
-
-    // just wrappers, maybe java people have a fancier name for this
-    private sealed trait CheckError
-    private case class IOError(reason: String) extends CheckError
-    private case class SyntaxError(reason: EnrichedErr) extends CheckError
-    private case class SemanticsError(reason: EnrichedErr) extends CheckError
-
-    private case class EnrichedErr(exp: String, file: Option[String], location: Option[Int])
 
     def check(inputs: List[String], toJson: Boolean): Int =
-        val errors = pfFromSource(inputs).filter { (out: Result[CheckError, CheckedProof]) =>
-            out match {
-                case Success(_) => false
-                case _          => true
+        val errors = pfFromSource(inputs)
+            .filter { (out: Result[CheckError, CheckedProof]) =>
+                out match {
+                    case Success(_) => false
+                    case _          => true
+                }
             }
-        }
-        if errors != Nil then
-            if toJson then printErrorJson(errors.asInstanceOf[List[CheckError]])
-            else printErrorHuman(errors.asInstanceOf[List[CheckError]])
+            .asInstanceOf[List[Failure[CheckError]]]
+        if !errors.isEmpty then
+            if toJson then printErrorJson(errors)
+            else printErrorHuman(errors)
         else ok("All proofs are valid!")
         errors.length
 
-    private def printErrorHuman(errors: List[CheckError]) =
-        error(errors.mkString("\n\n"))
+    private def printErrorHuman(errors: List[Failure[CheckError]]) = {
+        for (e <- errors) do {
+            e.msg match {
+                case IOError(file, reason) =>
+                    error(s"Can't read from $file: $reason")
+                case SyntaxError(reason) =>
+                    println(s"${FAIL}Syntax error${RESET}:")
+                    println(
+                      s"${BOLD}${reason.file.get}${RESET}, line ${reason.location.get}:"
+                    )
+                    println(reason.exp)
+                case SemanticsError(reason) =>
+                    println(s"${FAIL}Semantics error${RESET}:")
+                    println(
+                      s"${BOLD}${reason.file.get}${RESET}, line ${reason.location.get}:"
+                    )
+                    println(reason.exp)
+            }
+            println()
+        }
+    }
 
-    private def printErrorJson(errors: List[CheckError]) =
-        println("buildErrorJson")
+    private def printErrorJson(errors: List[Failure[CheckError]]) =
+        for (e <- errors) do {
+            e.msg match {
+                case IOError(file, reason) =>
+                    System.err.println(s"Can't read from $file: $reason")
+                case SyntaxError(reason) =>
+                    println(reason.toJson())
+                case SemanticsError(reason) =>
+                    println(reason.toJson())
+            }
+        }
 
     // I really want consistent error handling here so I went for java exceptions,
     // which is well captured by scala.util.Try
@@ -99,13 +114,18 @@ object Checker {
                               SemanticsError(reason.copy(file = Some(input)))
                             )
                         case throwable @ _ =>
-                            Failure(IOError(throwable.toString()))
+                            Failure(IOError(input, throwable.toString()))
                     }
                 }
             }
         }
 
-    private def fromStringError(errDesc: String): EnrichedErr = ???
+    private def fromStringError(errDesc: String): EnrichedErr =
+        EnrichedErr(
+          "TODO: parse parsley errors :)",
+          Some("sdjal"),
+          Some(232)
+        )
 
     private def isPremise(line: Line | PfScope) =
         line match

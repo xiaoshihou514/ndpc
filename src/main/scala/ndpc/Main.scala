@@ -2,7 +2,7 @@ package ndpc
 
 import ndpc.Checker.check
 import ndpc.Assembler.compile
-import ndpc.Formatter.format
+import ndpc.Formatter.formatPure
 
 object Main {
     def main(args: Array[String]): Unit =
@@ -31,9 +31,9 @@ object Main {
             case "check" :: tail =>
                 tail match
                     case "--json" :: files =>
-                        check(tail, true)
+                        check(files, true)
                     case files =>
-                        check(tail, false)
+                        check(files, false)
             case files => compile(files)
         } match {
             case i: Int  => sys.exit(i)
