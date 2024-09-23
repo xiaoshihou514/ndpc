@@ -339,7 +339,7 @@ object Checker {
         knowledgeBase: Set[Line]
     ) = Failure(
       s"Line numbers ${filterOOB(lineNrs).mkString(", ")} " +
-          "referenced in ${input.rule} are not accessible to line $lineNr."
+          s"referenced in ${input.rule} are not accessible to line $lineNr."
     )
 
     private def notProofs(lines: List[(Int, Line)])(using input: Pf) =
@@ -356,11 +356,11 @@ object Checker {
         context: List[(String, LFormula)]
     )(using input: Pf): Failure[String] = Failure(
       ((
-        s"The following assertion(s) implied by ${input.rule} does not hold:" ::
-            assertions.filter(!_._1).map("  " + _._2)
+        s"  The following assertion(s) implied by ${input.rule} does not hold:" ::
+            assertions.filter(!_._1).map("    " + _._2)
       ) ++ (
-        "In particular with the following variables:" ::
-            context.map((desc, f) => s"  $desc: $f")
+        "  In particular with the following variables:" ::
+            context.map((desc, f) => s"    $desc: $f")
       )).mkString("\n")
     )
 

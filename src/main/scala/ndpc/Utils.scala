@@ -1,6 +1,11 @@
 package ndpc
 
 import parsley.{Failure, Success}
+import ndpc.parsers.Lexer.number
+import parsley.syntax.character.stringLift
+import parsley.Parsley
+import parsley.Parsley.{many, eof}
+import parsley.character.item
 
 object Utils {
     val HEADER = "\u001B[95m"
@@ -42,11 +47,15 @@ object Utils {
             |}
             """.stripMargin
 
+    // HACK: we may need to change this if parsley changed their error format
+    private val parsleyError =
+        ("(line " ~> number <~ ", column " <~ number <~ "):\n") <~> many(item) <~ eof
     def fromStringError(errDesc: String): EnrichedErr =
+        val (lineNr, exp) = parsleyError.parse(errDesc).get
         EnrichedErr(
-          errDesc,
-          Some("sdjal"),
-          Some(232)
+          exp.mkString,
+          None,
+          Some(lineNr)
         )
 
     def printErrorHuman(errors: List[Failure[NdpcError]]) = {
