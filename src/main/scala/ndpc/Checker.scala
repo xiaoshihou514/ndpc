@@ -23,60 +23,22 @@ extension [A](xs: List[A])
 
 object Checker {
 
-    def check(inputs: List[String], toJson: Boolean): Int =
+    def check(inputs: List[String], toJson: Boolean): Int = {
         val errors = pfFromSource(inputs)
-            .filter { (out: Result[CheckError, CheckedProof]) =>
-                out match {
-                    case Success(_) => false
-                    case _          => true
-                }
-            }
-            .asInstanceOf[List[Failure[CheckError]]]
+            .filter(_.isFailure)
+            .asInstanceOf[List[Failure[NdpcError]]]
         if !errors.isEmpty then
             if toJson then printErrorJson(errors)
             else printErrorHuman(errors)
         else ok("All proofs are valid!")
         errors.length
-
-    private def printErrorHuman(errors: List[Failure[CheckError]]) = {
-        for (e <- errors) do {
-            e.msg match {
-                case IOError(file, reason) =>
-                    error(s"Can't read from $file: $reason")
-                case SyntaxError(reason) =>
-                    println(s"${FAIL}Syntax error${RESET}:")
-                    println(
-                      s"${BOLD}${reason.file.get}${RESET}, line ${reason.location.get}:"
-                    )
-                    println(reason.exp)
-                case SemanticsError(reason) =>
-                    println(s"${FAIL}Semantics error${RESET}:")
-                    println(
-                      s"${BOLD}${reason.file.get}${RESET}, line ${reason.location.get}:"
-                    )
-                    println(reason.exp)
-            }
-            println()
-        }
     }
-
-    private def printErrorJson(errors: List[Failure[CheckError]]) =
-        for (e <- errors) do {
-            e.msg match {
-                case IOError(file, reason) =>
-                    System.err.println(s"Can't read from $file: $reason")
-                case SyntaxError(reason) =>
-                    println(reason.toJson())
-                case SemanticsError(reason) =>
-                    println(reason.toJson())
-            }
-        }
 
     // I really want consistent error handling here so I went for java exceptions,
     // which is well captured by scala.util.Try
     private def pfFromSource(
         inputs: List[String]
-    ): List[Result[CheckError, CheckedProof]] =
+    ): List[Result[NdpcError, CheckedProof]] =
         inputs.map { (input: String) =>
             Try(input)
                 .map { (i: String) =>
@@ -119,13 +81,6 @@ object Checker {
                 }
             }
         }
-
-    private def fromStringError(errDesc: String): EnrichedErr =
-        EnrichedErr(
-          "TODO: parse parsley errors :)",
-          Some("sdjal"),
-          Some(232)
-        )
 
     private def isPremise(line: Line | PfScope) =
         line match

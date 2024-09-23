@@ -2,7 +2,7 @@ package ndpc
 
 import ndpc.Checker.check
 import ndpc.Assembler.compile
-import ndpc.Formatter.formatPure
+import ndpc.Formatter.format
 
 object Main {
     def main(args: Array[String]): Unit =
