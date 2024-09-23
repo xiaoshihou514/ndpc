@@ -119,7 +119,7 @@ object Rule {
     }
     // Modus Tollens: From 𝝓 → φ and ¬φ, derive ¬𝝓.
     case class MT(imp: Int, not: Int) extends Rule {
-        override def toString(): String = "MT"
+        override def toString(): String = s"MT($imp, $not)"
     }
     // Proof by contradiction
     case class PC(orig: Int, bottom: Int) extends Rule {
@@ -127,7 +127,7 @@ object Rule {
     }
     // forall a. a = a
     case class Refl() extends Rule {
-        override def toString(): String = s"Refl"
+        override def toString(): String = s"refl"
     }
     // a = b ^ expr(a) -> expr(b)
     case class EqSub(orig: Int, eq: Int) extends Rule {

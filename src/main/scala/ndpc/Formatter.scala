@@ -114,5 +114,5 @@ object Formatter {
             .mkString("\n")
 
     def formatPure(target: UncheckedProof): String =
-        formatScope(target.main, 0, findReasonAlign(target.main))
+        formatScope(target.main, 0, findReasonAlign(target.main)) + "\n"
 }

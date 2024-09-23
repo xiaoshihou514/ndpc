@@ -44,7 +44,7 @@ object Utils {
 
     def fromStringError(errDesc: String): EnrichedErr =
         EnrichedErr(
-          "TODO: parse parsley errors :)",
+          errDesc,
           Some("sdjal"),
           Some(232)
         )
