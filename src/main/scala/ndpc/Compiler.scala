@@ -84,7 +84,7 @@ object Compiler {
                       case s @ PfScope(_) =>
                           val (res, newLineNr) = toHTML(s, lineNr)
                           current = newLineNr
-                          res
+                          "<li>" + res + "</li>"
                       case _ => ""
               }.mkString}
     </ul></div>
@@ -107,7 +107,7 @@ object Compiler {
         <html lang="en">
           <head>
             <meta charset="UTF-8">
-            <title></title>
+            <title>Proof</title>
             <style>
             $css
             </style>
