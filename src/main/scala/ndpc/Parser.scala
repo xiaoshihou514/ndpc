@@ -25,10 +25,10 @@ import ndpc.parsers.Lexer.lexeme
 object Parser {
     sealed trait Line
     case class Empty() extends Line {
-        override def toString(): String = "<Empty Line>"
+        override def toString: String = "<Empty Line>"
     }
     case class Comment(contents: String) extends Line {
-        override def toString(): String = contents
+        override def toString: String = contents
     }
     case class Pf(
         val concl: LFormula,

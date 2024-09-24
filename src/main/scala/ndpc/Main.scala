@@ -1,8 +1,9 @@
 package ndpc
 
 import ndpc.Checker.check
-import ndpc.Assembler.compile
+import ndpc.Compiler.compile
 import ndpc.Formatter.format
+import ndpc.Utils.error
 
 object Main {
     def main(args: Array[String]): Unit =
@@ -21,6 +22,7 @@ object Main {
                 |format      format proof file
                 |  --apply     apply format to file instead of printing to stdout
                 |<default>   check proofs and generate html
+                |  --css       use custom css styling for generated html
                 """.stripMargin)
             case "format" :: tail =>
                 tail match
@@ -34,7 +36,12 @@ object Main {
                         check(files, true)
                     case files =>
                         check(files, false)
-            case files => compile(files)
+            case "--css" :: css :: files =>
+                compile(files, Some(css))
+            case "--css" :: Nil =>
+                error("Error: missing --css argument and targets")
+            case files =>
+                compile(files, None)
         } match {
             case i: Int  => sys.exit(i)
             case _: Unit => sys.exit(0)

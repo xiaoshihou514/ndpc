@@ -36,7 +36,7 @@ object Checker {
 
     // I really want consistent error handling here so I went for java exceptions,
     // which is well captured by scala.util.Try
-    private def pfFromSource(
+    def pfFromSource(
         inputs: List[String]
     ): List[Result[NdpcError, CheckedProof]] =
         inputs.map { (input: String) =>
@@ -76,7 +76,7 @@ object Checker {
                               SemanticsError(reason.copy(file = Some(input)))
                             )
                         case throwable @ _ =>
-                            Failure(IOError(input, throwable.toString()))
+                            Failure(IOError(input, throwable.toString))
                     }
                 }
             }
@@ -305,9 +305,9 @@ object Checker {
                     case ForallIConst() =>
                         tryVerifyForallIConst()
                     case Given() | Premise() =>
-                        Success(concl.getVars().toList)
+                        Success(concl.getVars.toList)
                     case Ass() =>
-                        Success(concl.getVars().toList)
+                        Success(concl.getVars.toList)
                     case Tick(orig) =>
                         tryVerifyTick(orig)
                 }
@@ -591,7 +591,7 @@ object Checker {
                 // concl = exists x. orig[?/x]
                 // x free in orig
                 case (Pf(orig, _, _), Exists(x, conclF))
-                    if !orig.getVars()(x) &&
+                    if !orig.getVars(x) &&
                         isSubstituteOf(orig, conclF, x) =>
                     // if the above holds then concl won't have any free variables
                     // the proof is left as an exercise
@@ -602,7 +602,7 @@ object Checker {
                         concl.isInstanceOf[Exists] -> "Conclusion be of form exists ?. A",
                         (
                           concl.isInstanceOf[Exists] &&
-                              !orig.getVars()(concl.asInstanceOf[Exists].x)
+                              !orig.getVars(concl.asInstanceOf[Exists].x)
                         ) -> "Original free of Conclusion's quantifier",
                         (
                           concl.isInstanceOf[Exists] &&
@@ -646,7 +646,7 @@ object Checker {
                       Forall(x, f)
                     )
                     if conclF.substitutes(c, PredAp(x, Nil))(f) &&
-                        !conclF.getVars()(x) && boxConcls((cl, ccl)) =>
+                        !conclF.getVars(x) && boxConcls((cl, ccl)) =>
                     Success(Nil)
                 case (cl @ Pf(c, _, _), ccl @ Pf(conclF, _, _), _) =>
                     buildError(
@@ -656,7 +656,7 @@ object Checker {
                         concl.isInstanceOf[Forall] -> "Conclusion is of form forall ?. A",
                         (
                           concl.isInstanceOf[Forall] &&
-                              !conclF.getVars()(concl.asInstanceOf[Forall].x)
+                              !conclF.getVars(concl.asInstanceOf[Forall].x)
                         ) -> "ForallConclusion free of quantifier in Conclusion",
                         (
                           concl.isInstanceOf[Forall] &&
@@ -684,8 +684,7 @@ object Checker {
         x: String
     ): Boolean =
         original == substituted ||
-            original
-                .getVars()
+            original.getVars
                 // original[t/x] == substituted?
                 .exists(t =>
                     original.substitutes(
@@ -908,7 +907,7 @@ object Checker {
             // bottom = F
             // concl bounded
             case Pf(Falsity(), _, _) =>
-                Success(concl.getVars().toList)
+                Success(concl.getVars.toList)
             case Pf(bottom, _, _) =>
                 buildError(
                   List(false -> "Bottom equals F"),
@@ -972,11 +971,11 @@ object Checker {
                 )
                 if concl == conclE &&
                     boxConcls((al, cl)) &&
-                    !ass.getVars()(x) &&
+                    !ass.getVars(x) &&
                     isSubstituteOf(ass, assE, x) =>
-                (ass.getVars() removedAll assE.getVars()).toList match {
-                    case Nil                              => Success(Nil)
-                    case t :: Nil if !conclE.getVars()(t) => Success(Nil)
+                (ass.getVars removedAll assE.getVars).toList match {
+                    case Nil                            => Success(Nil)
+                    case t :: Nil if !conclE.getVars(t) => Success(Nil)
                     case _ =>
                         buildError(
                           List(
@@ -1028,7 +1027,7 @@ object Checker {
             // orig = forall x. concl[?/x]
             // ? bounded
             case Pf(forall @ Forall(x, conclF), _, _) if isSubstituteOf(concl, conclF, x) =>
-                (concl.getVars() removedAll conclF.getVars()).toList match {
+                (concl.getVars removedAll conclF.getVars).toList match {
                     case Nil                => Success(Nil)
                     case t :: Nil if env(t) => Success(Nil)
                     case _ =>
@@ -1069,8 +1068,8 @@ object Checker {
             case (Pf(fi @ Forall(x, Implies(assF, conclF)), _, _), Pf(ass, _, _)) =>
                 if isSubstituteOf(ass, assF, x) &&
                     isSubstituteOf(concl, conclF, x) &&
-                    (ass.getVars() removedAll assF.getVars()) ==
-                        (concl.getVars() removedAll conclF.getVars())
+                    (ass.getVars removedAll assF.getVars) ==
+                        (concl.getVars removedAll conclF.getVars)
                 then Success(Nil)
                 else
                     buildError(
@@ -1080,8 +1079,8 @@ object Checker {
                         isSubstituteOf(concl, conclF, x) ->
                             "Conclusion is conclusion in ForallImplies' body with quantifier substituted",
                         (
-                          (ass.getVars() removedAll assF.getVars()) ==
-                              (concl.getVars() removedAll conclF.getVars())
+                          (ass.getVars removedAll assF.getVars) ==
+                              (concl.getVars removedAll conclF.getVars)
                         ) -> "Assumption and Conclusion uses the same variable for quantifier substituion"
                       ),
                       List(
@@ -1189,7 +1188,7 @@ object Checker {
     ) = concl match {
         // concl = a = a
         // a bounded
-        case Eq(l @ PredAp(_, _), r @ PredAp(_, _)) if l == r && l.getVars().forall(env) =>
+        case Eq(l @ PredAp(_, _), r @ PredAp(_, _)) if l == r && l.getVars.forall(env) =>
             Success(Nil)
         case _ =>
             buildError(
