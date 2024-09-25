@@ -105,6 +105,7 @@ object Formatter {
 
     def formatScope(target: PfScope, currentIndent: Int, reasonAlign: Int): String =
         target.body
+            .filter(!_.isInstanceOf[Empty])
             .map((line) =>
                 line match {
                     case s @ PfScope(_) => formatScope(s, currentIndent + 1, reasonAlign)
