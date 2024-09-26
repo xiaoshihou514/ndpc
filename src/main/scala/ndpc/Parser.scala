@@ -97,7 +97,7 @@ object Parser {
 
     // format: off
     private def p(): Parsley[UncheckedProof] = emptyState().makeRef { state =>
-        val comment = ("--" ~> manyTill(item, '\n'))
+        val comment = ("--" ~> manyTill(item, '\n' <|> eof))
             .map(_.mkString)
             .map(Comment.apply)
 
@@ -107,7 +107,7 @@ object Parser {
             state.update((
                 (lexeme(lformula)) <~>
                 ("[" ~> lexeme(rule) <~ "]") <~>
-                (comment.map(Option.apply) <|> '\n'.as(None))
+                (comment.map(Option.apply) <|> ('\n' <|> eof) as None)
             )
             .map { (res: ((LFormula, Rule), Option[Comment])) =>
                 Pf(res._1._1, res._1._2, res._2)
@@ -162,7 +162,7 @@ object Parser {
                     }
                 }
         )) ~> state.gets { s => UncheckedProof(s.scopeStack.last, s.cache) }
-    } <~ eof
+    }
     // format: on
 
     def parse(input: String) = p().parse(input)
