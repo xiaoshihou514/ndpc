@@ -26,18 +26,24 @@ object Main {
                 """.stripMargin)
             case "format" :: tail =>
                 tail match
-                    case "--apply" :: files =>
+                    case "--apply" :: (files @ (_ :: _)) =>
                         format(files, true)
-                    case files =>
+                    case (files @ (_ :: _)) =>
                         format(files, false)
+                    case _ =>
+                        error("Error: missing targets")
             case "check" :: tail =>
                 tail match
-                    case "--json" :: files =>
+                    case "--json" :: (files @ (_ :: _)) =>
                         check(files, true)
-                    case files =>
+                    case (files @ (_ :: _)) =>
                         check(files, false)
-            case "--css" :: css :: files =>
+                    case _ =>
+                        error("Error: missing targets")
+            case "--css" :: css :: (files @ (_ :: _)) =>
                 compile(files, Some(css))
+            case "--css" :: css :: Nil =>
+                error("Error: missing targets")
             case "--css" :: Nil =>
                 error("Error: missing --css argument and targets")
             case files =>
