@@ -7,7 +7,7 @@ import ndpc.Utils._
 import ndpc.expr.Rule.Tick
 import parsley.{Failure, Success}
 import scala.util.Try
-import os.RelPath
+import os.{RelPath, Path}
 
 object Formatter {
     def format(inputs: List[String], apply: Boolean): Int = {
@@ -24,7 +24,8 @@ object Formatter {
         if apply then
             for ((dest, formatted) <- successes) do {
                 try {
-                    os.write.over(os.pwd / RelPath(dest), formatted)
+                    val path = Try(Path(dest)).getOrElse(os.pwd / RelPath(dest))
+                    os.write.over(path, formatted)
                 } catch {
                     case e =>
                         errcount = errcount + 1

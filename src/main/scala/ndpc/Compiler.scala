@@ -5,7 +5,7 @@ import ndpc.Utils._
 import ndpc.Checker.pfFromSource
 import parsley.Failure
 import parsley.Success
-import os.RelPath
+import os.{RelPath, Path}
 import scala.util.Try
 import scala.io.Source
 import ndpc.Parser.PfScope
@@ -29,7 +29,8 @@ object Compiler {
 
         for ((dest, formatted) <- successes) do {
             try {
-                os.write.over(os.pwd / RelPath(dest), formatted)
+                val path = Try(Path(dest)).getOrElse(os.pwd / RelPath(dest))
+                os.write.over(path, formatted)
             } catch {
                 case e =>
                     errcount = errcount + 1

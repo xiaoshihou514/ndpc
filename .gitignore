@@ -4,6 +4,6 @@
 .vscode/
 .idea/
 
-ndpc
+/ndpc
 ndpc.jar
 ndpc.exe
