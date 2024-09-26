@@ -46,7 +46,8 @@ object Checker {
                         case "-"  => Source.stdin
                         case file => Source.fromFile(file)
                     }
-                    src.mkString
+                    try src.getLines mkString "\n"
+                    finally src.close()
                 }
                 .map { (contents: String) =>
                     parse(contents) match {
@@ -129,9 +130,18 @@ object Checker {
     ): Result[EnrichedErr, Int] = boundary {
         // it's readable, but pretty ugly IMO
         // verify head
-        val head = input.body
-            .dropWhile(x => isComment(x))
-            .head
+        val pfs = input.body.dropWhile(x => isComment(x))
+        if pfs.isEmpty then
+            boundary.break(
+              Failure(
+                EnrichedErr(
+                  s"Found empty box, does this file only contain empty lines and comments?",
+                  None,
+                  Some(lineNr)
+                )
+              )
+            )
+        val head = pfs.head
         head match {
             case Pf(_, Ass() | ForallIConst(), _) => // pass
             case Pf(_, Given() | Premise(), _)    => // pass
