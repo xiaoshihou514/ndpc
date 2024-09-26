@@ -45,7 +45,7 @@ object Compiler {
     ): List[Result[NdpcError, (String, String)]] =
         pfFromSource(inputs).zip(inputs).map { (pf, dest) =>
             pf match
-                case Success(pf)    => Success((chext(dest), compilePure(pf, css)))
+                case Success(pf)    => Success((chext(dest), compileFromString(pf, css)))
                 case f @ Failure(_) => f
         }
 
@@ -53,7 +53,7 @@ object Compiler {
         // just dirty regex
         orig.replaceAll("\\.[^.]*$", "") + ".html"
 
-    private def compilePure(
+    private def compileFromString(
         pf: CheckedProof,
         cssPath: Option[String]
     ): String = {
