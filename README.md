@@ -16,7 +16,8 @@ Ndpc introduced a markup language for creating [natural deduction](https://wikip
 
 Compared to existing similar tools, ndpc is easier to use and looks much more similar to hand written proofs.
 
-Demo:
+Click to watch video demo:
+
 [![Watch the demo](https://github.com/user-attachments/assets/154131b4-6535-4b51-a063-edaa01277080)](https://github.com/user-attachments/assets/70cd3fa3-d52d-4ab2-9554-aa5c1135f443)
 
 ## Getting started
