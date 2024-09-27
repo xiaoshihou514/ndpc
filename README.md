@@ -16,27 +16,8 @@ Ndpc introduced a markup language for creating [natural deduction](https://wikip
 
 Compared to existing similar tools, ndpc is easier to use and looks much more similar to hand written proofs.
 
-As an example:
-
-```
--- This is a proof that mainly uses =sub
-forall x. x = a / x = b                     [premise]
-g(a) = b                                    [premise]
-forall x. forall y. (g(x) = g(y) -> x = y)  [premise]
-g(b) = a / g(b) = b                         [premise]
-  -- indent to begin a new box!
-  g(b) = a                                  [ass]
-  g(g(a)) = a                               [=sub(5, 2)]
-  g(g(a)) = a                               [tick(6)]
-
-  g(b) = b                                  [ass]
-  g(b) = g(a)                               [=sub(8,2)]
-  forall y. (g(b) = g(y) -> b = y)          [forallE(3)]
-  b = a                                     [forall->E(9,10)] -- you can't do it all in one go
-  g(a) = a                                  [=sub(8,11)]
-  g(g(a)) = a                               [=sub(12,12)]
-g(g(a)) = a                                 [/E(4,5,7,8,13)]
-```
+Demo:
+[![Watch the demo](https://github.com/user-attachments/assets/154131b4-6535-4b51-a063-edaa01277080)](https://github.com/user-attachments/assets/70cd3fa3-d52d-4ab2-9554-aa5c1135f443)
 
 ## Getting started
 
@@ -53,4 +34,4 @@ Oh no! Ndpc found errors in your perfectly fine proof! The [syntax gotcha](https
 ## Related projects
 
 - [ndp.vim](https://github.com/xiaoshihou514/ndp.vim): (Neo)Vim support for ndp files
-- [aristotle](https://github.com/xiaoshihou514/aristotle): GUI frontend for ndpc (WIP)
+- [aristotle](https://github.com/xiaoshihou514/aristotle): GUI frontend for ndpc
