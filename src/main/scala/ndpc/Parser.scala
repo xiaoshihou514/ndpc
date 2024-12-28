@@ -38,12 +38,12 @@ object Parser {
 
     case class PfScope(var body: List[Line | PfScope]) {
         def flatten(): List[Line] =
-            body.map(l =>
-                l match {
+            body.flatMap(line =>
+                line match {
                     case s @ PfScope(_) => s.flatten()
-                    case _              => List(l.asInstanceOf[Line])
+                    case l              => List(l.asInstanceOf[Line])
                 }
-            ).flatten
+            )
     }
 
     private class State(

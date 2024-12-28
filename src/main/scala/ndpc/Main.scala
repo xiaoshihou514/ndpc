@@ -11,7 +11,7 @@ object Main {
             case Nil | "--help" :: _ =>
                 println("""
                 |Natural deduction proof compiler
-                | Usage: ndpc [SUBCOMMMAND] [OPTION] [FILES]
+                | Usage: ndpc [SUBCOMMAND] [OPTION] [FILES]
                 |
                 |Arguments:
                 |[FILES]      input files, use - for stdin

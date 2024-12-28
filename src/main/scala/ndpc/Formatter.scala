@@ -57,7 +57,7 @@ object Formatter {
                         case Success(ast) => ast
                         case Failure(reason) =>
                             throw new ParserException(
-                              fromStringError(reason.asInstanceOf[String])
+                              fromStringError(s"$reason")
                             )
                     }
                 }
@@ -70,7 +70,7 @@ object Formatter {
                               SyntaxError(reason.copy(file = Some(input)))
                             )
                         case throwable @ _ =>
-                            Failure(IOError(input, throwable.toString()))
+                            Failure(IOError(input, s"$throwable"))
                     }
                 }
             }
@@ -99,9 +99,9 @@ object Formatter {
                 var result = s"$prePadding$concl $midPadding[$rule]$comment"
 
                 // make or elimination prettier
-                if rule.isInstanceOf[Tick] then result = result + "\n"
-
-                result
+                rule match
+                    case Tick(_) => result + "\n"
+                    case _       => result
         }
 
     def formatScope(target: PfScope, currentIndent: Int, reasonAlign: Int): String =

@@ -127,33 +127,32 @@ object Checker {
         env: Set[String],
         knowledge: Set[Line],
         boxConcls: Set[(Line, Line)]
-    ): Result[EnrichedErr, Int] = boundary {
-        // it's readable, but pretty ugly IMO
+    ): Result[EnrichedErr, Int] = {
         // verify head
         val pfs = input.body.dropWhile(x => isComment(x))
-        if pfs.isEmpty then
-            boundary.break(
-              Failure(
-                EnrichedErr(
-                  s"Found empty box, does this file only contain empty lines and comments?",
-                  None,
-                  Some(lineNr)
+        pfs match {
+            case Nil =>
+                Failure(
+                  EnrichedErr(
+                    s"Found empty box, does this file only contain empty lines and comments?",
+                    None,
+                    Some(lineNr)
+                  )
                 )
-              )
-            )
+            case _ => // pass
+        }
+
         val head = pfs.head
         head match {
             case Pf(_, Ass() | ForallIConst(), _) => // pass
             case Pf(_, Given() | Premise(), _)    => // pass
             case pf @ Pf(_, _, _) =>
-                boundary.break(
-                  Failure(
-                    EnrichedErr(
-                      s"Box starting at line $lineNr did not start with a valid proof "
-                          + "(expected assumption, forall I const, given, premise)",
-                      None,
-                      Some(lines.indexOf(head))
-                    )
+                Failure(
+                  EnrichedErr(
+                    s"Box starting at line $lineNr did not start with a valid proof "
+                        + "(expected assumption, forall I const, given, premise)",
+                    None,
+                    Some(lines.indexOf(head))
                   )
                 )
             case _ => // pass
@@ -164,13 +163,11 @@ object Checker {
             .head
         tail match {
             case scope @ PfScope(_) =>
-                boundary.break(
-                  Failure(
-                    EnrichedErr(
-                      "Box ended with another box",
-                      None,
-                      Some(lines.indexOf(tail))
-                    )
+                Failure(
+                  EnrichedErr(
+                    "Box ended with another box",
+                    None,
+                    Some(lines.indexOf(tail))
                   )
                 )
             case _ => // pass
@@ -179,48 +176,51 @@ object Checker {
         // build up state
         val localKnowledge: Set[Line] = Set()
 
-        var offset = 0
-        for (line <- input.body) do {
-            line match {
-                case p @ PfScope(_) =>
-                    given Set[Line] = knowledge addAll localKnowledge
-                    tryVerify(p, lineNr + offset) match {
-                        case f @ Failure(_)   => boundary.break(f)
-                        case Success(elapsed) => offset = offset + elapsed
-                    }
-                case line =>
-                    tryVerifyLine(
-                      line.asInstanceOf[Line],
-                      lineNr + offset,
-                      knowledge union localKnowledge
-                    ) match {
-                        case Failure(reason) =>
-                            boundary.break(
-                              Failure(
-                                EnrichedErr(
-                                  reason.asInstanceOf[String],
-                                  None,
-                                  Some(lineNr + offset)
-                                )
-                              )
-                            )
-                        case Success(vars) =>
-                            env addAll vars
-                            if line.isInstanceOf[Pf] then localKnowledge add line.asInstanceOf[Line]
-                    }
-                    offset = offset + 1
+        // format: off
+        val zero: Result[EnrichedErr, Int] = Success(0)
+        val newOffset = input.body.foldLeft(zero) { (acc, line) => acc.flatMap { offset => line match
+            case p @ PfScope(_) =>
+                given Set[Line] = knowledge addAll localKnowledge
+                tryVerify(p, lineNr + offset) match {
+                    case f @ Failure(_)   => f
+                    case Success(elapsed) => Success(offset + elapsed)
+                }
+            case line =>
+                tryVerifyLine(
+                  line.asInstanceOf[Line],
+                  lineNr + offset,
+                  knowledge union localKnowledge
+                ) match {
+                    case Failure(reason) => Failure(
+                      EnrichedErr(
+                        reason.asInstanceOf[String],
+                        None,
+                        Some(lineNr + offset)
+                      )
+                    )
+                    case Success(vars) =>
+                        env addAll vars
+                        line match
+                            case p@Pf(_, _, _) => localKnowledge add p
+                            case _ => // pass
+                }
+                Success(offset + 1)
             }
         }
+        // format: on
 
         // we should leave with nothing but the conclusion
         // we can also reuse the variables, but let's omit that for brecity
         // it's possible that this scope is main and we did not begin with any premises
-        if head.isInstanceOf[Line] then
-            boxConcls add (
-              head.asInstanceOf[Line],
-              tail.asInstanceOf[Line],
-            )
-        Success(offset)
+        head match
+            case PfScope(body) => // pass
+            case _ if newOffset.isSuccess =>
+                boxConcls add (
+                  head.asInstanceOf[Line],
+                  tail.asInstanceOf[Line],
+                )
+            case _ => // pass
+        newOffset
     }
 
     private def tryVerifyLine(
