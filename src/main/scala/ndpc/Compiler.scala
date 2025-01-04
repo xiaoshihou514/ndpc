@@ -9,6 +9,7 @@ import os.{RelPath, Path}
 import scala.util.Try
 import scala.io.Source
 import ndpc.Parser.PfScope
+import scala.collection.mutable.StringBuilder
 import ndpc.Parser.Empty
 import ndpc.Parser.Comment
 import ndpc.Parser.Pf
@@ -19,10 +20,7 @@ object Compiler {
     def compile(inputs: List[String], userCSS: Option[String]): Int = {
         val results = HTMLfromSource(inputs, userCSS)
         val errors = results.filter(_.isFailure).asInstanceOf[List[Failure[NdpcError]]]
-        val successes =
-            results
-                .filter(_.isSuccess)
-                .map(_.get)
+        val successes = results.filter(_.isSuccess).map(_.get)
 
         if !errors.isEmpty then printErrorHuman(errors)
         var errcount = errors.length
@@ -72,24 +70,25 @@ object Compiler {
     }
 
     private def toHTML(s: PfScope, lineNr: Int): (String, Int) =
-        var current = lineNr
+        val (current, body) = s.body
+            .foldRight((lineNr, StringBuilder())) { (x, acc_) =>
+                val (current, acc) = acc_
+                x match
+                    case Left(Pf(concl, rule, _)) =>
+                        acc ++= mkLine(concl, rule, current)
+                        (current + 1, acc)
+                    case Right(s @ PfScope(_)) =>
+                        val (res, newLineNr) = toHTML(s, lineNr)
+                        acc ++= "<li>" + res + "</li>"
+                        (newLineNr, acc)
+                    case _ => (current, acc)
+            }
         (
           s"""
-    <div class="box"><ul>
-    ${s.body.map {
-                  _ match
-                      case Pf(concl, rule, _) =>
-                          val res = mkLine(concl, rule, current)
-                          current = current + 1
-                          res
-                      case s @ PfScope(_) =>
-                          val (res, newLineNr) = toHTML(s, lineNr)
-                          current = newLineNr
-                          "<li>" + res + "</li>"
-                      case _ => ""
-              }.mkString}
-    </ul></div>
-    """,
+            <div class="box"><ul>
+                $body
+            </ul></div>
+          """,
           current
         )
 
@@ -110,10 +109,10 @@ object Compiler {
             <meta charset="UTF-8">
             <title>Proof</title>
             <style>
-            $css
+                $css
             </style>
             <body>
-            $body
+                $body
             </body>
         </html>
     """

@@ -79,9 +79,9 @@ object Formatter {
     private def findReasonAlign(target: PfScope, ini_indent: Int = 0): Int =
         2 * ini_indent + target.body
             .map(_ match {
-                case s @ PfScope(_)  => findReasonAlign(s, ini_indent + 1)
-                case Pf(concl, _, _) => concl.toString().length()
-                case _               => 0
+                case Right(s @ PfScope(_)) => findReasonAlign(s, ini_indent + 1)
+                case Left(Pf(concl, _, _)) => concl.toString().length()
+                case _                     => 0
             })
             .max
 
@@ -106,11 +106,14 @@ object Formatter {
 
     def formatScope(target: PfScope, currentIndent: Int, reasonAlign: Int): String =
         target.body
-            .filter(!_.isInstanceOf[Empty])
+            .filter(_ match {
+                case Left(Empty()) => true
+                case _             => false
+            })
             .map((line) =>
                 line match {
-                    case s @ PfScope(_) => formatScope(s, currentIndent + 1, reasonAlign)
-                    case l => formatLine(l.asInstanceOf[Line], currentIndent, reasonAlign)
+                    case Right(s @ PfScope(_)) => formatScope(s, currentIndent + 1, reasonAlign)
+                    case Left(l)               => formatLine(l, currentIndent, reasonAlign)
                 }
             )
             .mkString("\n")

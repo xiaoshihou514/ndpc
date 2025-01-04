@@ -54,7 +54,6 @@ object FormulaParser {
         atomic(equ) <|>
         atomic(predAp)
     ).label("Atom (T/F/equality/predicate application)")
-    .asInstanceOf[Parsley[LFormula]] // come on scala, you can do this!
     lazy val lformula: Parsley[LFormula] = (
         // "atom"-s connected by connectives
         precedence(

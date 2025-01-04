@@ -8,4 +8,4 @@ forall y. (likes(John, y) -> y = Jack) [premise]
 John = Jack[PC(3,7)]
 
 
-  
+

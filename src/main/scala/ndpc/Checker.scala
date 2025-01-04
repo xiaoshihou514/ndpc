@@ -52,9 +52,9 @@ object Checker {
                 .map { (contents: String) =>
                     parse(contents) match {
                         case Success(ast) => ast
-                        case Failure(reason) =>
+                        case Failure(reason: String) =>
                             throw new ParserException(
-                              fromStringError(reason.asInstanceOf[String])
+                              fromStringError(reason)
                             )
                     }
                 }
@@ -83,39 +83,40 @@ object Checker {
             }
         }
 
-    private def isPremise(line: Line | PfScope) =
+    private def isPremise(line: Either[Line, PfScope]) =
         line match
-            case Pf(_, Given() | Premise(), _) => true
-            case _                             => false
+            case Left(Pf(_, Given() | Premise(), _)) => true
+            case _                                   => false
 
-    private def isComment(line: Line | PfScope) =
+    private def isComment(line: Either[Line, PfScope]) =
         line match {
-            case Empty() | Comment(_) => true
-            case _                    => false
+            case Left(Empty() | Comment(_)) => true
+            case _                          => false
         }
 
     private def checkOne(upf: UncheckedProof): Result[EnrichedErr, CheckedProof] = {
         val pfs = upf.main.body.dropWhile(x => isPremise(x) || isComment(x))
-        val maybeTangling = PfScope(pfs).flatten().find(isPremise)
-        if !maybeTangling.isEmpty then
-            Failure(
-              EnrichedErr(
-                "Did not expect \"Assume\" and \"Premise\" to be used in places other than the start of proof",
-                None,
-                Some(upf.lines.indexOf(maybeTangling.get))
-              )
-            )
-        else
-            given lines: List[Line] = upf.lines
-            given main: PfScope = upf.main
-            given Set[String] = Set()
-            given Set[Line] = Set()
-            given Set[(Line, Line)] = Set()
+        val maybeTangling = PfScope(pfs).flatten().find(x => isPremise(Left(x)))
+        maybeTangling match
+            case None =>
+                Failure(
+                  EnrichedErr(
+                    "Did not expect \"Assume\" and \"Premise\" to be used in places other than the start of proof",
+                    None,
+                    Some(upf.lines.indexOf(maybeTangling.get))
+                  )
+                )
+            case _ => // pass
+        given lines: List[Line] = upf.lines
+        given main: PfScope = upf.main
+        given Set[String] = Set()
+        given Set[Line] = Set()
+        given Set[(Line, Line)] = Set()
 
-            tryVerify(main, 1) match {
-                case f @ Failure(_) => f
-                case _              => Success(CheckedProof(main))
-            }
+        tryVerify(main, 1) match {
+            case f @ Failure(_) => f
+            case _              => Success(CheckedProof(main))
+        }
     }
 
     private def tryVerify(
@@ -144,9 +145,7 @@ object Checker {
 
         val head = pfs.head
         head match {
-            case Pf(_, Ass() | ForallIConst(), _) => // pass
-            case Pf(_, Given() | Premise(), _)    => // pass
-            case pf @ Pf(_, _, _) =>
+            case pf @ Left(Pf(_, _, _)) =>
                 Failure(
                   EnrichedErr(
                     s"Box starting at line $lineNr did not start with a valid proof "
@@ -162,7 +161,7 @@ object Checker {
             .dropWhile(isComment(_))
             .head
         tail match {
-            case scope @ PfScope(_) =>
+            case scope @ Right(PfScope(_)) =>
                 Failure(
                   EnrichedErr(
                     "Box ended with another box",
@@ -179,21 +178,21 @@ object Checker {
         // format: off
         val zero: Result[EnrichedErr, Int] = Success(0)
         val newOffset = input.body.foldLeft(zero) { (acc, line) => acc.flatMap { offset => line match
-            case p @ PfScope(_) =>
+            case Right(p @ PfScope(_)) =>
                 given Set[Line] = knowledge addAll localKnowledge
                 tryVerify(p, lineNr + offset) match {
                     case f @ Failure(_)   => f
                     case Success(elapsed) => Success(offset + elapsed)
                 }
-            case line =>
+            case Left(line) =>
                 tryVerifyLine(
-                  line.asInstanceOf[Line],
+                  line,
                   lineNr + offset,
                   knowledge union localKnowledge
                 ) match {
-                    case Failure(reason) => Failure(
+                    case Failure(reason: String) => Failure(
                       EnrichedErr(
-                        reason.asInstanceOf[String],
+                        reason,
                         None,
                         Some(lineNr + offset)
                       )
@@ -201,7 +200,7 @@ object Checker {
                     case Success(vars) =>
                         env addAll vars
                         line match
-                            case p@Pf(_, _, _) => localKnowledge add p
+                            case p @ Pf(_, _, _) => localKnowledge add p
                             case _ => // pass
                 }
                 Success(offset + 1)
@@ -213,11 +212,11 @@ object Checker {
         // we can also reuse the variables, but let's omit that for brecity
         // it's possible that this scope is main and we did not begin with any premises
         head match
-            case PfScope(body) => // pass
-            case _ if newOffset.isSuccess =>
+            case Right(PfScope(body)) => // pass
+            case Left(h) if newOffset.isSuccess =>
                 boxConcls add (
-                  head.asInstanceOf[Line],
-                  tail.asInstanceOf[Line],
+                  h,
+                  tail.swap.getOrElse(???) // HACK
                 )
             case _ => // pass
         newOffset
@@ -611,16 +610,16 @@ object Checker {
                       List(
                         concl.isInstanceOf[Exists] -> "Conclusion be of form exists ?. A",
                         (
-                          concl.isInstanceOf[Exists] &&
-                              !orig.getVars(concl.asInstanceOf[Exists].x)
+                          concl match {
+                              case Exists(x, _) => !orig.getVars(x)
+                              case _            => false
+                          }
                         ) -> "Original free of Conclusion's quantifier",
                         (
-                          concl.isInstanceOf[Exists] &&
-                              isSubstituteOf(
-                                orig,
-                                concl.asInstanceOf[Exists].body,
-                                concl.asInstanceOf[Exists].x
-                              )
+                          concl match {
+                              case Exists(x, body) => isSubstituteOf(orig, body, x)
+                              case _               => false
+                          }
                         ) -> "Body of Conclusion is Original with one variable substituted"
                       ),
                       List(
@@ -661,19 +660,22 @@ object Checker {
                 case (cl @ Pf(c, _, _), ccl @ Pf(conclF, _, _), _) =>
                     buildError(
                       List(
-                        (c.isInstanceOf[PredAp] && c.asInstanceOf[PredAp].args == Nil)
+                        (c match {
+                            case PredAp(_, Nil) => true
+                            case _              => false
+                        })
                             -> "C is a constant",
                         concl.isInstanceOf[Forall] -> "Conclusion is of form forall ?. A",
                         (
-                          concl.isInstanceOf[Forall] &&
-                              !conclF.getVars(concl.asInstanceOf[Forall].x)
+                          concl match {
+                              case it @ Forall(_, _) => !conclF.getVars(it.x)
+                              case _                 => false
+                          }
                         ) -> "ForallConclusion free of quantifier in Conclusion",
-                        (
-                          concl.isInstanceOf[Forall] &&
-                              conclF.substitutes(c, PredAp(concl.asInstanceOf[Forall].x, Nil))(
-                                concl.asInstanceOf[Forall].body
-                              )
-                        ) -> "Conclusion if of form forall x. ForallConclusion[?/x]",
+                        (concl match {
+                            case Forall(x, body) => conclF.substitutes(c, PredAp(x, Nil))(body)
+                            case _               => false
+                        }) -> "Conclusion if of form forall x. ForallConclusion[?/x]",
                         boxConcls((cl, ccl)) ->
                             "C and ForallConclusion is assumption and conclusion of a box"
                       ),
@@ -1005,12 +1007,10 @@ object Checker {
                         "Assumption and ExistsConclusion is the assumption and conclusion of a box",
                     exists.isInstanceOf[Exists] -> "Exists is of form exists ?. A",
                     (
-                      exists.isInstanceOf[Exists] &&
-                          isSubstituteOf(
-                            ass,
-                            exists.asInstanceOf[Exists].body,
-                            exists.asInstanceOf[Exists].x
-                          )
+                      exists match {
+                          case Exists(x, body) => isSubstituteOf(ass, body, x)
+                          case _               => false
+                      }
                     ) -> "Exists' body equals Assumption[?/?] and its quantifier is free in Assumption"
                   ),
                   List(

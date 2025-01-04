@@ -19,7 +19,7 @@ import ndpc.parsers.RuleParser.rule
 import ndpc.parsers.Utils._
 
 import scala.io.Source
-import scala.util.Try
+import scala.util.{Try, Either}
 import ndpc.parsers.Lexer.lexeme
 
 object Parser {
@@ -36,12 +36,12 @@ object Parser {
         val trailingComment: Option[Comment]
     ) extends Line
 
-    case class PfScope(var body: List[Line | PfScope]) {
+    case class PfScope(var body: List[Either[Line, PfScope]]) {
         def flatten(): List[Line] =
             body.flatMap(line =>
                 line match {
-                    case s @ PfScope(_) => s.flatten()
-                    case l              => List(l.asInstanceOf[Line])
+                    case Right(s) => s.flatten()
+                    case Left(l)  => List(l)
                 }
             )
     }
@@ -59,14 +59,14 @@ object Parser {
         }
         def addLineToTree(line: Line): State = {
             // just append to current scope
-            scopeStack.head.body = scopeStack.head.body :+ line
+            scopeStack.head.body = scopeStack.head.body :+ Left(line)
             this
         }
 
         def pushScopeWith(line: Line): State = {
-            val newScope = PfScope(List(line))
+            val newScope = PfScope(List(Left(line)))
             // add new scope to current scope
-            scopeStack.head.body = scopeStack.head.body :+ newScope
+            scopeStack.head.body = scopeStack.head.body :+ Right(newScope)
             indentLevel += 2
             // add new scope to scope stack
             scopeStack = newScope :: scopeStack
@@ -75,14 +75,14 @@ object Parser {
 
         def popScopeWith(line: Line): State = {
             val t = scopeStack.tail
-            t.head.body = t.head.body :+ line
+            t.head.body = t.head.body :+ Left(line)
             indentLevel -= 2
             scopeStack = t
             this
         }
 
         def popScopeWithTick(line: Line): State = {
-            scopeStack.head.body = scopeStack.head.body :+ line
+            scopeStack.head.body = scopeStack.head.body :+ Left(line)
             val t = scopeStack.tail
             indentLevel -= 2
             scopeStack = t
@@ -115,7 +115,7 @@ object Parser {
             .map { pf => (s: State) =>
                 s.addLine(pf)
             }
-        ) ~> state.get.map(_.getLast().asInstanceOf[Pf])
+        ) ~> state.gets(_.getLast().asInstanceOf[Pf])
 
         many(
             state.update((
