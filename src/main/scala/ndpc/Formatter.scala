@@ -21,17 +21,22 @@ object Formatter {
         if !errors.isEmpty then printErrorHuman(errors)
 
         if apply then
-            for ((dest, formatted) <- successes) do {
+            var code = errors.length
+
+            for ((dest, result) <- successes) do {
                 val path = os.FilePath(dest).resolveFrom(os.pwd)
-                os.write.over(path, formatted)
+                Try(os.write.over(path, result)) match
+                    case _: scala.util.Failure[_] => code = code + 1
+                    case _                        =>
             }
+
+            code
         else
             for ((_, formatted) <- successes) do {
                 println(formatted)
                 println()
             }
-
-        errors.length
+            errors.length
     }
 
     private def formattedFromSource(
