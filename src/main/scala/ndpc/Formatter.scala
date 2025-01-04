@@ -19,25 +19,19 @@ object Formatter {
                 .map(_.get)
 
         if !errors.isEmpty then printErrorHuman(errors)
-        var errcount = errors.length
 
         if apply then
             for ((dest, formatted) <- successes) do {
-                try {
-                    val path = Try(Path(dest)).getOrElse(os.pwd / RelPath(dest))
-                    os.write.over(path, formatted)
-                } catch {
-                    case e =>
-                        errcount = errcount + 1
-                        printerrln(s"Failed to write to $dest: $e")
-                }
+                val path = os.FilePath(dest).resolveFrom(os.pwd)
+                os.write.over(path, formatted)
             }
         else
             for ((_, formatted) <- successes) do {
                 println(formatted)
                 println()
             }
-        errcount
+
+        errors.length
     }
 
     private def formattedFromSource(
@@ -96,7 +90,7 @@ object Formatter {
                 val prePadding = " ".repeat(indent * 2)
                 val midPadding = " ".repeat(reasonAlign - concl.toString().length() - indent * 2)
 
-                var result = s"$prePadding$concl $midPadding[$rule]$comment"
+                val result = s"$prePadding$concl $midPadding[$rule]$comment"
 
                 // make or elimination prettier
                 rule match

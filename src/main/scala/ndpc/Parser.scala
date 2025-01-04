@@ -18,7 +18,6 @@ import ndpc.parsers.FormulaParser.lformula
 import ndpc.parsers.RuleParser.rule
 import ndpc.parsers.Utils._
 
-import scala.io.Source
 import scala.util.{Try, Either}
 import ndpc.parsers.Lexer.lexeme
 

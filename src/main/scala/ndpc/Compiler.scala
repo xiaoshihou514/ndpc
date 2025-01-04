@@ -5,7 +5,6 @@ import ndpc.Utils._
 import ndpc.Checker.pfFromSource
 import parsley.Failure
 import parsley.Success
-import os.{RelPath, Path}
 import scala.util.Try
 import scala.io.Source
 import ndpc.Parser.PfScope
@@ -23,19 +22,12 @@ object Compiler {
         val successes = results.filter(_.isSuccess).map(_.get)
 
         if !errors.isEmpty then printErrorHuman(errors)
-        var errcount = errors.length
 
         for ((dest, formatted) <- successes) do {
-            try {
-                val path = Try(Path(dest)).getOrElse(os.pwd / RelPath(dest))
-                os.write.over(path, formatted)
-            } catch {
-                case e =>
-                    errcount = errcount + 1
-                    printerrln(s"Failed to write to $dest: $e")
-            }
+            val path = os.FilePath(dest).resolveFrom(os.pwd)
+            os.write.over(path, formatted)
         }
-        errcount
+        errors.length
     }
 
     private def HTMLfromSource(
