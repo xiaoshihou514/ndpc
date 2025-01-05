@@ -350,23 +350,19 @@ object Checker {
     private def notProofs(lines: List[(Int, Line)])(using input: Pf) =
         Failure(
           ("The following line(s) referenced in ${input.rule} are not proofs:" ::
-              lines
-                  .filter((_, l) => !l.isInstanceOf[Pf])
-                  .map((n, l) => s"  line $n: $l"))
-              .mkString("\n")
+        lines.collect {case (n, l: Pf) =>s"  line $n: $l"}).mkString("\n")
         )
 
     private def buildError(
         assertions: List[(Boolean, String)],
         context: List[(String, LFormula)]
     )(using input: Pf): Failure[String] = Failure(
-      ((
-        s"  The following assertion(s) implied by ${input.rule} does not hold:" ::
-            assertions.filter(!_._1).map("    " + _._2)
-      ) ++ (
-        "  In particular with the following variables:" ::
+      List(
+        s"  The following assertion(s) implied by ${input.rule} does not hold:",
+            assertions.filter(!_._1).map("    " + _._2),
+        "  In particular with the following variables:",
             context.map((desc, f) => s"    $desc: $f")
-      )).mkString("\n")
+      ).mkString("\n")
     )
 
     private def tryVerifyAndIntro(leftLine: Int, rightLine: Int)(using
@@ -440,13 +436,23 @@ object Checker {
         if verifyArgs(List(eitherLine)) then
             (lmap(eitherLine), concl) match {
                 // concl = either / x OR concl = x / either
-                case (Pf(either, _, _), Or(left, right)) if either == left || either == right =>
+                case (Pf(either, _, _), Or(left, right)) => 
+                if either == left || either == right then
                     Success(Nil)
+                else
+                    buildError(
+                      List(
+                        false -> "Either is either side of Conclusion"
+                      ),
+                      List(
+                        "Conclusion" -> concl,
+                        "Either" -> either
+                      )
+                    )
                 case (Pf(either, _, _), _) =>
                     buildError(
                       List(
-                        concl.isInstanceOf[Or] -> "Conclusion is of form a / b",
-                        false -> "Either is either side of Conclusion"
+                        false -> "Conclusion is of form a / b",
                       ),
                       List(
                         "Conclusion" -> concl,
@@ -711,12 +717,22 @@ object Checker {
         if verifyArgs(List(origLine)) then
             (lmap(origLine)) match {
                 // orig = concl ^ x OR orig = x ^ concl
-                case Pf(And(left, right), _, _) if left == concl || right == concl =>
+                case Pf(and @ And(left, right), _, _) => if left == concl || right == concl then
                     Success(Nil)
+                else
+                    buildError(
+                      List(
+                        false -> "Conclusion is either side of And"
+                      ),
+                      List(
+                        "Conclusion" -> concl,
+                        "And" -> and
+                      )
+                    )
                 case Pf(and, _, _) =>
                     buildError(
                       List(
-                        and.isInstanceOf[And] -> "And be of form x ^ y",
+                        false -> "And be of form x ^ y",
                         false -> "Conclusion is either side of And"
                       ),
                       List(
