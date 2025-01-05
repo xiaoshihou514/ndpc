@@ -90,7 +90,7 @@ object Parser {
     }
 
     private object State {
-        def empty = State(0, List(), List(PfScope(List())))
+        def empty = State(0, Nil, List(PfScope(Nil)))
     }
 
     case class UncheckedProof(main: PfScope, lines: List[Line])
