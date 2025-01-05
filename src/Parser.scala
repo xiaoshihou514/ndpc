@@ -50,7 +50,7 @@ object Parser {
         var cache: List[Line],
         var scopeStack: List[PfScope]
     ) {
-        def getLast() = cache.last
+        def getLast = cache.last
 
         def addLine(line: Line) = {
             cache = cache :+ line
@@ -89,13 +89,14 @@ object Parser {
         }
     }
 
+    private object State {
+        def empty = State(0, List(), List(PfScope(List())))
+    }
+
     case class UncheckedProof(main: PfScope, lines: List[Line])
 
-    private def emptyState() =
-        State(0, List(), List(PfScope(List())))
-
     // format: off
-    private def p(): Parsley[UncheckedProof] = emptyState().makeRef { state =>
+    private def p(): Parsley[UncheckedProof] = State.empty.makeRef { state =>
         val comment = ("--" ~> manyTill(item, '\n' <|> eof))
             .map(_.mkString)
             .map(Comment.apply)
@@ -114,7 +115,7 @@ object Parser {
             .map { pf => (s: State) =>
                 s.addLine(pf)
             }
-        ) ~> state.gets(_.getLast().asInstanceOf[Pf])
+        ) ~> state.gets(_.getLast.asInstanceOf[Pf])
 
         many(
             state.update((

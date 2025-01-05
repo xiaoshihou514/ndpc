@@ -12,11 +12,8 @@ import os.{RelPath, Path}
 object Formatter {
     def format(inputs: List[String], apply: Boolean): Int = {
         val results = formattedFromSource(inputs)
-        val errors = results.filter(_.isFailure).asInstanceOf[List[Failure[NdpcError]]]
-        val successes =
-            results
-                .filter(_.isSuccess)
-                .map(_.get)
+        val errors = results.collect { case f @ Failure(_) => f }
+        val successes = results.collect { case Success(x) => x }
 
         if !errors.isEmpty then printErrorHuman(errors)
 

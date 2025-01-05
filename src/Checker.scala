@@ -59,9 +59,8 @@ object Checker {
                 }
                 .map { (upf: UncheckedProof) =>
                     checkOne(upf) match {
-                        case Success(pf) => pf
-                        case Failure(reason) =>
-                            throw new CheckException(reason.asInstanceOf[EnrichedErr])
+                        case Success(pf)                  => pf
+                        case Failure(reason: EnrichedErr) => throw new CheckException(reason)
                     }
                 } match {
                 case scala.util.Success(pf) => Success(pf)
@@ -149,7 +148,7 @@ object Checker {
                   tail @ Pf(_, _, _)
                 ) =>
                 val result = tryVerifyEach(input, lineNr)
-                if result.isSuccess then boxConcls.add(head, tail)
+                for _ <- result do boxConcls.add(head, tail)
                 result
             case Right(_) +: _ =>
                 tryVerifyEach(input, lineNr)

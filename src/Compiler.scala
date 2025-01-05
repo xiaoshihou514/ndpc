@@ -18,8 +18,8 @@ import ndpc.expr.Rule.Rule
 object Compiler {
     def compile(inputs: List[String], userCSS: Option[String]): Int = {
         val results = HTMLfromSource(inputs, userCSS)
-        val errors = results.filter(_.isFailure).asInstanceOf[List[Failure[NdpcError]]]
-        val successes = results.filter(_.isSuccess).map(_.get)
+        val errors = results.collect { case f @ Failure(_) => f }
+        val successes = results.collect { case Success(x) => x }
 
         if !errors.isEmpty then printErrorHuman(errors)
 
