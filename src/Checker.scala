@@ -25,8 +25,7 @@ object Checker {
 
     def check(inputs: List[String], toJson: Boolean): Int = {
         val errors = pfFromSource(inputs)
-            .filter(_.isFailure)
-            .asInstanceOf[List[Failure[NdpcError]]]
+            .collect { case f @ Failure(_) => f }
         if !errors.isEmpty then
             if toJson then printErrorJson(errors)
             else printErrorHuman(errors)
@@ -77,6 +76,7 @@ object Checker {
                               SemanticsError(reason.copy(file = Some(input)))
                             )
                         case throwable @ _ =>
+                            throwable.printStackTrace()
                             Failure(IOError(input, throwable.toString))
                     }
                 }
@@ -98,12 +98,12 @@ object Checker {
         val pfs = upf.main.body.dropWhile(x => isPremise(x) || isComment(x))
         val maybeTangling = PfScope(pfs).flatten().find(x => isPremise(Left(x)))
         maybeTangling match
-            case None =>
+            case Some(it) =>
                 Failure(
                   EnrichedErr(
                     "Did not expect \"Assume\" and \"Premise\" to be used in places other than the start of proof",
                     None,
-                    Some(upf.lines.indexOf(maybeTangling.get))
+                    Some(upf.lines.indexOf(it))
                   )
                 )
             case _ => // pass
@@ -130,8 +130,7 @@ object Checker {
         boxConcls: Set[(Line, Line)]
     ): Result[EnrichedErr, Int] = {
         // verify head
-        val pfs = input.body.dropWhile(x => isComment(x))
-        pfs match {
+        input.body.dropWhile(x => isComment(x)) match {
             case Nil =>
                 Failure(
                   EnrichedErr(
@@ -140,86 +139,85 @@ object Checker {
                     Some(lineNr)
                   )
                 )
-            case _ => // pass
-        }
+            case pfs @ (head :: _) =>
+                head match {
+                    case Left(Pf(_, Ass() | ForallIConst() | Given() | Premise(), _)) | Right(_) =>
+                        input.body.findLast(!isComment(_)).get match {
+                            case scope @ Right(PfScope(_)) =>
+                                Failure(
+                                  EnrichedErr(
+                                    "Box ended with another box",
+                                    None,
+                                    Some(lines.indexOf(scope))
+                                  )
+                                )
+                            case Left(tail: Line) =>
+                                // build up state
+                                val localKnowledge: Set[Line] = Set()
 
-        val head = pfs.head
-        head match {
-            case pf @ Left(Pf(_, _, _)) =>
-                Failure(
-                  EnrichedErr(
-                    s"Box starting at line $lineNr did not start with a valid proof "
-                        + "(expected assumption, forall I const, given, premise)",
-                    None,
-                    Some(lines.indexOf(head))
-                  )
-                )
-            case _ => // pass
-        }
+                                val zero: Result[EnrichedErr, Int] = Success(0)
+                                val newOffset = input.body.foldLeft(zero) { (acc, line) =>
+                                    acc.flatMap { offset =>
+                                        line match
+                                            case Right(p @ PfScope(_)) =>
+                                                given Set[Line] = knowledge addAll localKnowledge
+                                                tryVerify(p, lineNr + offset) match {
+                                                    case f @ Failure(_) => f
+                                                    case Success(elapsed) =>
+                                                        Success(offset + elapsed)
+                                                }
+                                            case Left(line) =>
+                                                tryVerifyLine(
+                                                  line,
+                                                  lineNr + offset,
+                                                  knowledge union localKnowledge
+                                                ) match {
+                                                    case Failure(reason: String) =>
+                                                        Failure(
+                                                          EnrichedErr(
+                                                            reason,
+                                                            None,
+                                                            Some(lineNr + offset)
+                                                          )
+                                                        )
+                                                    case Success(vars) =>
+                                                        env addAll vars
+                                                        line match
+                                                            case p @ Pf(_, _, _) =>
+                                                                localKnowledge add p
+                                                            case _ => // pass
+                                                }
+                                                Success(offset + 1)
+                                    }
+                                }
 
-        val tail = input.body.reverse
-            .dropWhile(isComment(_))
-            .head
-        tail match {
-            case scope @ Right(PfScope(_)) =>
-                Failure(
-                  EnrichedErr(
-                    "Box ended with another box",
-                    None,
-                    Some(lines.indexOf(tail))
-                  )
-                )
-            case _ => // pass
-        }
+                                // we should leave with nothing but the conclusion
+                                // we can also reuse the variables, but let's omit that for brecity
+                                // it's possible that this scope is main and we did not begin with any premises
+                                head match
+                                    case Right(PfScope(body)) => // pass
+                                    case Left(h) if newOffset.isSuccess =>
+                                        boxConcls add (
+                                          h,
+                                          tail
+                                        )
+                                    case _ => // pass
+                                newOffset
+                        }
 
-        // build up state
-        val localKnowledge: Set[Line] = Set()
-
-        // format: off
-        val zero: Result[EnrichedErr, Int] = Success(0)
-        val newOffset = input.body.foldLeft(zero) { (acc, line) => acc.flatMap { offset => line match
-            case Right(p @ PfScope(_)) =>
-                given Set[Line] = knowledge addAll localKnowledge
-                tryVerify(p, lineNr + offset) match {
-                    case f @ Failure(_)   => f
-                    case Success(elapsed) => Success(offset + elapsed)
+                    case pf @ _ =>
+                        Failure(
+                          EnrichedErr(
+                            s"Box starting at line $lineNr did not start with a valid proof "
+                                + "(expected assumption, forall I const, given, premise)",
+                            None,
+                            Some(lines.indexOf(head))
+                          )
+                        )
                 }
-            case Left(line) =>
-                tryVerifyLine(
-                  line,
-                  lineNr + offset,
-                  knowledge union localKnowledge
-                ) match {
-                    case Failure(reason: String) => Failure(
-                      EnrichedErr(
-                        reason,
-                        None,
-                        Some(lineNr + offset)
-                      )
-                    )
-                    case Success(vars) =>
-                        env addAll vars
-                        line match
-                            case p @ Pf(_, _, _) => localKnowledge add p
-                            case _ => // pass
-                }
-                Success(offset + 1)
-            }
-        }
-        // format: on
 
-        // we should leave with nothing but the conclusion
-        // we can also reuse the variables, but let's omit that for brecity
-        // it's possible that this scope is main and we did not begin with any premises
-        head match
-            case Right(PfScope(body)) => // pass
-            case Left(h) if newOffset.isSuccess =>
-                boxConcls add (
-                  h,
-                  tail.swap.getOrElse(???) // HACK
-                )
-            case _ => // pass
-        newOffset
+        }
+
     }
 
     private def tryVerifyLine(
@@ -237,21 +235,19 @@ object Checker {
         given Int = lineNr
         input match {
             case nonpf @ (Comment(_) | Empty()) => Success(Nil)
-            // format: off
-            case it @ Pf(concl, rule, _) => 
+            case it @ Pf(concl, rule, _) =>
                 given conclusion: LFormula = concl
                 given thisLine: Pf = it
+                given Set[Line] = knowledge addAll boxConcls.map(List(_, _)).flatten
                 rule match {
                     // All the introductions
-                    case AndIntro(left, right) => 
+                    case AndIntro(left, right) =>
                         tryVerifyAndIntro(left, right)
                     case ImpliesIntro(ass, res) =>
-                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyImpliesIntro(ass, res)
                     case OrIntro(either) =>
                         tryVerifyOrIntro(either)
                     case NotIntro(orig, bottom) =>
-                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyNotIntro(orig, bottom)
                     case DoubleNegIntro(orig) =>
                         tryVerifyDoubleNegIntro(orig)
@@ -259,10 +255,8 @@ object Checker {
                         tryVerifyFalsityIntro(orig, negated)
                     case TruthIntro() =>
                         // concl = T
-                        if concl == Truth() then
-                            Success(Nil)
-                        else
-                            Failure(s"""
+                        if concl == Truth() then Success(Nil)
+                        else Failure(s"""
                                     |$rule expects "conclusion" ($concl) to be T
                                     |""".stripMargin)
                     case EquivIntro(leftImp, rightImp) =>
@@ -270,7 +264,6 @@ object Checker {
                     case ExistsIntro(orig) =>
                         tryVerifyExistsIntro(orig)
                     case ForallIntro(const, conclForall) =>
-                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyForallIntro(const, conclForall, env)
 
                     // All the eliminations
@@ -279,22 +272,20 @@ object Checker {
                     case ImpliesElim(imp, ass) =>
                         tryVerifyImpliesElim(imp, ass)
                     case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
-                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyOrElim(or, leftAss, leftConcl, rightAss, rightConcl)
-                    case NotElim(negated, orig) => 
+                    case NotElim(negated, orig) =>
                         tryVerifyNotElim(negated, orig)
-                    case DoubleNegElim(orig) => 
+                    case DoubleNegElim(orig) =>
                         tryVerifyDoubleNegElim(orig)
-                    case FalsityElim(bottom) => 
+                    case FalsityElim(bottom) =>
                         tryVerifyFalsityElim(bottom)
-                    case EquivElim(equiv, either) => 
+                    case EquivElim(equiv, either) =>
                         tryVerifyEquivElim(equiv, either)
-                    case ExistsElim(exists, ass, conclExists) => 
-                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
+                    case ExistsElim(exists, ass, conclExists) =>
                         tryVerifyExistsElim(exists, ass, conclExists)
-                    case ForallElim(orig) => 
+                    case ForallElim(orig) =>
                         tryVerifyForallElim(orig)
-                    case ForallImpElim(ass, imp) => 
+                    case ForallImpElim(ass, imp) =>
                         tryVerifyForallImpElim(ass, imp)
 
                     // The special ones
@@ -303,7 +294,6 @@ object Checker {
                     case MT(imp, negated) =>
                         tryVerifyMT(imp, negated)
                     case PC(orig, bottom) =>
-                        given Set[Line] = knowledge addAll boxConcls.map(_.toList).flatten
                         tryVerifyPC(orig, bottom)
                     case Refl() =>
                         tryVerifyRefl()
@@ -320,7 +310,6 @@ object Checker {
                     case Tick(orig) =>
                         tryVerifyTick(orig)
                 }
-            // format: on
         }
     }
 

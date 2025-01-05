@@ -1,7 +1,7 @@
 package ndpc.parsers
 
 import parsley.Parsley
-import parsley.token.{Lexer, predicate}
+import parsley.token.{Lexer, Basic}
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc, SpaceDesc}
 import parsley.errors.combinator._
 
@@ -13,12 +13,12 @@ object Lexer {
     private val desc = LexicalDesc.plain.copy(
       nameDesc = NameDesc.plain.copy(
         // let's do basic for now
-        identifierStart = predicate.Basic(!ops(_)),
-        identifierLetter = predicate.Basic(!ops(_))
+        identifierStart = Basic(!ops(_)),
+        identifierLetter = Basic(!ops(_))
       ),
       // \n is significant!
       spaceDesc = SpaceDesc.plain.copy(
-        space = predicate.Basic(spaces)
+        space = Basic(spaces)
       ),
       symbolDesc = SymbolDesc.plain.copy(
         hardKeywords = Set("forall", "exists"),
