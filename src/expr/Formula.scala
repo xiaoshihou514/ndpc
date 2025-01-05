@@ -89,13 +89,13 @@ object Formula {
     case class Truth() extends LFormula {
         override def toString: String = "T"
         def toHTML: String = "&top;"
-        def getVars: Set[String] = Set()
+        def getVars: Set[String] = Set.empty
         def substitutes(from: LFormula, to: LFormula) = Set(Truth())
     }
     case class Falsity() extends LFormula {
         override def toString: String = "F"
         def toHTML: String = "&perp;"
-        def getVars: Set[String] = Set()
+        def getVars: Set[String] = Set.empty
         def substitutes(from: LFormula, to: LFormula) = Set(Falsity())
     }
 

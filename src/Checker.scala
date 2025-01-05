@@ -95,8 +95,7 @@ object Checker {
 
     private def checkOne(upf: UncheckedProof): Result[EnrichedErr, CheckedProof] = {
         val pfs = upf.main.body.dropWhile(x => isPremise(x) || isComment(x))
-        val maybeTangling = PfScope(pfs).flatten().find(x => isPremise(Left(x)))
-        maybeTangling match
+        PfScope(pfs).flatten().find(x => isPremise(Left(x))) match
             case Some(it) =>
                 Failure(
                   EnrichedErr(
@@ -108,9 +107,9 @@ object Checker {
             case _ => // pass
         given lines: List[Line] = upf.lines
         given main: PfScope = upf.main
-        given Set[String] = Set()
-        given Set[Line] = Set()
-        given Set[(Line, Line)] = Set()
+        given Set[String] = Set.empty
+        given Set[Line] = Set.empty
+        given Set[(Line, Line)] = Set.empty
 
         tryVerify(main, 1) match {
             case f @ Failure(_) => f
@@ -128,54 +127,43 @@ object Checker {
         knowledge: Set[Line],
         boxConcls: Set[(Line, Line)]
     ): Result[EnrichedErr, Int] = {
-        // verify head
-        val maybeHead = input.body.find(!isComment(_))
-        if maybeHead.isEmpty then
-            Failure(
-              EnrichedErr(
-                s"Found empty box, does this file only contain empty lines and comments?",
-                None,
-                Some(lineNr)
-              )
-            )
-        else
-            val head = maybeHead.get
-
-            head match {
-                case Left(h @ Pf(_, Ass() | ForallIConst() | Given() | Premise(), _)) =>
-                    input.body.findLast(!isComment(_)).get match {
-                        case Left(tail) =>
-                            // we should leave with nothing but the conclusion
-                            // we can also reuse the variables, but let's omit that for brevity
-                            // it's possible that this scope is main and we did not begin with any premises
-                            val newOffset = tryVerifyEach(input, lineNr)
-                            if newOffset.isSuccess then boxConcls add (h, tail)
-                            newOffset
-
-                        case Right(PfScope(_)) =>
-                            Failure(
-                              EnrichedErr(
-                                "Box ended with another box",
-                                None,
-                                Some(lines.indexOf(head))
-                              )
-                            )
-                    }
-
-                case Right(_) => tryVerifyEach(input, lineNr)
-
-                case pf @ _ =>
-                    Failure(
-                      EnrichedErr(
-                        s"Box starting at line $lineNr did not start with a valid proof "
-                            + "(expected assumption, forall I const, given, premise)",
-                        None,
-                        Some(lines.indexOf(head))
-                      )
-                    )
-
-            }
-
+        // verify head and tail
+        input.body.filterNot(isComment(_)).toVector match {
+            case v if v.isEmpty =>
+                Failure(
+                  EnrichedErr(
+                    s"Found empty box, does this file only contain empty lines and comments?",
+                    None,
+                    Some(lineNr)
+                  )
+                )
+            case _ :+ Right(tail @ PfScope(_)) =>
+                Failure(
+                  EnrichedErr(
+                    "Box ended with another box",
+                    None,
+                    Some(lines.indexOf(tail))
+                  )
+                )
+            case Left(head @ Pf(_, Ass() | ForallIConst() | Given() | Premise(), _)) +: _ :+ Left(
+                  tail @ Pf(_, _, _)
+                ) =>
+                val result = tryVerifyEach(input, lineNr)
+                if result.isSuccess then boxConcls.add(head, tail)
+                result
+            case Right(_) +: _ =>
+                tryVerifyEach(input, lineNr)
+            case Left(head) +: _ =>
+                Failure(
+                  EnrichedErr(
+                    s"Box starting at line $lineNr did not start with a valid proof "
+                        + "(expected assumption, forall I const, given, premise)",
+                    None,
+                    Some(lines.indexOf(head))
+                  )
+                )
+            case _ => Failure(EnrichedErr(s"Unknown error", None, None))
+        }
     }
 
     private def tryVerifyEach(
@@ -189,7 +177,7 @@ object Checker {
         boxConcls: Set[(Line, Line)]
     ): Result[EnrichedErr, Int] = {
         // build up state
-        val localKnowledge: Set[Line] = Set()
+        val localKnowledge = Set.empty[Line]
         val zero: Result[EnrichedErr, Int] = Success(0)
         input.body.foldLeft(zero) { (acc, line) =>
             acc.flatMap { offset =>
@@ -350,7 +338,7 @@ object Checker {
     private def notProofs(lines: List[(Int, Line)])(using input: Pf) =
         Failure(
           ("The following line(s) referenced in ${input.rule} are not proofs:" ::
-        lines.collect {case (n, l: Pf) =>s"  line $n: $l"}).mkString("\n")
+              lines.collect { case (n, l: Pf) => s"  line $n: $l" }).mkString("\n")
         )
 
     private def buildError(
@@ -359,9 +347,9 @@ object Checker {
     )(using input: Pf): Failure[String] = Failure(
       List(
         s"  The following assertion(s) implied by ${input.rule} does not hold:",
-            assertions.filter(!_._1).map("    " + _._2),
+        assertions.filter(!_._1).map("    " + _._2),
         "  In particular with the following variables:",
-            context.map((desc, f) => s"    $desc: $f")
+        context.map((desc, f) => s"    $desc: $f")
       ).mkString("\n")
     )
 
@@ -436,23 +424,22 @@ object Checker {
         if verifyArgs(List(eitherLine)) then
             (lmap(eitherLine), concl) match {
                 // concl = either / x OR concl = x / either
-                case (Pf(either, _, _), Or(left, right)) => 
-                if either == left || either == right then
-                    Success(Nil)
-                else
-                    buildError(
-                      List(
-                        false -> "Either is either side of Conclusion"
-                      ),
-                      List(
-                        "Conclusion" -> concl,
-                        "Either" -> either
-                      )
-                    )
+                case (Pf(either, _, _), Or(left, right)) =>
+                    if either == left || either == right then Success(Nil)
+                    else
+                        buildError(
+                          List(
+                            false -> "Either is either side of Conclusion"
+                          ),
+                          List(
+                            "Conclusion" -> concl,
+                            "Either" -> either
+                          )
+                        )
                 case (Pf(either, _, _), _) =>
                     buildError(
                       List(
-                        false -> "Conclusion is of form a / b",
+                        false -> "Conclusion is of form a / b"
                       ),
                       List(
                         "Conclusion" -> concl,
@@ -717,18 +704,18 @@ object Checker {
         if verifyArgs(List(origLine)) then
             (lmap(origLine)) match {
                 // orig = concl ^ x OR orig = x ^ concl
-                case Pf(and @ And(left, right), _, _) => if left == concl || right == concl then
-                    Success(Nil)
-                else
-                    buildError(
-                      List(
-                        false -> "Conclusion is either side of And"
-                      ),
-                      List(
-                        "Conclusion" -> concl,
-                        "And" -> and
-                      )
-                    )
+                case Pf(and @ And(left, right), _, _) =>
+                    if left == concl || right == concl then Success(Nil)
+                    else
+                        buildError(
+                          List(
+                            false -> "Conclusion is either side of And"
+                          ),
+                          List(
+                            "Conclusion" -> concl,
+                            "And" -> and
+                          )
+                        )
                 case Pf(and, _, _) =>
                     buildError(
                       List(
