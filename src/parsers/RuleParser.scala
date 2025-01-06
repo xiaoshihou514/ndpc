@@ -1,6 +1,7 @@
 package ndpc.parsers
 
-import parsley.quick.{Parsley, many, some, atomic, digit, sepBy}
+import parsley.Parsley
+import parsley.Parsley.{atomic, some}
 import parsley.syntax.character.{charLift, stringLift}
 import parsley.errors.combinator._
 import parsley.debug._

@@ -10,7 +10,9 @@ import ndpc.parsers.RuleParser.rule
 import ndpc.parsers.Utils._
 
 import parsley.{Parsley, Result}
-import parsley.quick.{many, atomic, pure, eof, manyTill, item}
+import parsley.Parsley.{eof, many, atomic, pure}
+import parsley.combinator.manyTill
+import parsley.character.item
 import parsley.state.{RefMaker, forP}
 import parsley.syntax.character.charLift
 import parsley.errors.combinator._

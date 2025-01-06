@@ -5,7 +5,9 @@ import ndpc.parsers.Utils._
 import ndpc.parsers.Lexer.{identifier, symbol, lexeme}
 import ndpc.parsers.Lexer.implicits.implicitSymbol
 
-import parsley.quick.{Parsley, some, atomic, lookAhead, pure, eof, notFollowedBy, sepBy, satisfy}
+import parsley.Parsley
+import parsley.Parsley.{pure, notFollowedBy, atomic}
+import parsley.combinator.sepBy
 import parsley.syntax.character.charLift
 import parsley.expr.{precedence, Ops, InfixL, Prefix}
 import parsley.errors.combinator._

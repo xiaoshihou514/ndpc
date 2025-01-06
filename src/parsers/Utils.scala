@@ -1,8 +1,10 @@
 package ndpc.parsers
 
-import parsley.quick.{Parsley, many, pure, sepBy}
-import parsley.syntax.character.{charLift, stringLift}
 import ndpc.parsers.Lexer.{symbol, lexeme}
+
+import parsley.syntax.character.{charLift, stringLift}
+import parsley.Parsley
+import parsley.Parsley.{many, pure}
 
 object Utils {
     val spc = many(' ' <|> '\t')

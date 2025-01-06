@@ -3,7 +3,8 @@ package ndpc
 import ndpc.parsers.Lexer.number
 
 import parsley.{Parsley, Result, Success, Failure}
-import parsley.quick.{many, eof, item}
+import parsley.character.item
+import parsley.Parsley.{many, eof}
 import parsley.syntax.character.stringLift
 import scala.language.implicitConversions
 
