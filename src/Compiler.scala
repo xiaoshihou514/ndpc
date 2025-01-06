@@ -1,25 +1,24 @@
 package ndpc
 
-import parsley.Result
-import ndpc.Utils._
 import ndpc.Checker.pfFromSource
-import parsley.Failure
-import parsley.Success
-import scala.util.Try
-import scala.io.Source
-import ndpc.Parser.PfScope
-import scala.collection.mutable.StringBuilder
-import ndpc.Parser.Empty
 import ndpc.Parser.Comment
+import ndpc.Parser.Empty
 import ndpc.Parser.Pf
+import ndpc.Parser.PfScope
+import ndpc.Utils._
 import ndpc.expr.Formula.LFormula
 import ndpc.expr.Rule.Rule
+
+import scala.collection.mutable.StringBuilder
+import scala.io.Source
+import scala.util.Try
+import parsley.{Result, Success, Failure}
 
 object Compiler {
     def compile(inputs: List[String], userCSS: Option[String]): Int = {
         val results = HTMLfromSource(inputs, userCSS)
         val errors = results.collect { case f @ Failure(_) => f }
-        val successes = results.collect { case Success(x) => x }
+        val successes = results.flatten
 
         if !errors.isEmpty then printErrorHuman(errors)
 

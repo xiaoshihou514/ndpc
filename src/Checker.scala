@@ -8,9 +8,7 @@ import ndpc.Utils._
 import scala.io.Source
 import scala.util.Try
 import scala.collection.mutable.Set
-import parsley.{Success, Failure}
-import parsley.Result
-import scala.util.boundary
+import parsley.{Result, Success, Failure}
 
 case class CheckedProof(main: PfScope)
 

@@ -1,25 +1,22 @@
 package ndpc
 
-import parsley.Parsley
-import parsley.Result
-import parsley.state.{RefMaker, forP}
-import parsley.Parsley.{many, atomic, pure, eof}
-import parsley.combinator.manyTill
-import parsley.syntax.character.charLift
-import parsley.character.item
-import parsley.errors.combinator._
-import parsley.debug._
-
 import ndpc.expr.Formula._
 import ndpc.expr.Rule.{Rule, Tick}
 import ndpc.parsers.FormulaParser
-import ndpc.parsers.Lexer.implicits.implicitSymbol
 import ndpc.parsers.FormulaParser.lformula
+import ndpc.parsers.Lexer.implicits.implicitSymbol
+import ndpc.parsers.Lexer.lexeme
 import ndpc.parsers.RuleParser.rule
 import ndpc.parsers.Utils._
 
+import parsley.{Parsley, Result}
+import parsley.quick.{many, atomic, pure, eof, manyTill, item}
+import parsley.state.{RefMaker, forP}
+import parsley.syntax.character.charLift
+import parsley.errors.combinator._
+import parsley.debug._
+
 import scala.util.{Try, Either}
-import ndpc.parsers.Lexer.lexeme
 
 object Parser {
     sealed trait Line
@@ -98,10 +95,9 @@ object Parser {
     // format: off
     private def p(): Parsley[UncheckedProof] = State.empty.makeRef { state =>
         val comment = ("--" ~> manyTill(item, '\n' <|> eof))
-            .map(_.mkString)
-            .map(Comment.apply)
+            .map(it => Comment(it.mkString))
 
-        val empty = manyTill(" " <|> "\t", '\n').as(Empty())
+        val empty = manyTill(" " <|> "\t", '\n') as Empty()
 
         val pf: Parsley[Pf] = 
             state.update((

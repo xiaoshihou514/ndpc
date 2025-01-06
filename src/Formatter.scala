@@ -1,19 +1,21 @@
 package ndpc
-import scala.io.Source
+
 import ndpc.Parser._
 import ndpc.expr.Formula._
 import parsley.Result
 import ndpc.Utils._
 import ndpc.expr.Rule.Tick
-import parsley.{Failure, Success}
+
+import scala.io.Source
 import scala.util.Try
 import os.{RelPath, Path}
+import parsley.{Failure, Success}
 
 object Formatter {
     def format(inputs: List[String], apply: Boolean): Int = {
         val results = formattedFromSource(inputs)
         val errors = results.collect { case f @ Failure(_) => f }
-        val successes = results.collect { case Success(x) => x }
+        val successes = results.flatten
 
         if !errors.isEmpty then printErrorHuman(errors)
 

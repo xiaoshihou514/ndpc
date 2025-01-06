@@ -1,11 +1,10 @@
 package ndpc
 
-import parsley.{Failure, Success}
 import ndpc.parsers.Lexer.number
+
+import parsley.{Parsley, Result, Success, Failure}
+import parsley.quick.{many, eof, item}
 import parsley.syntax.character.stringLift
-import parsley.Parsley
-import parsley.Parsley.{many, eof}
-import parsley.character.item
 
 object Utils {
     val HEADER = "\u001B[95m"
@@ -91,4 +90,9 @@ object Utils {
                     println(reason.toJson())
             }
         }
+
+    implicit def parsleyResultToIterable[Err, A](result: Result[Err, A]): IterableOnce[A] =
+        result match
+            case Success(x) => List(x)
+            case _          => Nil
 }

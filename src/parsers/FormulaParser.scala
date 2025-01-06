@@ -1,18 +1,15 @@
 package ndpc.parsers
 
-import parsley.Parsley
-import parsley.Parsley.{some, atomic, lookAhead, pure, eof, notFollowedBy}
-import parsley.combinator.sepBy
-import parsley.character.satisfy
-import parsley.syntax.character.charLift
-import parsley.expr.{precedence, Ops, InfixL, Prefix}
-import parsley.errors.combinator._
-import parsley.debug._
-
 import ndpc.expr.Formula._
 import ndpc.parsers.Utils._
 import ndpc.parsers.Lexer.{identifier, symbol, lexeme}
 import ndpc.parsers.Lexer.implicits.implicitSymbol
+
+import parsley.quick.{Parsley, some, atomic, lookAhead, pure, eof, notFollowedBy, sepBy, satisfy}
+import parsley.syntax.character.charLift
+import parsley.expr.{precedence, Ops, InfixL, Prefix}
+import parsley.errors.combinator._
+import parsley.debug._
 
 object FormulaParser {
 
