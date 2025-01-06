@@ -59,7 +59,7 @@ object Utils {
           Some(lineNr)
         )
 
-    def printErrorHuman(errors: List[Failure[? <: NdpcError]]) = {
+    def printErrorHuman(errors: Seq[Failure[? <: NdpcError]]) = {
         for (e <- errors) do {
             e.msg match {
                 case IOError(file, reason) =>
@@ -81,7 +81,7 @@ object Utils {
         }
     }
 
-    def printErrorJson(errors: List[Failure[? <: NdpcError]]) =
+    def printErrorJson(errors: Seq[Failure[? <: NdpcError]]) =
         for (e <- errors) do {
             e.msg match {
                 case IOError(file, reason) =>

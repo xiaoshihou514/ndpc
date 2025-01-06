@@ -12,7 +12,7 @@ import os.{RelPath, Path}
 import parsley.{Failure, Success}
 
 object Formatter {
-    def format(inputs: List[String], apply: Boolean): Int = {
+    def format(inputs: Seq[String], apply: Boolean): Int = {
         val results = formattedFromSource(inputs)
         val errors = results.collect { case f @ Failure(_) => f }
         val successes = results.flatten
@@ -38,9 +38,9 @@ object Formatter {
             errors.length
     }
 
-    private def formattedFromSource(
-        inputs: List[String]
-    ): List[Result[NdpcError, (String, String)]] =
+    def formattedFromSource(
+        inputs: Seq[String]
+    ): Seq[Result[NdpcError, (String, String)]] =
         inputs.map { (input: String) =>
             Try(input)
                 .map { (i: String) =>
@@ -54,9 +54,7 @@ object Formatter {
                     parse(contents) match {
                         case Success(ast) => ast
                         case Failure(reason) =>
-                            throw new ParserException(
-                              fromStringError(s"$reason")
-                            )
+                            throw new ParserException(fromStringError(s"$reason"))
                     }
                 }
                 .map(formatPure.andThen((input, _))) match {
@@ -92,7 +90,7 @@ object Formatter {
                     case None                    => ""
                     case Some(Comment(contents)) => s" -- $contents"
                 val prePadding = " ".repeat(indent * 2)
-                val midPadding = " ".repeat(reasonAlign - concl.toString().length() - indent * 2)
+                val midPadding = " ".repeat(reasonAlign - concl.toString.length - indent * 2)
 
                 val result = s"$prePadding$concl $midPadding[$rule]$comment"
 
@@ -104,7 +102,7 @@ object Formatter {
 
     def formatScope(target: PfScope, currentIndent: Int, reasonAlign: Int): String =
         target.body
-            .filter(_ match {
+            .filterNot(_ match {
                 case Left(Empty()) => true
                 case _             => false
             })
@@ -117,5 +115,5 @@ object Formatter {
             .mkString("\n")
 
     def formatPure(target: UncheckedProof): String =
-        formatScope(target.main, 0, findReasonAlign(target.main)) + "\n"
+        formatScope(target.main, 0, findReasonAlign(target.main))
 }

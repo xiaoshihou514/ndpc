@@ -15,7 +15,7 @@ import scala.util.Try
 import parsley.{Result, Success, Failure}
 
 object Compiler {
-    def compile(inputs: List[String], userCSS: Option[String]): Int = {
+    def compile(inputs: Seq[String], userCSS: Option[String]): Int = {
         val results = HTMLfromSource(inputs, userCSS)
         val errors = results.collect { case f @ Failure(_) => f }
         val successes = results.flatten
@@ -33,9 +33,9 @@ object Compiler {
     }
 
     private def HTMLfromSource(
-        inputs: List[String],
+        inputs: Seq[String],
         css: Option[String]
-    ): List[Result[NdpcError, (String, String)]] =
+    ): Seq[Result[NdpcError, (String, String)]] =
         pfFromSource(inputs).zip(inputs).map { (pf, dest) =>
             pf match
                 case Success(pf)    => Success((chext(dest), compileFromString(pf, css)))

@@ -3,12 +3,10 @@ forall y. (~A(y))       [premise]
   c                     [forall I const]
   A(c) / B(c)           [forallE(1)]
   ~A(c)                 [forallE(2)]
-
     A(c)                [ass]
     F                   [~E(5, 6)]
     B(c)                [FE(7)]
     B(c)                [tick(8)]
-
 
     B(c)                [ass]
     B(c)                [tick(10)]

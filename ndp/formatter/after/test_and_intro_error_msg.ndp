@@ -1,3 +1,0 @@
-q     [premise]
-r     [premise]
-p ^ r [^I(1, 2)]

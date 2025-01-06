@@ -105,7 +105,7 @@ object Parser {
             state.update((
                 (lexeme(lformula)),
                 ("[" ~> lexeme(rule) <~ "]"),
-                (comment.map(Option.apply) <|> ('\n' <|> eof) as None)
+                comment.map(Some.apply) <|> (('\n' <|> eof) as None)
             ).mapN { Pf(_, _, _) }
             .map { pf => (s: State) =>
                 s.addLine(pf)

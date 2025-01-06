@@ -6,7 +6,6 @@ forall x. (P(x) / Q(x)) [premise]
       P(c)              [ass]
       P(c)              [tick(6)]
 
-
       Q(c)              [ass]
       ~Q(c)             [forallE(3)]
       F                 [~E(9, 8)]

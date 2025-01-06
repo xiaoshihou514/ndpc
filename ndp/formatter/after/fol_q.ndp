@@ -6,5 +6,3 @@ forall y. (likes(John, y) -> y = Jack) [premise]
   John = Jack                          [->E(5, 4)]
   F                                    [~E(3, 6)]
 John = Jack                            [PC(3, 7)]
-
-

@@ -2,7 +2,6 @@
 -- because
 -- I
 -- can
-
 exists x. (~P(x))      [given] -- ----------This is still a comment
 -- ~P(c) [ass]
   ~P(c)                [ass]
@@ -21,7 +20,6 @@ exists x. (~P(x))      [given] -- ----------This is still a comment
   -- no post lexer used even!
   ~(forall x. (P(x)))  [~I(3, 6)]
   ~(forall x. (P(x)))  [tick(7)]
-
 
 -- empty line too
 ~(forall x. (P(x)))    [existsE(1, 2, 8)]

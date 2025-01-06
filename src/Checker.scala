@@ -21,7 +21,7 @@ extension [A](xs: List[A])
 
 object Checker {
 
-    def check(inputs: List[String], toJson: Boolean): Int = {
+    def check(inputs: Seq[String], toJson: Boolean): Int = {
         val errors = pfFromSource(inputs)
             .collect { case f @ Failure(_) => f }
         if !errors.isEmpty then
@@ -34,8 +34,8 @@ object Checker {
     // I really want consistent error handling here so I went for java exceptions,
     // which is well captured by scala.util.Try
     def pfFromSource(
-        inputs: List[String]
-    ): List[Result[NdpcError, CheckedProof]] =
+        inputs: Seq[String]
+    ): Seq[Result[NdpcError, CheckedProof]] =
         inputs.map { (input: String) =>
             Try(input)
                 .map { (i: String) =>
@@ -50,9 +50,7 @@ object Checker {
                     parse(contents) match {
                         case Success(ast) => ast
                         case Failure(reason: String) =>
-                            throw new ParserException(
-                              fromStringError(reason)
-                            )
+                            throw new ParserException(fromStringError(reason))
                     }
                 }
                 .map { (upf: UncheckedProof) =>
@@ -65,13 +63,9 @@ object Checker {
                 case scala.util.Failure(exception) => {
                     exception match {
                         case ParserException(reason) =>
-                            Failure(
-                              SyntaxError(reason.copy(file = Some(input)))
-                            )
+                            Failure(SyntaxError(reason.copy(file = Some(input))))
                         case CheckException(reason) =>
-                            Failure(
-                              SemanticsError(reason.copy(file = Some(input)))
-                            )
+                            Failure(SemanticsError(reason.copy(file = Some(input))))
                         case throwable @ _ =>
                             Failure(IOError(input, throwable.toString))
                     }
@@ -101,17 +95,17 @@ object Checker {
                     Some(upf.lines.indexOf(it))
                   )
                 )
-            case _ => // pass
-        given lines: List[Line] = upf.lines
-        given main: PfScope = upf.main
-        given Set[String] = Set.empty
-        given Set[Line] = Set.empty
-        given Set[(Line, Line)] = Set.empty
+            case _ =>
+                given lines: List[Line] = upf.lines
+                given main: PfScope = upf.main
+                given env: Set[String] = Set.empty
+                given knowledge: Set[Line] = Set.empty
+                given boxConcls: Set[(Line, Line)] = Set.empty
 
-        tryVerify(main, 1) match {
-            case f @ Failure(_) => f
-            case _              => Success(CheckedProof(main))
-        }
+                tryVerify(main, 1) match {
+                    case f @ Failure(_) => f
+                    case _              => Success(CheckedProof(main))
+                }
     }
 
     private def tryVerify(
@@ -146,7 +140,7 @@ object Checker {
                   tail @ Pf(_, _, _)
                 ) =>
                 val result = tryVerifyEach(input, lineNr)
-                for _ <- result do boxConcls.add(head, tail)
+                for _ <- result do boxConcls add (head, tail)
                 result
             case Right(_) +: _ =>
                 tryVerifyEach(input, lineNr)
@@ -180,7 +174,7 @@ object Checker {
             acc.flatMap { offset =>
                 line match
                     case Right(p @ PfScope(_)) =>
-                        given Set[Line] = knowledge addAll localKnowledge
+                        given Set[Line] = knowledge union localKnowledge
                         tryVerify(p, lineNr + offset) match {
                             case f @ Failure(_) => f
                             case Success(elapsed) =>
@@ -203,11 +197,10 @@ object Checker {
                             case Success(vars) =>
                                 env addAll vars
                                 line match
-                                    case p @ Pf(_, _, _) =>
-                                        localKnowledge add p
-                                    case _ => // pass
+                                    case p @ Pf(_, _, _) => localKnowledge add p
+                                    case _               => // pass
+                                Success(offset + 1)
                         }
-                        Success(offset + 1)
             }
         }
     }
@@ -230,16 +223,17 @@ object Checker {
             case it @ Pf(concl, rule, _) =>
                 given conclusion: LFormula = concl
                 given thisLine: Pf = it
-                given Set[Line] = knowledge addAll boxConcls.map(List(_, _)).flatten
                 rule match {
                     // All the introductions
                     case AndIntro(left, right) =>
                         tryVerifyAndIntro(left, right)
                     case ImpliesIntro(ass, res) =>
+                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyImpliesIntro(ass, res)
                     case OrIntro(either) =>
                         tryVerifyOrIntro(either)
                     case NotIntro(orig, bottom) =>
+                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyNotIntro(orig, bottom)
                     case DoubleNegIntro(orig) =>
                         tryVerifyDoubleNegIntro(orig)
@@ -256,6 +250,7 @@ object Checker {
                     case ExistsIntro(orig) =>
                         tryVerifyExistsIntro(orig)
                     case ForallIntro(const, conclForall) =>
+                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyForallIntro(const, conclForall, env)
 
                     // All the eliminations
@@ -264,6 +259,7 @@ object Checker {
                     case ImpliesElim(imp, ass) =>
                         tryVerifyImpliesElim(imp, ass)
                     case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
+                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyOrElim(or, leftAss, leftConcl, rightAss, rightConcl)
                     case NotElim(negated, orig) =>
                         tryVerifyNotElim(negated, orig)
@@ -274,6 +270,7 @@ object Checker {
                     case EquivElim(equiv, either) =>
                         tryVerifyEquivElim(equiv, either)
                     case ExistsElim(exists, ass, conclExists) =>
+                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyExistsElim(exists, ass, conclExists)
                     case ForallElim(orig) =>
                         tryVerifyForallElim(orig)
@@ -286,6 +283,7 @@ object Checker {
                     case MT(imp, negated) =>
                         tryVerifyMT(imp, negated)
                     case PC(orig, bottom) =>
+                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyPC(orig, bottom)
                     case Refl() =>
                         tryVerifyRefl()
@@ -342,12 +340,10 @@ object Checker {
         assertions: List[(Boolean, String)],
         context: List[(String, LFormula)]
     )(using input: Pf): Failure[String] = Failure(
-      List(
-        s"  The following assertion(s) implied by ${input.rule} does not hold:",
-        assertions.filter(!_._1).map("    " + _._2),
-        "  In particular with the following variables:",
-        context.map((desc, f) => s"    $desc: $f")
-      ).mkString("\n")
+      s"  The following assertion(s) implied by ${input.rule} does not hold:\n" +
+          assertions.filter(!_._1).map("    " + _._2).mkString("\n") +
+          "  In particular with the following variables:\n" +
+          context.map((desc, f) => s"    $desc: $f").mkString("\n")
     )
 
     private def tryVerifyAndIntro(leftLine: Int, rightLine: Int)(using
