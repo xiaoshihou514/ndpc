@@ -5,6 +5,7 @@ import ndpc.parsers.Lexer.number
 import parsley.{Parsley, Result, Success, Failure}
 import parsley.quick.{many, eof, item}
 import parsley.syntax.character.stringLift
+import scala.language.implicitConversions
 
 object Utils {
     val HEADER = "\u001B[95m"
