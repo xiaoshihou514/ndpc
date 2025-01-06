@@ -59,8 +59,8 @@ object FormulaParser {
         )(
             Ops(InfixL)("=" as Eq.apply),
             Ops(Prefix)("~" as Not.apply),
-            Ops(Prefix)(("forall" ~> identifier <~ ".") <**> pure(ident => f => Forall(ident, f))),
-            Ops(Prefix)(("exists" ~> identifier <~ ".") <**> pure(ident => f => Exists(ident, f))),
+            Ops(Prefix)("forall" ~> identifier.map(ident => Forall(ident, _)) <~ "."),
+            Ops(Prefix)("exists" ~> identifier.map(ident => Exists(ident, _)) <~ "."),
             Ops(InfixL)("^" as And.apply),
             Ops(InfixL)("/" as Or.apply),
             Ops(InfixL)("->" as Implies.apply),

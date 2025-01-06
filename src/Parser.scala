@@ -15,6 +15,8 @@ import parsley.state.{RefMaker, forP}
 import parsley.syntax.character.charLift
 import parsley.errors.combinator._
 import parsley.debug._
+import cats.syntax.all._
+import parsley.cats.instances._
 
 import scala.util.{Try, Either}
 
@@ -47,8 +49,6 @@ object Parser {
         var cache: List[Line],
         var scopeStack: List[PfScope]
     ) {
-        def getLast = cache.last
-
         def addLine(line: Line) = {
             cache = cache :+ line
             this
@@ -101,17 +101,16 @@ object Parser {
 
         val pf: Parsley[Pf] = 
             state.update((
-                (lexeme(lformula)) <~>
-                ("[" ~> lexeme(rule) <~ "]") <~>
+                (lexeme(lformula)),
+                ("[" ~> lexeme(rule) <~ "]"),
                 (comment.map(Option.apply) <|> ('\n' <|> eof) as None)
-            )
-            .map { (res: ((LFormula, Rule), Option[Comment])) =>
-                Pf(res._1._1, res._1._2, res._2)
-            }
+            ).mapN { Pf(_, _, _) }
             .map { pf => (s: State) =>
                 s.addLine(pf)
             }
-        ) ~> state.gets(_.getLast.asInstanceOf[Pf])
+        ) ~> state.get.collect { _.cache.last match 
+            case pf: Pf => pf
+        }
 
         many(
             state.update((
