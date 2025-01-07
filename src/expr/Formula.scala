@@ -89,13 +89,13 @@ object Formula {
     case class Truth() extends LFormula {
         override def toString: String = "T"
         def toHTML: String = "&top;"
-        def getVars: Set[String] = Set()
+        def getVars: Set[String] = Set.empty
         def substitutes(from: LFormula, to: LFormula) = Set(Truth())
     }
     case class Falsity() extends LFormula {
         override def toString: String = "F"
         def toHTML: String = "&perp;"
-        def getVars: Set[String] = Set()
+        def getVars: Set[String] = Set.empty
         def substitutes(from: LFormula, to: LFormula) = Set(Falsity())
     }
 
@@ -164,7 +164,7 @@ object Formula {
     ) extends LFormula {
         override def toString: String = s"forall $x. ($body)"
         def toHTML: String = s"&forall; $x. (${body.toHTML})"
-        def getVars: Set[String] = body.getVars removedAll List(x)
+        def getVars: Set[String] = body.getVars - x
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitutes(from: LFormula, to: LFormula) =
             body.substitutes(from, to).map(Forall(x, _))
@@ -176,7 +176,7 @@ object Formula {
     ) extends LFormula {
         override def toString: String = s"exists $x. ($body)"
         def toHTML: String = s"&exist; $x. (${body.toHTML})"
-        def getVars: Set[String] = body.getVars removedAll List(x)
+        def getVars: Set[String] = body.getVars - x
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitutes(from: LFormula, to: LFormula) =
             body.substitutes(from, to).map(Exists(x, _))
