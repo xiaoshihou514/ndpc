@@ -15,10 +15,9 @@ import parsley.combinator.manyTill
 import parsley.character.item
 import parsley.state.{RefMaker, forP}
 import parsley.syntax.character.charLift
+import parsley.generic.ParserBridge3
 import parsley.errors.combinator._
 import parsley.debug._
-import cats.syntax.all._
-import parsley.cats.instances._
 
 import scala.util.{Try, Either}
 
@@ -35,6 +34,7 @@ object Parser {
         val rule: Rule,
         val trailingComment: Option[Comment]
     ) extends Line
+    object Pf extends ParserBridge3[LFormula, Rule, Option[Comment], Pf]
 
     case class PfScope(var body: List[Either[Line, PfScope]]) {
         def flatten: List[Line] =
@@ -102,11 +102,11 @@ object Parser {
         val empty = manyTill(" " <|> "\t", '\n') as Empty()
 
         val pf: Parsley[Pf] = 
-            state.update((
+            state.update(Pf(
                 (lexeme(lformula)),
                 ("[" ~> lexeme(rule) <~ "]"),
                 comment.map(Some.apply) <|> (('\n' <|> eof) as None)
-            ).mapN { Pf(_, _, _) }
+            )
             .map { pf => (s: State) =>
                 s.addLine(pf)
             }
