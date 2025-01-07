@@ -2,6 +2,8 @@ package ndpc.expr
 
 import ndpc.expr.Formula._
 
+import parsley.generic.*
+
 object Rule {
     sealed trait Rule {
         def toHTML: String = this.toString
@@ -44,7 +46,7 @@ object Rule {
         override def toHTML = s"&perp;I($orig, $negated)"
     }
     // ⊤-introduction, You can introduce ⊤ anywhere (for all the good it does you).
-    case class TruthIntro() extends Rule {
+    case object TruthIntro extends Rule with ParserBridge0[Rule] {
         override def toString = s"TI"
         override def toHTML = s"&top;I"
     }
@@ -136,9 +138,10 @@ object Rule {
     }
 
     // Law of excluded middle (p ∨ ¬p)
-    case class LEM() extends Rule {
+    case object LEM extends Rule with ParserBridge0[Rule] {
         override def toString = "LEM"
     }
+
     // Modus Tollens: From 𝝓 → φ and ¬φ, derive ¬𝝓.
     case class MT(imp: Int, not: Int) extends Rule {
         override def toString = s"MT($imp, $not)"
@@ -148,7 +151,7 @@ object Rule {
         override def toString = s"PC($orig, $bottom)"
     }
     // forall a. a = a
-    case class Refl() extends Rule {
+    case object Refl extends Rule with ParserBridge0[Rule] {
         override def toString = s"refl"
     }
     // a = b ^ expr(a) -> expr(b)
@@ -160,19 +163,19 @@ object Rule {
         override def toString = s"sym($orig)"
     }
     // Forall I const
-    case class ForallIConst() extends Rule {
+    case object ForallIConst extends Rule with ParserBridge0[Rule] {
         override def toString = "forall I const"
     }
     // given proposition
-    case class Given() extends Rule {
+    case object Given extends Rule with ParserBridge0[Rule] {
         override def toString = "given"
     }
     // premise
-    case class Premise() extends Rule {
+    case object Premise extends Rule with ParserBridge0[Rule] {
         override def toString = "premise"
     }
     // assumption
-    case class Ass() extends Rule {
+    case object Ass extends Rule with ParserBridge0[Rule] {
         override def toString = "ass"
     }
     // the "tick"

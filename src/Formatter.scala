@@ -83,7 +83,7 @@ object Formatter {
 
     private def formatLine(line: Line, indent: Int, reasonAlign: Int): String =
         line match {
-            case Empty()           => ""
+            case Empty             => ""
             case Comment(contents) => " ".repeat(indent * 2) + s"-- $contents"
             case Pf(concl, rule, c) =>
                 val comment = c match
@@ -103,8 +103,8 @@ object Formatter {
     def formatScope(target: PfScope, currentIndent: Int, reasonAlign: Int): String =
         target.body
             .filterNot(_ match {
-                case Left(Empty()) => true
-                case _             => false
+                case Left(Empty) => true
+                case _           => false
             })
             .map((line) =>
                 line match {

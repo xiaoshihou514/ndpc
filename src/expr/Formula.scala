@@ -26,8 +26,8 @@ object Formula {
         lf match
             // always no paren
             case PredAp(_, _) => 7
-            case Truth()      => 7
-            case Falsity()    => 7
+            case Truth        => 7
+            case Falsity      => 7
             // maybe paren
             case Not(_)        => 6
             case Eq(_, _)      => 5
@@ -90,17 +90,17 @@ object Formula {
     object Eq extends ParserBridge2[LFormula, LFormula, Eq]
 
     // 3. ⊤ and ⊥ are atomic L-formulas.
-    case class Truth() extends LFormula {
+    case object Truth extends LFormula {
         override def toString: String = "T"
         def toHTML: String = "&top;"
         def getVars: Set[String] = Set.empty
-        def substitutes(from: LFormula, to: LFormula) = Set(Truth())
+        def substitutes(from: LFormula, to: LFormula) = Set(Truth)
     }
-    case class Falsity() extends LFormula {
+    case object Falsity extends LFormula {
         override def toString: String = "F"
         def toHTML: String = "&perp;"
         def getVars: Set[String] = Set.empty
-        def substitutes(from: LFormula, to: LFormula) = Set(Falsity())
+        def substitutes(from: LFormula, to: LFormula) = Set(Falsity)
     }
 
     // 4. If 𝝓, φ are L-formulas then so are ¬𝝓, (𝝓 ∧ φ), (𝝓 ∨ φ), (𝝓 → φ), and (𝝓 ↔ φ).

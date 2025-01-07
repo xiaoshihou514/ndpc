@@ -6,17 +6,17 @@ import ndpc.expr.Rule._
 class RuleParserSpec extends UnitSpec {
     "A rule" should "be defined in Rule.scala" in {
         // Special rules
-        rule.parse("LEM").get shouldBe LEM()
+        rule.parse("LEM").get shouldBe LEM
         rule.parse("MT(1 ,1   )").get shouldBe MT(1, 1)
         rule.parse("PC  (4,5)").get shouldBe PC(4, 5)
-        rule.parse("refl").get shouldBe Refl()
+        rule.parse("refl").get shouldBe Refl
         rule.parse("=sub (    1, 4)").get shouldBe EqSub(1, 4)
         rule.parse("sym    (1  )").get shouldBe Sym(1)
-        rule.parse("given").get shouldBe Given()
-        rule.parse("premise").get shouldBe Premise()
-        rule.parse("ass").get shouldBe Ass()
+        rule.parse("given").get shouldBe Given
+        rule.parse("premise").get shouldBe Premise
+        rule.parse("ass").get shouldBe Ass
         rule.parse("tick ( 9)").get shouldBe Tick(9)
-        rule.parse("forall   I const").get shouldBe ForallIConst()
+        rule.parse("forall   I const").get shouldBe ForallIConst
 
         // Introductions
         rule.parse("^I (1,9)").get shouldBe AndIntro(1, 9)
@@ -26,7 +26,7 @@ class RuleParserSpec extends UnitSpec {
         rule.parse("~~I  (1918)").get shouldBe DoubleNegIntro(1918)
         rule.parse("~~E  (1918)").get shouldBe DoubleNegElim(1918)
         rule.parse("FI  (1991, 2399)").get shouldBe FalsityIntro(1991, 2399)
-        rule.parse("TI").get shouldBe TruthIntro()
+        rule.parse("TI").get shouldBe TruthIntro
         rule.parse("<->I  (99, 66)").get shouldBe EquivIntro(99, 66)
         rule.parse("existsI(3)").get shouldBe ExistsIntro(3)
         rule.parse("forallI(4 ,2 )").get shouldBe ForallIntro(4, 2)

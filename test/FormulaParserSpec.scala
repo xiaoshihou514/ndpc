@@ -65,8 +65,8 @@ class FormulaParserSpec extends UnitSpec {
     }
 
     "Truth and falsity" should "be a single char T/F" in {
-        truth.parse("T ^ fff").get shouldBe Truth()
-        truth.parse("T").get shouldBe Truth()
+        truth.parse("T ^ fff").get shouldBe Truth
+        truth.parse("T").get shouldBe Truth
 
         assert(truth.parse("TasVar").isFailure)
         assert(falsity.parse("Fstart").isFailure)
@@ -109,14 +109,14 @@ class FormulaParserSpec extends UnitSpec {
 
         val connectives_2 = And(
           atomWithBrackets,
-          Truth()
+          Truth
         )
         lformula.parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j) ^T").get shouldBe connectives_2
         lformula.parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j) ^  T").get shouldBe connectives_2
         lformula.parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j)^  T").get shouldBe connectives_2
 
         val connectives_3 = Or(
-          Falsity(),
+          Falsity,
           atomWithBrackets
         )
         lformula.parse("F/TStartFunc (FStartFunc(a,b)  ,   fs(), j)").get shouldBe connectives_3
@@ -132,8 +132,8 @@ class FormulaParserSpec extends UnitSpec {
             .get shouldBe connectives_4
 
         val connectives_5 = Equiv(
-          Truth(),
-          Falsity()
+          Truth,
+          Falsity
         )
         lformula.parse("(((((T)))))    <->  (F)").get shouldBe connectives_5
 

@@ -75,13 +75,13 @@ object Checker {
 
     private def isPremise(line: Either[Line, PfScope]) =
         line match
-            case Left(Pf(_, Given() | Premise(), _)) => true
-            case _                                   => false
+            case Left(Pf(_, Given | Premise, _)) => true
+            case _                               => false
 
     private def isComment(line: Either[Line, PfScope]) =
         line match {
-            case Left(Empty() | Comment(_)) => true
-            case _                          => false
+            case Left(Empty | Comment(_)) => true
+            case _                        => false
         }
 
     opaque type Lines = Vector[Line]
@@ -142,7 +142,7 @@ object Checker {
                     Some(lines.indexOf(tail))
                   )
                 )
-            case Left(head @ Pf(_, Ass() | ForallIConst() | Given() | Premise(), _)) +: _ :+ Left(
+            case Left(head @ Pf(_, Ass | ForallIConst | Given | Premise, _)) +: _ :+ Left(
                   tail @ Pf(_, _, _)
                 ) =>
                 val result = tryVerifyEach(input, lineNr)
@@ -225,7 +225,7 @@ object Checker {
         given Line = input
         given Int = lineNr
         input match {
-            case Comment(_) | Empty() => Success(Nil)
+            case Comment(_) | Empty => Success(Nil)
             case it @ Pf(concl, rule, _) =>
                 given conclusion: LFormula = concl
                 given thisLine: Pf = it
@@ -245,9 +245,9 @@ object Checker {
                         tryVerifyDoubleNegIntro(orig)
                     case FalsityIntro(orig, negated) =>
                         tryVerifyFalsityIntro(orig, negated)
-                    case TruthIntro() =>
+                    case TruthIntro =>
                         // concl = T
-                        if concl == Truth() then Success(Nil)
+                        if concl == Truth then Success(Nil)
                         else Failure(s"""
                                     |$rule expects "conclusion" ($concl) to be T
                                     |""".stripMargin)
@@ -284,24 +284,24 @@ object Checker {
                         tryVerifyForallImpElim(ass, imp)
 
                     // The special ones
-                    case LEM() =>
+                    case LEM =>
                         tryVerifyLEM()
                     case MT(imp, negated) =>
                         tryVerifyMT(imp, negated)
                     case PC(orig, bottom) =>
                         given Knowledge = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyPC(orig, bottom)
-                    case Refl() =>
+                    case Refl =>
                         tryVerifyRefl()
                     case EqSub(orig, eq) =>
                         tryVerifyEqSub(orig, eq)
                     case Sym(eq) =>
                         tryVerifySym(eq)
-                    case ForallIConst() =>
+                    case ForallIConst =>
                         tryVerifyForallIConst()
-                    case Given() | Premise() =>
+                    case Given | Premise =>
                         Success(concl.getVars.toList)
-                    case Ass() =>
+                    case Ass =>
                         Success(concl.getVars.toList)
                     case Tick(orig) =>
                         tryVerifyTick(orig)
@@ -462,14 +462,14 @@ object Checker {
             (lmap(origLine), lmap(bottomLine)) match {
                 // concl = ~orig
                 // bottom = F
-                case (ol @ Pf(orig, _, _), bl @ Pf(Falsity(), _, _))
+                case (ol @ Pf(orig, _, _), bl @ Pf(Falsity, _, _))
                     if concl == Not(orig) && boxConcls((ol, bl)) =>
                     Success(Nil)
                 case (ol @ Pf(orig, _, _), bl @ Pf(bottom, _, _)) =>
                     buildError(
                       List(
                         (concl == Not(orig)) -> "Conclusion equal to ~(Original)",
-                        (bottom == Falsity()) -> "Bottom equal to F",
+                        (bottom == Falsity) -> "Bottom equal to F",
                         boxConcls((ol, bl)) ->
                             "Original and Bottom is the assumption and conclusion of a box"
                       ),
@@ -524,12 +524,12 @@ object Checker {
                 // ~orig = negated
                 case (Pf(orig, _, _), Pf(negated, _, _)) =>
                     // we don't allow orig and negated to be reversed, same for the others
-                    if (negated == Not(orig) && concl == Falsity()) then Success(Nil)
+                    if (negated == Not(orig) && concl == Falsity) then Success(Nil)
                     else
                         buildError(
                           List(
                             (negated == Not(orig)) -> "Negated equal to ~(Original)",
-                            (concl == Falsity()) -> "Conclusion equal to F"
+                            (concl == Falsity) -> "Conclusion equal to F"
                           ),
                           List(
                             "Conclusion" -> concl,
@@ -863,12 +863,12 @@ object Checker {
             // negated = ~orig
             // concl = F
             case (Pf(orig, _, _), Pf(negated, _, _)) =>
-                if negated == Not(orig) && concl == Falsity() then Success(Nil)
+                if negated == Not(orig) && concl == Falsity then Success(Nil)
                 else
                     buildError(
                       List(
                         (negated == Not(orig)) -> "Negated equals ~Original",
-                        (concl == Falsity()) -> "Conclusion equals F"
+                        (concl == Falsity) -> "Conclusion equals F"
                       ),
                       List(
                         "Conclusion" -> concl,
@@ -916,7 +916,7 @@ object Checker {
         lmap(bottomLine) match {
             // bottom = F
             // concl bounded
-            case Pf(Falsity(), _, _) =>
+            case Pf(Falsity, _, _) =>
                 Success(concl.getVars.toList)
             case Pf(bottom, _, _) =>
                 buildError(
@@ -1166,14 +1166,14 @@ object Checker {
             // bottom = F
             // concl = ~orig
             case (nl @ Pf(negated, _, _), fl @ Pf(f, _, _)) =>
-                if f == Falsity() &&
+                if f == Falsity &&
                     Not(concl) == negated &&
                     boxConcls((nl, fl))
                 then Success(Nil)
                 else
                     buildError(
                       List(
-                        (f == Falsity()) -> "Bottom equals F",
+                        (f == Falsity) -> "Bottom equals F",
                         (Not(concl) == negated) -> "Negated equals ~(Conclusion)",
                         boxConcls((nl, fl)) ->
                             "Negated and Bottom is the assumption and conclusion of a box"

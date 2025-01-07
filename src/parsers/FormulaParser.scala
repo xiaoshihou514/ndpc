@@ -39,11 +39,11 @@ object FormulaParser {
     val equ = Eq(predAp, "=" ~> predAp).label("equality")
     // T followed by some keyword
     val truth =
-        (symbol.softKeyword("T").label("truth") as Truth())
+        (symbol.softKeyword("T").label("truth") as Truth)
             <~ notFollowedBy('(')
     // F followed by some keyword
     val falsity =
-        (symbol.softKeyword("F").label("falsity") as Falsity())
+        (symbol.softKeyword("F").label("falsity") as Falsity)
             <~ notFollowedBy('(')
     // format: off
     val atom: Parsley[LFormula] = (

@@ -23,7 +23,7 @@ import scala.util.{Try, Either}
 
 object Parser {
     sealed trait Line
-    case class Empty() extends Line {
+    case object Empty extends Line {
         override def toString: String = "<Empty Line>"
     }
     case class Comment(contents: String) extends Line {
@@ -99,7 +99,7 @@ object Parser {
         val comment = ("--" ~> manyTill(item, '\n' <|> eof))
             .map(it => Comment(it.mkString))
 
-        val empty = manyTill(" " <|> "\t", '\n') as Empty()
+        val empty = manyTill(" " <|> "\t", '\n') as Empty
 
         val pf: Parsley[Pf] = 
             state.update(Pf(
@@ -143,7 +143,7 @@ object Parser {
                 ).map { (res: (Int, Line)) => (s: State) =>
                     res match {
                         // these are not indent agnostic
-                        case (_ , nonpf @ (Comment(_) | Empty())) =>
+                        case (_ , nonpf @ (Comment(_) | Empty)) =>
                             s.addLineToTree(nonpf)
                         case (same, pf @ Pf(_, rule, _)) if same == s.indentLevel => 
                             rule match {

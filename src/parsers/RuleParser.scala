@@ -28,17 +28,15 @@ object RuleParser {
         })
 
     val rule: Parsley[Rule] =
-        "LEM".as(LEM()).label("Law of Exclueded Middle") <|>
-            "refl".as(Refl()).label("REFLective rule") <|>
-            "given".as(Given()).label("Given") <|>
-            "premise".as(Premise()).label("Premise") <|>
-            "ass".as(Ass()).label("ASSume") <|>
-            "TI".as(TruthIntro()).label("Truth Introduction") <|>
+        (LEM from "LEM").label("Law of Exclueded Middle") <|>
+            (Refl from "refl").label("REFLective rule") <|>
+            (Given from "given").label("Given") <|>
+            (Premise from "premise").label("Premise") <|>
+            (Ass from "ass").label("ASSume") <|>
+            (TruthIntro from "TI").label("Truth Introduction") <|>
             // forall I const
             atomic(
-              "forall" ~> some(' ') ~> 'I' ~> some(' ') ~> "const".as(
-                (ForallIConst())
-              )
+              ForallIConst from "forall" ~> some(' ') ~> 'I' ~> some(' ') ~> "const"
             ).label("Forall constant introduction") <|>
             binary("MT", MT.apply).label("Modus Tollens") <|>
             binary("PC", PC.apply).label("Proof by Contradiction") <|>
