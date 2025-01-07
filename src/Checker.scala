@@ -84,9 +84,15 @@ object Checker {
             case _                          => false
         }
 
+    opaque type Lines = Vector[Line]
+    opaque type PfScopeState = PfScope
+    opaque type Env = Set[String]
+    opaque type Knowledge = Set[Line]
+    opaque type Conclusions = Set[(Line, Line)]
+
     private def checkOne(upf: UncheckedProof): Result[EnrichedErr, CheckedProof] = {
         val pfs = upf.main.body.dropWhile(x => isPremise(x) || isComment(x))
-        PfScope(pfs).flatten().find(x => isPremise(Left(x))) match
+        PfScope(pfs).flatten.find(x => isPremise(Left(x))) match
             case Some(it) =>
                 Failure(
                   EnrichedErr(
@@ -96,11 +102,11 @@ object Checker {
                   )
                 )
             case _ =>
-                given lines: List[Line] = upf.lines
-                given main: PfScope = upf.main
-                given env: Set[String] = Set.empty
-                given knowledge: Set[Line] = Set.empty
-                given boxConcls: Set[(Line, Line)] = Set.empty
+                given lines: Lines = upf.lines.toVector
+                given main: PfScopeState = upf.main
+                given env: Env = Set.empty
+                given knowledge: Knowledge = Set.empty
+                given boxConcls: Conclusions = Set.empty
 
                 tryVerify(main, 1) match {
                     case f @ Failure(_) => f
@@ -112,11 +118,11 @@ object Checker {
         input: PfScope,
         lineNr: Int
     )(using
-        lines: List[Line],
-        main: PfScope,
-        env: Set[String],
-        knowledge: Set[Line],
-        boxConcls: Set[(Line, Line)]
+        lines: Lines,
+        main: PfScopeState,
+        env: Env,
+        knowledge: Knowledge,
+        boxConcls: Conclusions
     ): Result[EnrichedErr, Int] = {
         // verify head and tail
         input.body.filterNot(isComment(_)).toVector match {
@@ -161,11 +167,11 @@ object Checker {
         input: PfScope,
         lineNr: Int
     )(using
-        lines: List[Line],
-        main: PfScope,
-        env: Set[String],
-        knowledge: Set[Line],
-        boxConcls: Set[(Line, Line)]
+        lines: Lines,
+        main: PfScopeState,
+        env: Env,
+        knowledge: Knowledge,
+        boxConcls: Conclusions
     ): Result[EnrichedErr, Int] = {
         // build up state
         val localKnowledge = Set.empty[Line]
@@ -174,7 +180,7 @@ object Checker {
             acc.flatMap { offset =>
                 line match
                     case Right(p @ PfScope(_)) =>
-                        given Set[Line] = knowledge union localKnowledge
+                        given Knowledge = knowledge union localKnowledge
                         tryVerify(p, lineNr + offset) match {
                             case f @ Failure(_) => f
                             case Success(elapsed) =>
@@ -208,18 +214,18 @@ object Checker {
     private def tryVerifyLine(
         input: Line,
         lineNr: Int,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     )(using
-        lines: List[Line],
-        main: PfScope,
-        env: Set[String],
-        boxConcls: Set[(Line, Line)]
+        lines: Lines,
+        main: PfScopeState,
+        env: Env,
+        boxConcls: Conclusions
     ): Result[String, List[String]] = {
-        given Set[Line] = knowledge
+        given Knowledge = knowledge
         given Line = input
         given Int = lineNr
         input match {
-            case nonpf @ (Comment(_) | Empty()) => Success(Nil)
+            case Comment(_) | Empty() => Success(Nil)
             case it @ Pf(concl, rule, _) =>
                 given conclusion: LFormula = concl
                 given thisLine: Pf = it
@@ -228,12 +234,12 @@ object Checker {
                     case AndIntro(left, right) =>
                         tryVerifyAndIntro(left, right)
                     case ImpliesIntro(ass, res) =>
-                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
+                        given Knowledge = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyImpliesIntro(ass, res)
                     case OrIntro(either) =>
                         tryVerifyOrIntro(either)
                     case NotIntro(orig, bottom) =>
-                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
+                        given Knowledge = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyNotIntro(orig, bottom)
                     case DoubleNegIntro(orig) =>
                         tryVerifyDoubleNegIntro(orig)
@@ -250,7 +256,7 @@ object Checker {
                     case ExistsIntro(orig) =>
                         tryVerifyExistsIntro(orig)
                     case ForallIntro(const, conclForall) =>
-                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
+                        given Knowledge = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyForallIntro(const, conclForall, env)
 
                     // All the eliminations
@@ -259,7 +265,7 @@ object Checker {
                     case ImpliesElim(imp, ass) =>
                         tryVerifyImpliesElim(imp, ass)
                     case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
-                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
+                        given Knowledge = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyOrElim(or, leftAss, leftConcl, rightAss, rightConcl)
                     case NotElim(negated, orig) =>
                         tryVerifyNotElim(negated, orig)
@@ -270,7 +276,7 @@ object Checker {
                     case EquivElim(equiv, either) =>
                         tryVerifyEquivElim(equiv, either)
                     case ExistsElim(exists, ass, conclExists) =>
-                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
+                        given Knowledge = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyExistsElim(exists, ass, conclExists)
                     case ForallElim(orig) =>
                         tryVerifyForallElim(orig)
@@ -283,7 +289,7 @@ object Checker {
                     case MT(imp, negated) =>
                         tryVerifyMT(imp, negated)
                     case PC(orig, bottom) =>
-                        given Set[Line] = knowledge union boxConcls.map(List(_, _)).flatten
+                        given Knowledge = knowledge union boxConcls.map(List(_, _)).flatten
                         tryVerifyPC(orig, bottom)
                     case Refl() =>
                         tryVerifyRefl()
@@ -307,24 +313,24 @@ object Checker {
 
     private def verifyArgs(args: List[Int])(using
         lineNr: Int,
-        lines: List[Line],
-        knowledgeBase: Set[Line]
+        lines: Lines,
+        knowledgeBase: Knowledge
     ) = args.forall(x => inBound(x, lineNr) && knowledgeBase(lines(x - 1)))
 
-    private def lmap(lineNumber: Int)(using lines: List[Line]) =
+    private def lmap(lineNumber: Int)(using lines: Lines) =
         lines(lineNumber - 1)
 
     private def filterOOB(lineNrs: List[Int])(using
         lineNr: Int,
-        lines: List[Line],
-        knowledgeBase: Set[Line]
+        lines: Lines,
+        knowledgeBase: Knowledge
     ) = lineNrs.filter(x => !inBound(x, lineNr) || !knowledgeBase(lines(x - 1)))
 
     private def outOfBound(lineNrs: List[Int])(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
-        knowledgeBase: Set[Line]
+        lines: Lines,
+        knowledgeBase: Knowledge
     ) = Failure(
       s"Line numbers ${filterOOB(lineNrs).mkString(", ")} " +
           s"referenced in ${input.rule} are not accessible to line $lineNr."
@@ -349,9 +355,9 @@ object Checker {
     private def tryVerifyAndIntro(leftLine: Int, rightLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(leftLine, rightLine)) then
             // concl = left ^ right
@@ -377,9 +383,9 @@ object Checker {
     private def tryVerifyImpliesIntro(assLine: Int, resLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line],
+        knowledge: Knowledge,
         boxConcls: Set[(Line, Line)]
     ) =
         if verifyArgs(List(assLine, resLine)) then
@@ -410,9 +416,9 @@ object Checker {
     private def tryVerifyOrIntro(eitherLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(eitherLine)) then
             (lmap(eitherLine), concl) match {
@@ -447,10 +453,10 @@ object Checker {
     private def tryVerifyNotIntro(origLine: Int, bottomLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
         boxConcls: Set[(Line, Line)],
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(origLine, bottomLine)) then
             (lmap(origLine), lmap(bottomLine)) match {
@@ -481,9 +487,9 @@ object Checker {
     private def tryVerifyDoubleNegIntro(origLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(origLine)) then
             lmap(origLine) match {
@@ -508,9 +514,9 @@ object Checker {
     private def tryVerifyFalsityIntro(origLine: Int, negatedLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(origLine, negatedLine)) then
             (lmap(origLine), lmap(negatedLine)) match {
@@ -539,9 +545,9 @@ object Checker {
     private def tryVerifyEquivIntro(leftImpLine: Int, rightImpLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(leftImpLine, rightImpLine)) then
             (lmap(leftImpLine), lmap(rightImpLine)) match {
@@ -572,9 +578,9 @@ object Checker {
     private def tryVerifyExistsIntro(origLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line],
+        knowledge: Knowledge,
         env: Set[String]
     ) =
         if verifyArgs(List(origLine)) then
@@ -621,9 +627,9 @@ object Checker {
     )(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line],
+        knowledge: Knowledge,
         boxConcls: Set[(Line, Line)]
     ) =
         if verifyArgs(List(constLine, conclForallLine)) then
@@ -690,9 +696,9 @@ object Checker {
     private def tryVerifyAndElim(origLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(origLine)) then
             (lmap(origLine)) match {
@@ -728,9 +734,9 @@ object Checker {
     private def tryVerifyImpliesElim(impLine: Int, assLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) =
         if verifyArgs(List(assLine, impLine)) then
             (lmap(assLine), lmap(impLine)) match {
@@ -763,9 +769,9 @@ object Checker {
     )(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line],
+        knowledge: Knowledge,
         boxConcls: Set[(Line, Line)],
         main: PfScope
     ) =
@@ -849,9 +855,9 @@ object Checker {
     private def tryVerifyNotElim(negatedLine: Int, origLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(origLine, negatedLine)) then
         (lmap(origLine), lmap(negatedLine)) match {
             // negated = ~orig
@@ -878,9 +884,9 @@ object Checker {
     private def tryVerifyDoubleNegElim(origLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(origLine)) then
         lmap(origLine) match {
             // orig = ~~concl
@@ -902,10 +908,10 @@ object Checker {
     private def tryVerifyFalsityElim(bottomLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
         env: Set[String],
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(bottomLine)) then
         lmap(bottomLine) match {
             // bottom = F
@@ -925,9 +931,9 @@ object Checker {
     private def tryVerifyEquivElim(equivLine: Int, eitherLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(equivLine, eitherLine)) then
         (lmap(equivLine), lmap(eitherLine)) match {
             // equiv = either <-> concl OR equiv = concl <-> either
@@ -957,9 +963,9 @@ object Checker {
     )(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line],
+        knowledge: Knowledge,
         boxConcls: Set[(Line, Line)],
         env: Set[String]
     ) = if verifyArgs(List(existsLine, assLine, conclELine)) then
@@ -1020,9 +1026,9 @@ object Checker {
     private def tryVerifyForallElim(origLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line],
+        knowledge: Knowledge,
         env: Set[String]
     ) = if verifyArgs(List(origLine)) then
         lmap(origLine) match {
@@ -1061,9 +1067,9 @@ object Checker {
     private def tryVerifyForallImpElim(assLine: Int, impLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(impLine, assLine)) then
         (lmap(impLine), lmap(assLine)) match {
             // imp = forall x. ass[?/x] -> concl[?/x]
@@ -1119,9 +1125,9 @@ object Checker {
     private def tryVerifyMT(impLine: Int, negatedLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(impLine, negatedLine)) then
         (lmap(impLine), lmap(negatedLine)) match {
             // imp = x -> y
@@ -1151,10 +1157,10 @@ object Checker {
     private def tryVerifyPC(negatedLine: Int, bottomLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
         boxConcls: Set[(Line, Line)],
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(negatedLine, bottomLine)) then
         (lmap(negatedLine), lmap(bottomLine)) match {
             // bottom = F
@@ -1202,9 +1208,9 @@ object Checker {
     private def tryVerifyEqSub(origLine: Int, eqLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(origLine, eqLine)) then
         (lmap(origLine), lmap(eqLine)) match {
             // eq = a = b
@@ -1232,9 +1238,9 @@ object Checker {
     private def tryVerifySym(eqLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(eqLine)) then
         lmap(eqLine) match {
             // eq = a = b
@@ -1256,9 +1262,9 @@ object Checker {
     private def tryVerifyForallIConst()(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line],
+        knowledge: Knowledge,
         env: Set[String]
     ) = concl match {
         case PredAp(c, Nil) if !env(c) =>
@@ -1273,9 +1279,9 @@ object Checker {
     private def tryVerifyTick(origLine: Int)(using
         input: Pf,
         lineNr: Int,
-        lines: List[Line],
+        lines: Lines,
         concl: LFormula,
-        knowledge: Set[Line]
+        knowledge: Knowledge
     ) = if verifyArgs(List(origLine)) then
         lmap(origLine) match {
             case Pf(orig, _, _) =>

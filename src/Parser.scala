@@ -37,10 +37,10 @@ object Parser {
     ) extends Line
 
     case class PfScope(var body: List[Either[Line, PfScope]]) {
-        def flatten(): List[Line] =
+        def flatten: List[Line] =
             body.flatMap(line =>
                 line match {
-                    case Right(s) => s.flatten()
+                    case Right(s) => s.flatten
                     case Left(l)  => List(l)
                 }
             )
