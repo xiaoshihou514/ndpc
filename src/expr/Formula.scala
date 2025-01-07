@@ -1,5 +1,7 @@
 package ndpc.expr
 
+import parsley.generic.*
+
 object Formula {
     private def seqN(cs: List[Set[LFormula]]): Set[List[LFormula]] =
         cs match {
@@ -71,6 +73,7 @@ object Formula {
                     case cs  => seqN(cs).map(PredAp(p, _)) incl this
                 }
     }
+    object PredAp extends ParserBridge2[String, List[LFormula], PredAp]
 
     // 2. If t, t' are L-terms then t = t' is an atomic L-formula.
     case class Eq(left: LFormula, right: LFormula) extends LFormula {
@@ -84,6 +87,7 @@ object Formula {
               Eq.apply
             )
     }
+    object Eq extends ParserBridge2[LFormula, LFormula, Eq]
 
     // 3. ⊤ and ⊥ are atomic L-formulas.
     case class Truth() extends LFormula {
@@ -108,6 +112,7 @@ object Formula {
         def substitutes(from: LFormula, to: LFormula) =
             pf.substitutes(from, to).map(Not.apply)
     }
+    object Not extends ParserBridge1[LFormula, Not]
 
     case class And(left: LFormula, right: LFormula) extends LFormula {
         override def toString: String = s"${p(this, left)} ^ ${p(this, right)}"
@@ -120,6 +125,7 @@ object Formula {
               And.apply
             )
     }
+    object And extends ParserBridge2[LFormula, LFormula, And]
 
     case class Or(left: LFormula, right: LFormula) extends LFormula {
         override def toString: String = s"${p(this, left)} / ${p(this, right)}"
@@ -132,6 +138,7 @@ object Formula {
               Or.apply
             )
     }
+    object Or extends ParserBridge2[LFormula, LFormula, Or]
 
     case class Implies(left: LFormula, right: LFormula) extends LFormula {
         override def toString: String = s"${p(this, left)} -> ${p(this, right)}"
@@ -144,6 +151,7 @@ object Formula {
               Implies.apply
             )
     }
+    object Implies extends ParserBridge2[LFormula, LFormula, Implies]
 
     case class Equiv(left: LFormula, right: LFormula) extends LFormula {
         override def toString: String = s"${p(this, left)} <-> ${p(this, right)}"
@@ -156,6 +164,7 @@ object Formula {
               Equiv.apply
             )
     }
+    object Equiv extends ParserBridge2[LFormula, LFormula, Equiv]
 
     // 5. If 𝝓 is an L-formula and x a variable, then (∀x 𝝓) and (∃x 𝝓) are L-formulas.
     case class Forall(

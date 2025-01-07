@@ -2,21 +2,19 @@ package ndpc
 
 import ndpc.parsers.FormulaParser._
 import ndpc.expr.Formula._
-import scala.language.implicitConversions // yes, I know what I am doing
 
-given Conversion[String, PredAp] with
-    def apply(s: String): PredAp = PredAp(s, Nil)
+def p(s: String) = PredAp(s, Nil)
 
 class FormulaParserSpec extends UnitSpec {
     "A predAp" should "be a predicate applied to multiple lterms" in {
-        val example1 = PredAp("foo", List("x", "y", "z"))
+        val example1 = PredAp("foo", List(p("x"), p("y"), p("z")))
         predAp.parse("foo ( x, y, z )").get shouldBe example1
         lformula.parse("foo ( x, y, z )").get shouldBe example1
         val example2 = PredAp(
           "foo",
           List(
-            PredAp("bar", List("ss", "l")),
-            "w"
+            PredAp("bar", List(p("ss"), p("l"))),
+            p("w")
           )
         )
         predAp.parse("foo( bar(ss,l), w)").get shouldBe example2
@@ -27,11 +25,11 @@ class FormulaParserSpec extends UnitSpec {
             PredAp(
               "bar",
               List(
-                "ss",
-                PredAp("wacc", List("w", "a", "c", "c"))
+                p("ss"),
+                PredAp("wacc", List(p("w"), p("a"), p("c"), p("c")))
               )
             ),
-            "w"
+            p("w")
           )
         )
         predAp.parse("foo( bar(ss,wacc   (w  , a , c,c)  ), w)").get shouldBe example3
@@ -41,14 +39,14 @@ class FormulaParserSpec extends UnitSpec {
     }
 
     "eq" should "be an predAp = an predAp" in {
-        val example1 = Eq("a", "bb")
+        val example1 = Eq(p("a"), p("bb"))
         equ.parse("a   = bb").get shouldBe example1
         lformula.parse("a   = bb").get shouldBe example1
         val example2 = Eq(
-          "x",
+          p("x"),
           PredAp(
             "wuu",
-            List("a", "wa")
+            List(p("a"), p("wa"))
           )
         )
         equ.parse("x=  wuu (  a, wa)").get shouldBe example2
@@ -58,7 +56,7 @@ class FormulaParserSpec extends UnitSpec {
           PredAp(
             "u",
             List(
-              PredAp("qo", List("j", "w"))
+              PredAp("qo", List(p("j"), p("w")))
             )
           )
         )
@@ -80,10 +78,10 @@ class FormulaParserSpec extends UnitSpec {
           List(
             PredAp(
               "FStartFunc",
-              List("a", "b")
+              List(p("a"), p("b"))
             ),
             PredAp("fs", Nil),
-            "j"
+            p("j")
           )
         )
         atom.parse("TStartFunc (FStartFunc(a,b)  ,   fs(), j)").get shouldBe atom1
@@ -95,10 +93,10 @@ class FormulaParserSpec extends UnitSpec {
           List(
             PredAp(
               "FStartFunc",
-              List("a", "b")
+              List(p("a"), p("b"))
             ),
             PredAp("fs", Nil),
-            "j"
+            p("j")
           )
         )
         lformula
@@ -152,7 +150,7 @@ class FormulaParserSpec extends UnitSpec {
         lformula.parse("(p -> q) ^ (~p -> r)").get shouldBe connectives_6
 
         val connectives_7 = And(
-          Eq("p", "q"),
+          Eq(p("p"), p("q")),
           Implies(
             Not(PredAp("p", Nil)),
             PredAp("r", Nil)
@@ -173,13 +171,13 @@ class FormulaParserSpec extends UnitSpec {
             Or(
               PredAp(
                 "foo",
-                List("𝝓", "φ", "A")
+                List(p("𝝓"), p("φ"), p("A"))
               ),
               Exists(
                 "B",
                 PredAp(
                   "bar",
-                  List("𝝓", "B")
+                  List(p("𝝓"), p("B"))
                 )
               )
             )
@@ -208,10 +206,10 @@ class FormulaParserSpec extends UnitSpec {
           "x",
           Implies(
             And(
-              PredAp("dragon", List("x")),
-              PredAp("green", List("x"))
+              PredAp("dragon", List(p("x"))),
+              PredAp("green", List(p("x")))
             ),
-            PredAp("fly", List("x"))
+            PredAp("fly", List(p("x")))
           )
         )
         lformula

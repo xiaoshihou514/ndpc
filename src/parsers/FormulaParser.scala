@@ -24,20 +24,19 @@ object FormulaParser {
         symbol.openParen ~> lexeme(
           sepBy(lexeme(predAp), lexeme(','))
         ) <~ symbol.closingParen
-    lazy val predAp: Parsley[PredAp] =
-        (
-          (lexeme(identifier)) <~> (predAps <|> pure(Nil))
-        )
-            .label("predicate application")
-            .map { (res: (String, List[PredAp])) =>
-                PredAp(res._1, res._2)
-            }
-    val equ =
-        (predAp <~> "=" ~> predAp)
-            .label("equality")
-            .map { (res: (PredAp, PredAp)) =>
-                Eq(res._1, res._2)
-            }
+    // lazy val predAp: Parsley[PredAp] =
+    //     (
+    //       (lexeme(identifier)) <~> (predAps <|> pure(Nil))
+    //     )
+    //         .label("predicate application")
+    //         .map { (res: (String, List[PredAp])) =>
+    //             PredAp(res._1, res._2)
+    //         }
+    lazy val predAp: Parsley[LFormula] = PredAp(
+      lexeme(identifier),
+      predAps <|> pure(Nil)
+    ).label("predicate application")
+    val equ = Eq(predAp, "=" ~> predAp).label("equality")
     // T followed by some keyword
     val truth =
         (symbol.softKeyword("T").label("truth") as Truth())
@@ -59,14 +58,14 @@ object FormulaParser {
             tolerant(atom) <|>
             tolerant(symbol.openParen ~> tolerant(lformula) <~ symbol.closingParen)
         )(
-            Ops(InfixL)("=" as Eq.apply),
-            Ops(Prefix)("~" as Not.apply),
+            Ops(InfixL)(Eq from "="),
+            Ops(Prefix)(Not from "~"),
             Ops(Prefix)("forall" ~> identifier.map(ident => Forall(ident, _)) <~ "."),
             Ops(Prefix)("exists" ~> identifier.map(ident => Exists(ident, _)) <~ "."),
-            Ops(InfixL)("^" as And.apply),
-            Ops(InfixL)("/" as Or.apply),
-            Ops(InfixL)("->" as Implies.apply),
-            Ops(InfixL)("<->" as Equiv.apply)
+            Ops(InfixL)(And from "^"),
+            Ops(InfixL)(Or from "/"),
+            Ops(InfixL)(Implies from "->"),
+            Ops(InfixL)(Equiv from "<->")
         )
     ).label("Lformula (forall statement/exists statement/lformula and logical connectives)")
     // format: on
