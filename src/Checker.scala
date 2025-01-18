@@ -4,6 +4,7 @@ import ndpc.Parser._
 import ndpc.expr.Rule._
 import ndpc.expr.Formula._
 import ndpc.Utils._
+import ndpc.parsers.EnrichedErr
 
 import scala.io.Source
 import scala.util.Try
@@ -49,8 +50,8 @@ object Checker {
                 .map { (contents: String) =>
                     parse(contents) match {
                         case Success(ast) => ast
-                        case Failure(reason: String) =>
-                            throw new ParserException(fromStringError(reason))
+                        case Failure(reason) =>
+                            throw new ParserException(reason)
                     }
                 }
                 .map { (upf: UncheckedProof) =>
@@ -98,7 +99,7 @@ object Checker {
                   EnrichedErr(
                     "Did not expect \"Assume\" and \"Premise\" to be used in places other than the start of proof",
                     None,
-                    Some(upf.lines.indexOf(it))
+                    s"(line ${upf.lines.indexOf(it)})"
                   )
                 )
             case _ =>
@@ -131,7 +132,7 @@ object Checker {
                   EnrichedErr(
                     s"Found empty box, does this file only contain empty lines and comments?",
                     None,
-                    Some(lineNr)
+                    s"(line $lineNr)"
                   )
                 )
             case _ :+ Right(tail @ PfScope(_)) =>
@@ -139,7 +140,7 @@ object Checker {
                   EnrichedErr(
                     "Box ended with another box",
                     None,
-                    Some(lines.indexOf(tail))
+                    s"(line: ${lines.indexOf(tail)})"
                   )
                 )
             case Left(head @ Pf(_, Ass | ForallIConst | Given | Premise, _)) +: _ :+ Left(
@@ -156,10 +157,10 @@ object Checker {
                     s"Box starting at line $lineNr did not start with a valid proof "
                         + "(expected assumption, forall I const, given, premise)",
                     None,
-                    Some(lines.indexOf(head))
+                    s"(line ${lines.indexOf(head)})"
                   )
                 )
-            case _ => Failure(EnrichedErr(s"Unknown error", None, None))
+            case _ => Failure(EnrichedErr(s"Unknown error", None, ""))
         }
     }
 
@@ -197,7 +198,7 @@ object Checker {
                                   EnrichedErr(
                                     reason,
                                     None,
-                                    Some(lineNr + offset)
+                                    s"(line ${lineNr + offset})"
                                   )
                                 )
                             case Success(vars) =>
@@ -346,10 +347,10 @@ object Checker {
         assertions: List[(Boolean, String)],
         context: List[(String, LFormula)]
     )(using input: Pf): Failure[String] = Failure(
-      s"  The following assertion(s) implied by ${input.rule} does not hold:\n" +
+      s"  The following assertion(s) implied by $BOLD${input.rule}$RESET does not hold:\n" +
           assertions.filter(!_._1).map("    " + _._2).mkString("\n") +
-          "  In particular with the following variables:\n" +
-          context.map((desc, f) => s"    $desc: $f").mkString("\n")
+          "\n  In particular with the following variables:\n" +
+          context.map((desc, f) => s"    $BOLD$desc$RESET: $f").mkString("\n")
     )
 
     private def tryVerifyAndIntro(leftLine: Int, rightLine: Int)(using

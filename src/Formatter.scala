@@ -54,7 +54,7 @@ object Formatter {
                     parse(contents) match {
                         case Success(ast) => ast
                         case Failure(reason) =>
-                            throw new ParserException(fromStringError(s"$reason"))
+                            throw new ParserException(reason)
                     }
                 }
                 .map(formatPure.andThen((input, _))) match {

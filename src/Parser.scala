@@ -20,6 +20,10 @@ import parsley.errors.combinator._
 import parsley.debug._
 
 import scala.util.{Try, Either}
+import ndpc.parsers.EnrichedErr
+import ndpc.parsers.ErrBuilder
+import parsley.errors.ErrorBuilder
+import parsley.errors.tokenextractors.MatchParserDemand
 
 object Parser {
     sealed trait Line
@@ -161,6 +165,6 @@ object Parser {
         )) ~> state.gets { s => UncheckedProof(s.scopeStack.last, s.cache) }
     }
     // format: on
-
+    implicit val eb: ErrorBuilder[EnrichedErr] = new ErrBuilder with MatchParserDemand
     def parse(input: String) = p().parse(input)
 }

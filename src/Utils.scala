@@ -7,6 +7,7 @@ import parsley.character.item
 import parsley.Parsley.{many, eof}
 import parsley.syntax.character.stringLift
 import scala.language.implicitConversions
+import ndpc.parsers.EnrichedErr
 
 object Utils {
     val HEADER = "\u001B[95m"
@@ -38,27 +39,6 @@ object Utils {
     case class SyntaxError(reason: EnrichedErr) extends NdpcError
     case class SemanticsError(reason: EnrichedErr) extends NdpcError
 
-    case class EnrichedErr(exp: String, file: Option[String], location: Option[Int]):
-        def toJson(): String =
-            s"""
-            |{
-            |  "file": "${file.get}",
-            |  "line": ${location.get},
-            |  "explanation": "${exp.replace("\n", "\\n")}"
-            |}
-            """.stripMargin
-
-    // HACK: we may need to change this if parsley changed their error format
-    private val parsleyError =
-        ("(line " ~> number <~ ", column " <~ number <~ "):\n") <~> many(item) <~ eof
-    def fromStringError(errDesc: String): EnrichedErr =
-        val (lineNr, exp) = parsleyError.parse(errDesc).get
-        EnrichedErr(
-          exp.mkString,
-          None,
-          Some(lineNr)
-        )
-
     def printErrorHuman(errors: Seq[Failure[? <: NdpcError]]) = {
         for (e <- errors) do {
             e.msg match {
@@ -67,13 +47,13 @@ object Utils {
                 case SyntaxError(reason) =>
                     printerrln(s"${FAIL}Syntax error${RESET}:")
                     printerrln(
-                      s"${BOLD}${reason.file.get}${RESET}, line ${reason.location.get}:"
+                      s"${BOLD}${reason.file.get}${RESET}, ${reason.location}:"
                     )
                     printerrln(reason.exp)
                 case SemanticsError(reason) =>
                     printerrln(s"${FAIL}Semantics error${RESET}:")
                     printerrln(
-                      s"${BOLD}${reason.file.get}${RESET}, line ${reason.location.get}:"
+                      s"${BOLD}${reason.file.get}${RESET}, ${reason.location}:"
                     )
                     printerrln(reason.exp)
             }
@@ -97,4 +77,5 @@ object Utils {
         result match
             case Success(x) => List(x)
             case _          => Nil
+
 }

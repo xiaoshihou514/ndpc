@@ -8,6 +8,7 @@ import ndpc.Parser.PfScope
 import ndpc.Utils._
 import ndpc.expr.Formula.LFormula
 import ndpc.expr.Rule.Rule
+import ndpc.parsers.EnrichedErr
 
 import scala.collection.mutable.StringBuilder
 import scala.io.Source
