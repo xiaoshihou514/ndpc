@@ -32,6 +32,10 @@ An online tutorial is available [here](https://xiaoshihou514.github.io/ndpc/tuto
 
 Oh no! Ndpc found errors in your perfectly fine proof! The [syntax gotcha](https://xiaoshihou514.github.io/ndpc/syntax-gotchas.html) and the [list of supported rules](https://xiaoshihou514.github.io/ndpc/rules.html) may help.
 
+You can ask questions or give points of improvement at [github discussions](https://github.com/xiaoshihou514/ndpc/discussions).
+
+Report bug by submitting a [github issue](https://github.com/xiaoshihou514/ndpc/issues/new).
+
 ## Related projects
 
 - [ndp.vim](https://github.com/xiaoshihou514/ndp.vim): (Neo)Vim support for ndp files
