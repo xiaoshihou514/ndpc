@@ -25,8 +25,7 @@ object Compiler {
 
         var code = errors.length
         for ((dest, result) <- successes) do {
-            val path = os.FilePath(dest).resolveFrom(os.pwd)
-            Try(os.write.over(path, result)) match
+            Try(os.write.over(dest, result)) match
                 case _: scala.util.Failure[_] => code = code + 1
                 case _                        =>
         }
@@ -36,16 +35,17 @@ object Compiler {
     private def HTMLfromSource(
         inputs: Seq[String],
         css: Option[String]
-    ): Seq[Result[NdpcError, (String, String)]] =
+    ): Seq[Result[NdpcError, (os.Path, String)]] =
         pfFromSource(inputs).zip(inputs).map { (pf, dest) =>
             pf match
-                case Success(pf)    => Success((chext(dest), compileFromString(pf, css)))
+                case Success(pf)    => Success((outputPath(dest), compileFromString(pf, css)))
                 case f @ Failure(_) => f
         }
 
-    private def chext(orig: String): String =
-        // just dirty regex
-        orig.replaceAll("\\.[^.]*$", "") + ".html"
+    private def outputPath(orig: String): os.Path =
+        os.FilePath(
+          orig.replaceAll("\\.[^.]*$", "") + ".html"
+        ).resolveFrom(os.pwd)
 
     private def compileFromString(
         pf: CheckedProof,
@@ -66,15 +66,15 @@ object Compiler {
 
     private def toHTML(s: PfScope, lineNr: Int): (String, Int) =
         val (current, body) = s.body
-            .foldRight((lineNr, StringBuilder())) { (x, acc_) =>
+            .foldLeft((lineNr, StringBuilder())) { (acc_, x) =>
                 val (current, acc) = acc_
                 x match
                     case Left(Pf(concl, rule, _)) =>
                         acc ++= mkLine(concl, rule, current)
                         (current + 1, acc)
                     case Right(s @ PfScope(_)) =>
-                        val (res, newLineNr) = toHTML(s, lineNr)
-                        acc ++= "<li>" + res + "</li>"
+                        val (res, newLineNr) = toHTML(s, current)
+                        acc ++= s"<li>$res</li>"
                         (newLineNr, acc)
                     case _ => (current, acc)
             }
