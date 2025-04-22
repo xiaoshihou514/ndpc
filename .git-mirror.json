@@ -1,0 +1,14 @@
+[
+  {
+    "name": "codeberg",
+    "url": "ssh://git@codeberg.org/xiaoshihou/ndpc.git"
+  },
+  {
+    "name": "sourcehut",
+    "url": "git@git.sr.ht:~xiaoshihou/ndpc"
+  },
+  {
+    "name": "gitlab",
+    "url": "git@gitlab.com:xiaoshihou/ndpc.git"
+  }
+]
