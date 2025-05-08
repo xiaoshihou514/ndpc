@@ -12,6 +12,8 @@ ndpc is the compiler for the natural deduction proof markup language.
 
 </div>
 
+[中文文档](./README-zh.md)
+
 ## What is ndpc?
 
 Ndpc introduced a markup language for creating [natural deduction](https://wikipedia.org/wiki/Natural_deduction) proofs for propositional logic and classical first order logic, with support for validation, formatting, and exporting to HTML.
