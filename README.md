@@ -2,6 +2,8 @@
 
 # Ndpc
 
+<img src="https://github.com/user-attachments/assets/a6a3fd99-1a96-40c5-805b-235e43202112" alt="logo" width="30%" />
+
 ndpc is the compiler for the natural deduction proof markup language.
 
 [Getting started](https://xiaoshihou514.github.io/ndpc/getting-started.html) •
