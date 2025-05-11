@@ -4,7 +4,7 @@
 
 <img src="https://github.com/user-attachments/assets/a6a3fd99-1a96-40c5-805b-235e43202112" alt="logo" width="30%" />
 
-ndpc是自然演绎证明标记的验证器，格式化工具和编译器。
+ndpc是为自然演绎证明打造的一套工具链。
 
 [快速上手](https://xiaoshihou514.github.io/ndpc/getting-started.html) •
 [教程](https://xiaoshihou514.github.io/ndpc/tutorial.html) •
@@ -14,9 +14,9 @@ ndpc是自然演绎证明标记的验证器，格式化工具和编译器。
 
 ## 什么是 ndpc？
 
-Ndpc 为命题逻辑和经典一阶逻辑的[自然演绎](https://wikipedia.org/wiki/Natural_deduction)证明引入了一套标记语言，以及对应的验证、格式化和HTML导出。
+Ndpc 为命题逻辑和经典一阶逻辑的[自然演绎](https://wikipedia.org/wiki/Natural_deduction)证明引入了一套标记语言，并支持验证、格式化和HTML导出。
 
-与现有同类工具相比，ndpc 更易使用，其语法类似手写证明。
+与现有同类工具相比，ndpc 更易使用，其语法类似手写证明，无需重新学习。
 
 演示：
 
