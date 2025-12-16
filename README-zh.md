@@ -20,7 +20,7 @@ Ndpc 为命题逻辑和经典一阶逻辑的[自然演绎](https://wikipedia.org
 
 演示：
 
-[![演示](https://github.com/user-attachments/assets/154131b4-6535-4b51-a063-edaa01277080)](https://github.com/user-attachments/assets/70cd3fa3-d52d-4ab2-9554-aa5c1135f443)
+https://github.com/user-attachments/assets/6f59f9cb-615d-4a95-8829-704568c5d51e
 
 ## 快速入门
 
