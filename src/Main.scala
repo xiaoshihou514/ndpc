@@ -36,15 +36,15 @@ object Main
                     Opts.flag(
                         "latex",
                         help = "generate latex representation of proof"
-                    ) as LatexGen orElse
+                    ).as(LatexGen) orElse
                     Opts.flag(
                         "typst",
                         help = "generate typst representation of proof"
-                    ) as TypstGen orElse
+                    ).as(TypstGen) orElse
                     Opts.flag(
                         "lean",
                         help = "generate corresponding lean proof"
-                    ) as LeanGen orElse
+                    ).as(LeanGen) orElse
                     (
                         Opts.flag("html", help = "generate corresponding lean proof"),
                         Opts.option[Path]("css", help = "custom css path", metavar = "file").orNone,

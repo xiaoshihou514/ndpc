@@ -7,3 +7,9 @@
 /ndpc
 ndpc.jar
 ndpc.exe
+/*.sty
+/*.tex
+/*.pdf
+/*.ndp
+/*.typ
+/*.lean

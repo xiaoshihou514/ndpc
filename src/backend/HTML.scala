@@ -18,7 +18,7 @@ extension (f: LFormula)
     def asHTML: String = f match {
         case PredAp(p, args) =>
             if args == Nil then p
-            else s"${p}(${args.map(_.asHTML).mkString(", ")})"
+            else s"$p(${args.map(_.asHTML).mkString(", ")})"
         case Eq(left, right)  => s"${left.asHTML} = ${right.asHTML}"
         case Truth            => "&top;"
         case Falsity          => "&perp;"
