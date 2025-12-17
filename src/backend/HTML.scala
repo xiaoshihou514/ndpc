@@ -3,8 +3,8 @@ package ndpc.backend
 import ndpc.frontend.checker.pfFromSource
 import ndpc.frontend.parser._
 import ndpc.utils._
-import ndpc.frontend.expr.formula.LFormula
-import ndpc.frontend.expr.rule.Rule
+import ndpc.frontend.expr.formula._
+import ndpc.frontend.expr.rule._
 import ndpc.frontend.parsers.EnrichedErr
 import ndpc.frontend.CheckedProof
 
@@ -12,6 +12,82 @@ import scala.collection.mutable.StringBuilder
 import scala.io.Source
 import scala.util.Try
 import parsley.{Result, Success, Failure}
+
+// Extension functions for HTML representation
+extension (f: LFormula)
+    def asHTML: String = f match {
+        case PredAp(p, args) =>
+            if args == Nil then p
+            else s"${p}(${args.map(_.asHTML).mkString(", ")})"
+        case Eq(left, right)  => s"${left.asHTML} = ${right.asHTML}"
+        case Truth            => "&top;"
+        case Falsity          => "&perp;"
+        case Not(pf)          => s"&not;${parenthesizeHTML(f, pf)}"
+        case And(left, right) => s"${parenthesizeHTML(f, left)} &and; ${parenthesizeHTML(f, right)}"
+        case Or(left, right)  => s"${parenthesizeHTML(f, left)} &or; ${parenthesizeHTML(f, right)}"
+        case Implies(left, right) =>
+            s"${parenthesizeHTML(f, left)} &rarr; ${parenthesizeHTML(f, right)}"
+        case Equiv(left, right) =>
+            s"${parenthesizeHTML(f, left)} &LeftRightArrow; ${parenthesizeHTML(f, right)}"
+        case Forall(x, body) => s"&forall; $x. (${body.asHTML})"
+        case Exists(x, body) => s"&exist; $x. (${body.asHTML})"
+    }
+
+extension (r: Rule)
+    def asHTML: String = r match {
+        case AndIntro(left, right)         => s"&and;I($left, $right)"
+        case ImpliesIntro(ass, res)        => s"&rarr;I($ass, $res)"
+        case OrIntro(either)               => s"&or;I($either)"
+        case NotIntro(orig, bottom)        => s"&not;I($orig, $bottom)"
+        case DoubleNegIntro(orig)          => s"&not;&not;I($orig)"
+        case FalsityIntro(orig, negated)   => s"&perp;I($orig, $negated)"
+        case TruthIntro                    => "&top;I"
+        case EquivIntro(leftImp, rightImp) => s"&LeftRightArrow;I($leftImp, $rightImp)"
+        case ExistsIntro(orig)             => s"&exist;I($orig)"
+        case ForallIntro(const, concl)     => s"&forall;I($const, $concl)"
+        case AndElim(orig)                 => s"&and;E($orig)"
+        case ImpliesElim(ass, imp)         => s"&rarr;E($ass, $imp)"
+        case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
+            s"&or;E($or, $leftAss, $leftConcl, $rightAss, $rightConcl)"
+        case NotElim(negated, orig)         => s"&not;E($negated, $orig)"
+        case DoubleNegElim(orig)            => s"&not;&not;E($orig)"
+        case FalsityElim(bottom)            => s"&perp;E($bottom)"
+        case EquivElim(equiv, either)       => s"&LeftRightArrow;E($equiv, $either)"
+        case ExistsElim(exists, ass, concl) => s"&exist;E($exists, $ass, $concl)"
+        case ForallElim(orig)               => s"&forall;E($orig)"
+        case ForallImpElim(ass, imp)        => s"&forall;->E($ass, $imp)"
+        case LEM                            => "LEM"
+        case MT(imp, not)                   => s"MT($imp, $not)"
+        case PC(orig, bottom)               => s"PC($orig, $bottom)"
+        case Refl                           => "refl"
+        case EqSub(orig, eq)                => s"=sub($orig, $eq)"
+        case Sym(orig)                      => s"sym($orig)"
+        case ForallIConst                   => "forall I const"
+        case Given                          => "given"
+        case Premise                        => "premise"
+        case Ass                            => "ass"
+        case Tick(orig)                     => s"&#10003;($orig)"
+    }
+
+// Helper function for parenthesis handling in toHTML
+private def parenthesizeHTML(parent: LFormula, child: LFormula): String = {
+    def precedence(lf: LFormula): Int = lf match {
+        case PredAp(_, _)  => 7
+        case Truth         => 7
+        case Falsity       => 7
+        case Not(_)        => 6
+        case Eq(_, _)      => 5
+        case And(_, _)     => 4
+        case Or(_, _)      => 3
+        case Equiv(_, _)   => 2
+        case Implies(_, _) => 1
+        case Forall(_, _)  => 0
+        case Exists(_, _)  => 0
+    }
+
+    if precedence(parent) < precedence(child) then child.asHTML
+    else s"(${child.asHTML})"
+}
 
 object html extends codegen[Option[java.nio.file.Path]] {
     override val ext = "html"
@@ -60,8 +136,8 @@ object html extends codegen[Option[java.nio.file.Path]] {
         s"""
         <li>
             <p>$lineNr</p>
-            ${concl.toHTML}
-            <div class="rule">${rule.toHTML}</div>
+            ${concl.asHTML}
+            <div class="rule">${rule.asHTML}</div>
         </li>
     """
 

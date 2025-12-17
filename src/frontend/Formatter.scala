@@ -2,6 +2,7 @@ package ndpc.frontend
 
 import ndpc.frontend.parser._
 import ndpc.frontend.expr.formula._
+import ndpc.frontend.expr.rule._
 import parsley.Result
 import ndpc.utils._
 import ndpc.frontend.expr.rule.Tick
@@ -76,7 +77,7 @@ object formatter {
         2 * ini_indent + target.body
             .map(_ match {
                 case Right(s @ PfScope(_)) => findReasonAlign(s, ini_indent + 1)
-                case Left(Pf(concl, _, _)) => concl.toString().length()
+                case Left(Pf(concl, _, _)) => concl.pretty.length()
                 case _                     => 0
             })
             .max
@@ -90,9 +91,9 @@ object formatter {
                     case None                    => ""
                     case Some(Comment(contents)) => s" -- $contents"
                 val prePadding = " ".repeat(indent * 2)
-                val midPadding = " ".repeat(reasonAlign - concl.toString.length - indent * 2)
+                val midPadding = " ".repeat(reasonAlign - concl.pretty.length - indent * 2)
 
-                val result = s"$prePadding$concl $midPadding[$rule]$comment"
+                val result = s"$prePadding${concl.pretty} $midPadding[${rule.asString}]$comment"
 
                 // make or elimination prettier
                 rule match

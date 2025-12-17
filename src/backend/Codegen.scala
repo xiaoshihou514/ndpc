@@ -35,7 +35,7 @@ trait codegen[A] {
 
     private def outputPath(orig: String): os.Path =
         os.FilePath(
-          orig.replaceAll("\\.[^.]*$", "") + ".$ext"
+          orig.replaceAll("\\.[^.]*$", "") + s".$ext"
         ).resolveFrom(os.pwd)
 
     protected def compile(pf: CheckedProof, opt: A): String
