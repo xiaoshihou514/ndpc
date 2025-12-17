@@ -1,55 +1,61 @@
-package ndpc.frontend
+package ndpc
 
-import ndpc.frontend.checker.check
-import ndpc.backend.codegen.generate
-import ndpc.frontend.formatter.format
+import ndpc.frontend._
+import ndpc.backend._
+import cats.syntax.all._
+import com.monovore.decline._
+import java.nio.file.Path
 import ndpc.utils.error
 
-object Main {
-    def main(args: Array[String]): Unit =
-        (args.toList) match {
-            case Nil | "--help" :: _ =>
-                println("""
-                |Natural deduction proof compiler
-                | Usage: ndpc [SUBCOMMAND] [OPTION] [FILES]
-                |
-                |Arguments:
-                |[FILES]      input files, use - for stdin
-                |
-                |SUBCOMMAND:
-                |check       check proof validity
-                |  --json      print diagnostics in json
-                |format      format proof file
-                |  --apply     apply format to file instead of printing to stdout
-                |<default>   check proofs and generate html
-                |  --css       use custom css styling for generated html
-                """.stripMargin)
-            case "format" :: tail =>
-                tail match
-                    case "--apply" :: (files @ (_ :: _)) =>
-                        format(files, true)
-                    case (files @ (_ :: _)) =>
-                        format(files, false)
-                    case _ =>
-                        error("Error: missing targets")
-            case "check" :: tail =>
-                tail match
-                    case "--json" :: (files @ (_ :: _)) =>
-                        check(files, true)
-                    case (files @ (_ :: _)) =>
-                        check(files, false)
-                    case _ =>
-                        error("Error: missing targets")
-            case "--css" :: css :: (files @ (_ :: _)) =>
-                generate(files, Some(css))
-            case "--css" :: css :: Nil =>
-                error("Error: missing targets")
-            case "--css" :: Nil =>
-                error("Error: missing --css argument and targets")
-            case files =>
-                generate(files, None)
-        } match {
-            case i: Int  => sys.exit(i)
-            case _: Unit => sys.exit(0)
-        }
-}
+object Main
+    extends CommandApp(
+      name = "ndpc",
+      header = "Natural deduction proof compiler",
+      main = {
+          val check =
+              Opts.subcommand("check", help = "check validity of the proof", helpFlag = true) {
+                  Opts.flag("json", help = "print diagnostics in json").orFalse
+              }.map(CheckOpt(_))
+
+          val format =
+              Opts.subcommand("format", help = "format proof file", helpFlag = true) {
+                  Opts.flag("apply", help = "apply format to file instead of printing to stdout")
+                      .orFalse
+              }.map(FormatOpt(_))
+
+          // format: off
+          val compile =
+              Opts.subcommand("compile", help = "check proof and compile to given format", helpFlag = true) {
+                Opts.flag(
+                    "latex",
+                    help = "generate latex representation of proof"
+                ) as LatexGen orElse
+                Opts.flag(
+                    "typst",
+                    help = "generate typst representation of proof"
+                ) as TypstGen orElse
+                Opts.flag(
+                    "lean",
+                    help = "generate corresponding lean proof"
+                ) as LeanGen orElse
+                (
+                    Opts.flag("html", help = "generate corresponding lean proof"),
+                    Opts.option[Path]("css", help = "custom css path", metavar = "file").orNone,
+                ).mapN((_, css) => HtmlGen(css))
+              }
+          // format: on
+
+          val inputs = Opts.arguments[String](metavar = "file").map(_.toList)
+
+          (check orElse format orElse compile, inputs)
+              .mapN[Int] {
+                  case (CheckOpt(json), fs)   => checker.check(fs, json)
+                  case (FormatOpt(apply), fs) => formatter.format(fs, apply)
+                  case (LatexGen, fs)         => ???
+                  case (TypstGen, fs)         => ???
+                  case (LeanGen, fs)          => ???
+                  case (HtmlGen(css), fs)     => html.generate(fs, css)
+              }
+              .map(sys.exit(_))
+      }
+    )
