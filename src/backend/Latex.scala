@@ -61,12 +61,12 @@ extension (r: Rule)
         case AndElim(orig)                 => s"\\andelim($orig)"
         case ImpliesElim(ass, imp)         => s"\\implieselim($ass, $imp)"
         case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
-            s"\\orelim($or, $leftAss, $leftConcl, $rightAss, $rightConcl)"
+            s"\\orelim($or, $leftAss-$leftConcl, $rightAss-$rightConcl)"
         case NotElim(negated, orig)         => s"\\notelim($negated, $orig)"
         case DoubleNegElim(orig)            => s"\\doublenegelim($orig)"
         case FalsityElim(bottom)            => s"\\bottomelim($bottom)"
         case EquivElim(equiv, either)       => s"\\iffelim($equiv, $either)"
-        case ExistsElim(exists, ass, concl) => s"\\existselim($exists, $ass, $concl)"
+        case ExistsElim(exists, ass, concl) => s"\\existselim($exists, $ass-$concl)"
         case ForallElim(orig)               => s"\\forallelim($orig)"
         case ForallImpElim(ass, imp)        => s"\\forallelim($ass, $imp)"
         case LEM                            => "\\lem"
@@ -86,26 +86,46 @@ object latex extends codegen[Unit] {
     override protected val ext: String = "tex"
 
     override protected def compile(pf: CheckedProof, _opt: Unit): String = {
-        val (body, _) = toLatex(pf.main, 1)
+        val (orLeft, orRight) = findOrElims(pf.main)
+        val (_, body) = toLatex(pf.main, 1, orLeft, orRight)
         latexDocument(body)
     }
 
-    private def toLatex(s: PfScope, lineNr: Int): (String, Int) =
-        val (current, body) = s.body
-            .foldLeft((lineNr, StringBuilder())) { case ((current, acc), x) =>
+    private def toLatex(
+        s: PfScope,
+        line: Int,
+        orLeft: Set[(Int, Int)],
+        orRight: Set[(Int, Int)]
+    ): (Int, String) = {
+        val (newLine, body) = s.body
+            .foldLeft((line, StringBuilder())) { case ((ln, acc), x) =>
                 x match
                     case Left(Pf(concl, rule, _)) =>
-                        acc ++= mkLine(concl, rule, current)
-                        (current + 1, acc)
-                    case Right(s @ PfScope(_)) =>
-                        val (res, newLineNr) = toLatex(s, current)
-                        acc ++= s"\\open\n$res\\close\n"
-                        (newLineNr, acc)
-                    case _ => (current, acc)
+                        acc ++= mkLine(concl, rule)
+                        (ln + 1, acc)
+                    case Right(sc: PfScope) =>
+                        val (newLn, res) = toLatex(sc, ln, orLeft, orRight)
+                        if orLeft(ln, newLn - 1) then acc ++= s"\\openAlt\n$res"
+                        else if orRight(ln, newLn - 1) then acc ++= s"\\splitAlt\n$res\\closeAlt\n"
+                        else acc ++= s"\\open\n$res\\close\n"
+                        (newLn, acc)
+                    case _ => (ln, acc)
             }
-        (body.toString, current)
+        (newLine, body.toString)
+    }
 
-    private def mkLine(concl: LFormula, rule: Rule, lineNr: Int): String =
+    private def findOrElims(s: PfScope): (Set[(Int, Int)], Set[(Int, Int)]) = {
+        s.body.foldLeft((Set.empty, Set.empty)) {
+            case ((left, right), Left(Pf(_, OrElim(_, la, lc, ra, rc), _))) =>
+                (left incl (la, lc), right incl (ra, rc))
+            case ((left, right), Right(sc: PfScope)) =>
+                val (leftSub, rightSub) = findOrElims(sc)
+                (left ++ leftSub, right ++ rightSub)
+            case ((left, right), _) => (left, right)
+        }
+    }
+
+    private def mkLine(concl: LFormula, rule: Rule): String =
         s"\\: ${concl.asLatex} \\= ${rule.asLatex} \\\\\n"
 
     private def latexDocument(body: String) =
