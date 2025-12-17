@@ -1,8 +1,8 @@
-package ndpc.expr
+package ndpc.frontend.expr
 
 import parsley.generic.*
 
-object Formula {
+object formula {
     private def seqN(cs: List[Set[LFormula]]): Set[List[LFormula]] =
         cs match {
             case c :: Nil => c.map(_ :: Nil)

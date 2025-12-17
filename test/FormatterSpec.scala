@@ -1,7 +1,7 @@
 package ndpc
 
-import ndpc.Formatter.format
-import ndpc.Formatter.formattedFromSource
+import ndpc.frontend.formatter.format
+import ndpc.frontend.formatter.formattedFromSource
 
 import parsley.Success
 import java.io.{PrintStream, ByteArrayOutputStream}

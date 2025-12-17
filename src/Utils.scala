@@ -1,15 +1,15 @@
 package ndpc
 
-import ndpc.parsers.Lexer.number
+import ndpc.frontend.parsers.lexer.number
 
 import parsley.{Parsley, Result, Success, Failure}
 import parsley.character.item
 import parsley.Parsley.{many, eof}
 import parsley.syntax.character.stringLift
 import scala.language.implicitConversions
-import ndpc.parsers.EnrichedErr
+import ndpc.frontend.parsers.EnrichedErr
 
-object Utils {
+object utils {
     val HEADER = "\u001B[95m"
     val BLUE = "\u001B[94m"
     val CYAN = "\u001B[96m"

@@ -1,6 +1,6 @@
 package ndpc
 
-import ndpc.Checker.check
+import ndpc.frontend.checker.check
 
 import java.io.{PrintStream, ByteArrayOutputStream}
 

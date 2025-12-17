@@ -1,10 +1,10 @@
-package ndpc.expr
+package ndpc.frontend.expr
 
-import ndpc.expr.Formula._
+import ndpc.frontend.expr.formula._
 
 import parsley.generic.*
 
-object Rule {
+object rule {
     sealed trait Rule {
         def toHTML: String = this.toString
     }

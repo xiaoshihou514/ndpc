@@ -1,13 +1,13 @@
-package ndpc
+package ndpc.frontend
 
-import ndpc.expr.Formula._
-import ndpc.expr.Rule.{Rule, Tick}
-import ndpc.parsers.FormulaParser
-import ndpc.parsers.FormulaParser.lformula
-import ndpc.parsers.Lexer.implicits.implicitSymbol
-import ndpc.parsers.Lexer.lexeme
-import ndpc.parsers.RuleParser.rule
-import ndpc.parsers.Utils._
+import ndpc.frontend.expr.formula._
+import ndpc.frontend.expr.rule.{Rule, Tick}
+import ndpc.frontend.parsers.FormulaParser
+import ndpc.frontend.parsers.FormulaParser.lformula
+import ndpc.frontend.parsers.lexer.implicits.implicitSymbol
+import ndpc.frontend.parsers.lexer.lexeme
+import ndpc.frontend.parsers.RuleParser.rule
+import ndpc.frontend.parsers.utils._
 
 import parsley.{Parsley, Result}
 import parsley.Parsley.{eof, many, atomic, pure}
@@ -20,12 +20,12 @@ import parsley.errors.combinator._
 import parsley.debug._
 
 import scala.util.{Try, Either}
-import ndpc.parsers.EnrichedErr
-import ndpc.parsers.ErrBuilder
+import ndpc.frontend.parsers.EnrichedErr
+import ndpc.frontend.parsers.ErrBuilder
 import parsley.errors.ErrorBuilder
 import parsley.errors.tokenextractors.MatchParserDemand
 
-object Parser {
+object parser {
     sealed trait Line
     case object Empty extends Line {
         override def toString: String = "<Empty Line>"

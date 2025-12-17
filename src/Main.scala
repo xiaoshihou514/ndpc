@@ -1,9 +1,9 @@
-package ndpc
+package ndpc.frontend
 
-import ndpc.Checker.check
-import ndpc.Compiler.compile
-import ndpc.Formatter.format
-import ndpc.Utils.error
+import ndpc.frontend.checker.check
+import ndpc.backend.codegen.generate
+import ndpc.frontend.formatter.format
+import ndpc.utils.error
 
 object Main {
     def main(args: Array[String]): Unit =
@@ -41,13 +41,13 @@ object Main {
                     case _ =>
                         error("Error: missing targets")
             case "--css" :: css :: (files @ (_ :: _)) =>
-                compile(files, Some(css))
+                generate(files, Some(css))
             case "--css" :: css :: Nil =>
                 error("Error: missing targets")
             case "--css" :: Nil =>
                 error("Error: missing --css argument and targets")
             case files =>
-                compile(files, None)
+                generate(files, None)
         } match {
             case i: Int  => sys.exit(i)
             case _: Unit => sys.exit(0)

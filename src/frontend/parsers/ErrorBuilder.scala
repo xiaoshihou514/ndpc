@@ -1,4 +1,4 @@
-package ndpc.parsers
+package ndpc.frontend.parsers
 
 import parsley.errors.ErrorBuilder
 import parsley.errors.DefaultErrorBuilder

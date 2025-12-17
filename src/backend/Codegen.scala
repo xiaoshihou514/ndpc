@@ -1,22 +1,23 @@
-package ndpc
+package ndpc.backend
 
-import ndpc.Checker.pfFromSource
-import ndpc.Parser.Comment
-import ndpc.Parser.Empty
-import ndpc.Parser.Pf
-import ndpc.Parser.PfScope
-import ndpc.Utils._
-import ndpc.expr.Formula.LFormula
-import ndpc.expr.Rule.Rule
-import ndpc.parsers.EnrichedErr
+import ndpc.frontend.checker.pfFromSource
+import ndpc.frontend.parser.Comment
+import ndpc.frontend.parser.Empty
+import ndpc.frontend.parser.Pf
+import ndpc.frontend.parser.PfScope
+import ndpc.utils._
+import ndpc.frontend.expr.formula.LFormula
+import ndpc.frontend.expr.rule.Rule
+import ndpc.frontend.parsers.EnrichedErr
 
 import scala.collection.mutable.StringBuilder
 import scala.io.Source
 import scala.util.Try
 import parsley.{Result, Success, Failure}
+import ndpc.frontend.CheckedProof
 
-object Compiler {
-    def compile(inputs: Seq[String], userCSS: Option[String]): Int = {
+object codegen {
+    def generate(inputs: Seq[String], userCSS: Option[String]): Int = {
         val results = HTMLfromSource(inputs, userCSS)
         val errors = results.collect { case f @ Failure(_) => f }
         val successes = results.flatten

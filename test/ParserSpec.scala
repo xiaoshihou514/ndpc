@@ -1,6 +1,6 @@
 package ndpc
 
-import ndpc.Parser.parse
+import ndpc.frontend.parser.parse
 import scala.compiletime.ops.string
 
 class ParserSpec extends UnitSpec {

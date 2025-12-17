@@ -1,17 +1,17 @@
-package ndpc
+package ndpc.frontend
 
-import ndpc.Parser._
-import ndpc.expr.Formula._
+import ndpc.frontend.parser._
+import ndpc.frontend.expr.formula._
 import parsley.Result
-import ndpc.Utils._
-import ndpc.expr.Rule.Tick
+import ndpc.utils._
+import ndpc.frontend.expr.rule.Tick
 
 import scala.io.Source
 import scala.util.Try
 import os.{RelPath, Path}
 import parsley.{Failure, Success}
 
-object Formatter {
+object formatter {
     def format(inputs: Seq[String], apply: Boolean): Int = {
         val results = formattedFromSource(inputs)
         val errors = results.collect { case f @ Failure(_) => f }

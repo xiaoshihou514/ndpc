@@ -1,11 +1,11 @@
-package ndpc.parsers
+package ndpc.frontend.parsers
 
 import parsley.Parsley
 import parsley.token.{Lexer, Basic}
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc, SpaceDesc}
 import parsley.errors.combinator._
 
-object Lexer {
+object lexer {
     private val ops = Set(
       '(', ')', '[', ']', '<', '>', ' ', '.', ',', '~', '=', '^', '/', '-'
     )

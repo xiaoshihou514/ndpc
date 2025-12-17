@@ -1,4 +1,4 @@
-package ndpc.parsers
+package ndpc.frontend.parsers
 
 import parsley.Parsley
 import parsley.Parsley.{atomic, some}
@@ -6,9 +6,9 @@ import parsley.syntax.character.{charLift, stringLift}
 import parsley.errors.combinator._
 import parsley.debug._
 
-import ndpc.expr.Rule._
-import ndpc.parsers.Utils._
-import ndpc.parsers.Lexer._
+import ndpc.frontend.expr.rule._
+import ndpc.frontend.parsers.utils._
+import ndpc.frontend.parsers.lexer._
 
 object RuleParser {
     private def unary(

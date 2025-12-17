@@ -1,7 +1,7 @@
 package ndpc
 
-import ndpc.parsers.RuleParser._
-import ndpc.expr.Rule._
+import ndpc.frontend.parsers.RuleParser._
+import ndpc.frontend.expr.rule._
 
 class RuleParserSpec extends UnitSpec {
     "A rule" should "be defined in Rule.scala" in {

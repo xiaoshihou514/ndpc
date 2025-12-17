@@ -1,9 +1,9 @@
-package ndpc.parsers
+package ndpc.frontend.parsers
 
-import ndpc.expr.Formula._
-import ndpc.parsers.Utils._
-import ndpc.parsers.Lexer.{identifier, symbol, lexeme}
-import ndpc.parsers.Lexer.implicits.implicitSymbol
+import ndpc.frontend.expr.formula._
+import ndpc.frontend.parsers.utils._
+import ndpc.frontend.parsers.lexer.{identifier, symbol, lexeme}
+import ndpc.frontend.parsers.lexer.implicits.implicitSymbol
 
 import parsley.Parsley
 import parsley.Parsley.{pure, notFollowedBy, atomic}

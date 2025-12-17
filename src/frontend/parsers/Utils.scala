@@ -1,12 +1,12 @@
-package ndpc.parsers
+package ndpc.frontend.parsers
 
-import ndpc.parsers.Lexer.{symbol, lexeme}
+import ndpc.frontend.parsers.lexer.{symbol, lexeme}
 
 import parsley.syntax.character.{charLift, stringLift}
 import parsley.Parsley
 import parsley.Parsley.{many, pure}
 
-object Utils {
+object utils {
     val spc = many(' ' <|> '\t')
     def tolerant[A](p: Parsley[A]): Parsley[A] = spc ~> p <~ spc
 

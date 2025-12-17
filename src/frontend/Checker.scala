@@ -1,10 +1,10 @@
-package ndpc
+package ndpc.frontend
 
-import ndpc.Parser._
-import ndpc.expr.Rule._
-import ndpc.expr.Formula._
-import ndpc.Utils._
-import ndpc.parsers.EnrichedErr
+import ndpc.frontend.parser._
+import ndpc.frontend.expr.rule._
+import ndpc.frontend.expr.formula._
+import ndpc.utils._
+import ndpc.frontend.parsers.EnrichedErr
 
 import scala.io.Source
 import scala.util.Try
@@ -20,8 +20,7 @@ extension [A](xs: List[A])
         case _            => Nil
     }
 
-object Checker {
-
+object checker {
     def check(inputs: Seq[String], toJson: Boolean): Int = {
         val errors = pfFromSource(inputs)
             .collect { case f @ Failure(_) => f }
