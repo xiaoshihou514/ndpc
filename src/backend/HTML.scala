@@ -14,22 +14,9 @@ import scala.util.Try
 import parsley.{Result, Success, Failure}
 
 object html extends codegen[Option[java.nio.file.Path]] {
-    def fromSource(
-        inputs: Seq[String],
-        css: Option[java.nio.file.Path]
-    ): Seq[Result[NdpcError, (os.Path, String)]] =
-        pfFromSource(inputs).zip(inputs).map { (pf, dest) =>
-            pf match
-                case Success(pf)    => Success((outputPath(dest), compileFromString(pf, css)))
-                case f @ Failure(_) => f
-        }
+    override val ext = "html"
 
-    private def outputPath(orig: String): os.Path =
-        os.FilePath(
-          orig.replaceAll("\\.[^.]*$", "") + ".html"
-        ).resolveFrom(os.pwd)
-
-    private def compileFromString(
+    override protected def compile(
         pf: CheckedProof,
         cssPath: Option[java.nio.file.Path]
     ): String = {

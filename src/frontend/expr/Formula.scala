@@ -41,10 +41,10 @@ object formula {
     }
 
     private def p(thiz: LFormula, child: LFormula) =
-        if precedence(thiz) < precedence(child) then s"$child"
+        if precedence(thiz) < precedence(child) then child.toString
         else s"($child)"
     private def ph(thiz: LFormula, child: LFormula) =
-        if precedence(thiz) < precedence(child) then s"${child.toHTML}"
+        if precedence(thiz) < precedence(child) then child.toHTML
         else s"(${child.toHTML})"
 
     // Definition 4.3 (formula)

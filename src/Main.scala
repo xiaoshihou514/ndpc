@@ -51,7 +51,7 @@ object Main
               .mapN[Int] {
                   case (CheckOpt(json), fs)   => checker.check(fs, json)
                   case (FormatOpt(apply), fs) => formatter.format(fs, apply)
-                  case (LatexGen, fs)         => ???
+                  case (LatexGen, fs)         => latex.generate(fs, ())
                   case (TypstGen, fs)         => ???
                   case (LeanGen, fs)          => ???
                   case (HtmlGen(css), fs)     => html.generate(fs, css)
