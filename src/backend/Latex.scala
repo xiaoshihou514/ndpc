@@ -114,17 +114,6 @@ object latex extends codegen[Unit] {
         (newLine, body.toString)
     }
 
-    private def findOrElims(s: PfScope): (Set[(Int, Int)], Set[(Int, Int)]) = {
-        s.body.foldLeft((Set.empty, Set.empty)) {
-            case ((left, right), Left(Pf(_, OrElim(_, la, lc, ra, rc), _))) =>
-                (left incl (la, lc), right incl (ra, rc))
-            case ((left, right), Right(sc: PfScope)) =>
-                val (leftSub, rightSub) = findOrElims(sc)
-                (left ++ leftSub, right ++ rightSub)
-            case ((left, right), _) => (left, right)
-        }
-    }
-
     private def mkLine(concl: LFormula, rule: Rule): String =
         s"\\: ${concl.asLatex} \\= ${rule.asLatex} \\\\\n"
 

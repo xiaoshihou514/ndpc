@@ -69,6 +69,7 @@ extension (r: Rule)
         case Tick(orig)                     => s"&#10003;($orig)"
     }
 
+// TODO: extract this and precedence
 // Helper function for parenthesis handling in toHTML
 private def parenthesizeHTML(parent: LFormula, child: LFormula): String = {
     def precedence(lf: LFormula): Int = lf match {

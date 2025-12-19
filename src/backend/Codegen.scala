@@ -6,6 +6,8 @@ import ndpc.utils._
 import scala.util.Try
 import ndpc.frontend.checker.pfFromSource
 import ndpc.frontend.CheckedProof
+import ndpc.frontend.expr.rule._
+import ndpc.frontend.parser.{Pf, PfScope, Line}
 
 trait codegen[A] {
     type Output = Result[NdpcError, (os.Path, String)]
@@ -37,6 +39,17 @@ trait codegen[A] {
         os.FilePath(
           orig.replaceAll("\\.[^.]*$", "") + s".$ext"
         ).resolveFrom(os.pwd)
+
+    protected def findOrElims(s: PfScope): (Set[(Int, Int)], Set[(Int, Int)]) = {
+        s.body.foldLeft((Set.empty, Set.empty)) {
+            case ((left, right), Left(Pf(_, OrElim(_, la, lc, ra, rc), _))) =>
+                (left incl (la, lc), right incl (ra, rc))
+            case ((left, right), Right(sc: PfScope)) =>
+                val (leftSub, rightSub) = findOrElims(sc)
+                (left ++ leftSub, right ++ rightSub)
+            case ((left, right), _) => (left, right)
+        }
+    }
 
     protected def compile(pf: CheckedProof, opt: A): String
     protected val ext: String
