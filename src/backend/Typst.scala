@@ -130,8 +130,7 @@ object typst extends codegen[Unit] {
         s"  ($$${concl.asTypst}$$, ${rule.asTypst}),\n"
 
     private def typstDocument(body: String) =
-        // s"""#import "@preview/boxproof:0.1.0": *
-        s"""#import "./lib.typ": *
+        s"""#import "@preview/boxproof:0.1.0": *
             |// typst compile *.typ
             |// Alternatively, preview on https://typst.app
             |#start(pf(
