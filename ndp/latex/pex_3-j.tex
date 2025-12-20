@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: K \leftrightarrow not B \= \hbox{given} \\
+\open
+\: K \leftrightarrow B \= \asm \\
+\: K \lor not K \= \lem \\
+\openAlt
+\: K \= \asm \\
+\: B \= \iffelim(2, 4) \\
+\: \lnot B \= \iffelim(1, 4) \\
+\: \bot \= \bottomintro(5, 6) \\
+\: \bot \= \tick{7} \\
+\splitAlt
+\: \lnot K \= \asm \\
+\: B \lor not B \= \lem \\
+\openAlt
+\: B \= \asm \\
+\: K \= \iffelim(2, 11) \\
+\: \bot \= \bottomintro(12, 9) \\
+\: \bot \= \tick{13} \\
+\splitAlt
+\: \lnot B \= \asm \\
+\: K \= \iffelim(1, 15) \\
+\: \bot \= \bottomintro(16, 9) \\
+\closeAlt
+\: \bot \= \orelim(10, 11-14, 15-17) \\
+\closeAlt
+\: \bot \= \orelim(3, 4-8, 9-18) \\
+\close
+\: \lnot (K <-> B) \= \notintro(2, 19) \\
+\end{proofbox}
+\end{document}

@@ -1,0 +1,25 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: \lnot (forall x. "P"(x)) \= \hbox{given} \\
+\open
+\: \lnot (exists x. not "P"(x)) \= \asm \\
+\open
+\: c \= \forallintroconst \\
+\open
+\: \lnot "P"(c) \= \asm \\
+\: \exists x. (\lnot "P"(x)) \= \existsintro(4) \\
+\: \bot \= \notelim(2, 5) \\
+\close
+\: P(c) \= PC(4, 6) \\
+\close
+\: \forall x. (P(x)) \= \forallintro(3, 7) \\
+\: \bot \= \notelim(1, 8) \\
+\close
+\: \exists x. (\lnot "P"(x)) \= PC(2, 9) \\
+\end{proofbox}
+\end{document}

@@ -1,0 +1,26 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: G or B \rightarrow C \= \hbox{premise} \\
+\: not D \rightarrow not (L -> bot) \= \hbox{premise} \\
+\: C \rightarrow (L -> bot) \= \hbox{premise} \\
+\open
+\: G \= \asm \\
+\open
+\: B \= \asm \\
+\: G \lor B \= \orintro(5) \\
+\: C \= \implieselim(1, 6) \\
+\: L \rightarrow bot \= \implieselim(3, 7) \\
+\: \lnot (not (L -> bot)) \= \doublenegintro(8) \\
+\: \lnot (not D) \= MT(2, 9) \\
+\: D \= \doublenegelim(10) \\
+\close
+\: B \rightarrow D \= \impliesintro(5, 11) \\
+\close
+\: G \rightarrow (B -> D) \= \impliesintro(4, 12) \\
+\end{proofbox}
+\end{document}

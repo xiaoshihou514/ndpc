@@ -1,0 +1,21 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: R \rightarrow (B -> D or L) \= \hbox{given} \\
+\: \lnot (D or G) \= \hbox{given} \\
+\: L or B \rightarrow G \= \hbox{given} \\
+\open
+\: B \= \asm \\
+\: L \lor B \= \orintro(4) \\
+\: G \= \implieselim(3, 5) \\
+\: D \lor G \= \orintro(6) \\
+\: \bot \= \bottomintro(7, 2) \\
+\: \lnot R \= \bottomelim(8) \\
+\close
+\: B \rightarrow not R \= \impliesintro(4, 9) \\
+\end{proofbox}
+\end{document}

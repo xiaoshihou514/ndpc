@@ -1,0 +1,23 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: R \rightarrow not I \= \hbox{premise} \\
+\: I \lor f \= \hbox{premise} \\
+\: \lnot f \= \hbox{premise} \\
+\openAlt
+\: I \= \asm \\
+\: \lnot (not I) \= \doublenegintro(4) \\
+\: \lnot R \= MT(1, 5) \\
+\: \lnot R \= \tick{6} \\
+\splitAlt
+\: f \= \asm \\
+\: \bot \= \bottomintro(8, 3) \\
+\: \lnot R \= \bottomelim(9) \\
+\closeAlt
+\: \lnot R \= \orelim(2, 4-7, 8-10) \\
+\end{proofbox}
+\end{document}

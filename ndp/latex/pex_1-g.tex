@@ -1,0 +1,20 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: p and q \rightarrow r \= \hbox{given} \\
+\open
+\: p \= \asm \\
+\open
+\: q \= \asm \\
+\: p \land q \= \andintro(2, 3) \\
+\: r \= \implieselim(1, 4) \\
+\close
+\: q \rightarrow r \= \impliesintro(3, 5) \\
+\close
+\: p \rightarrow (q -> r) \= \impliesintro(2, 6) \\
+\end{proofbox}
+\end{document}

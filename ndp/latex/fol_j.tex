@@ -1,0 +1,26 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: (forall x. x = a) \lor x = b \= \hbox{premise} \\
+\: g(a) = b \= \hbox{premise} \\
+\: \forall x. (\forall y. ("g"(x) = "g"(y) \rightarrow x = y)) \= \hbox{premise} \\
+\: "g"(b) = a \lor "g"(b) = b \= \hbox{premise} \\
+\openAlt
+\: g(b) = a \= \asm \\
+\: g(g(a)) = a \= =\hbox{sub}(5, 2) \\
+\: g(g(a)) = a \= \tick{6} \\
+\splitAlt
+\: g(b) = b \= \asm \\
+\: g(b) = g(a) \= =\hbox{sub}(8, 2) \\
+\: \forall y. ("g"(b) = "g"(y) \rightarrow b = y) \= \forallelim(3) \\
+\: b = a \= \forallelim(9, 10) \\
+\: g(a) = a \= =\hbox{sub}(8, 11) \\
+\: g(g(a)) = a \= =\hbox{sub}(12, 12) \\
+\closeAlt
+\: g(g(a)) = a \= \orelim(4, 5-7, 8-13) \\
+\end{proofbox}
+\end{document}

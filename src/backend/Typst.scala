@@ -85,7 +85,7 @@ extension (r: Rule)
 object typst extends codegen[Unit] {
     override protected val ext: String = "typ"
 
-    override protected def compile(pf: CheckedProof, _opt: Unit): String = {
+    override def compile(pf: CheckedProof, _opt: Unit): String = {
         val (orLeft, orRight) = findOrElims(pf.main)
         val (body, _) = toTypst(pf.main, 1, orLeft, orRight)
         typstDocument(body)

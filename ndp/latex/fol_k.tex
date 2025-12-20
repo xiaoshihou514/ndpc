@@ -1,0 +1,27 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: \forall x. ("A"(x) \lor "B"(x)) \= \hbox{premise} \\
+\: \forall y. (\lnot "A"(y)) \= \hbox{premise} \\
+\open
+\: c \= \forallintroconst \\
+\: "A"(c) \lor "B"(c) \= \forallelim(1) \\
+\: \lnot "A"(c) \= \forallelim(2) \\
+\openAlt
+\: A(c) \= \asm \\
+\: \bot \= \notelim(5, 6) \\
+\: B(c) \= \bottomelim(7) \\
+\: B(c) \= \tick{8} \\
+\splitAlt
+\: B(c) \= \asm \\
+\: B(c) \= \tick{10} \\
+\closeAlt
+\: B(c) \= \orelim(4, 6-9, 10-11) \\
+\close
+\: \forall x. (B(x)) \= \forallintro(3, 12) \\
+\end{proofbox}
+\end{document}

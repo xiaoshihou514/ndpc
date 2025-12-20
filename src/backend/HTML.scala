@@ -93,7 +93,7 @@ private def parenthesizeHTML(parent: LFormula, child: LFormula): String = {
 object html extends codegen[Option[java.nio.file.Path]] {
     override val ext = "html"
 
-    override protected def compile(
+    override def compile(
         pf: CheckedProof,
         cssPath: Option[java.nio.file.Path]
     ): String = {

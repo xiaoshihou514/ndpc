@@ -1,0 +1,29 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: f \rightarrow B or W \= \hbox{premise} \\
+\: \lnot (B or P) \= \hbox{premise} \\
+\: W \rightarrow P \= \hbox{premise} \\
+\open
+\: B \lor W \= \asm \\
+\openAlt
+\: B \= \asm \\
+\: B \lor P \= \orintro(5) \\
+\: \bot \= \bottomintro(6, 2) \\
+\: \bot \= \tick{7} \\
+\splitAlt
+\: W \= \asm \\
+\: P \= \implieselim(3, 9) \\
+\: B \lor P \= \orintro(10) \\
+\: \bot \= \bottomintro(11, 2) \\
+\closeAlt
+\: \bot \= \orelim(4, 5-8, 9-12) \\
+\close
+\: \lnot (B or W) \= \notintro(4, 13) \\
+\: \lnot f \= MT(1, 14) \\
+\end{proofbox}
+\end{document}

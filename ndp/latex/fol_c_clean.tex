@@ -1,0 +1,22 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: \exists x. (\lnot "P"(x)) \= \hbox{given} \\
+\open
+\: \lnot "P"(c) \= \asm \\
+\open
+\: \forall x. (P(x)) \= \asm \\
+\: P(c) \= \forallelim(3) \\
+\: \bot \= \bottomintro(4, 2) \\
+\: \bot \= \tick{5} \\
+\close
+\: \lnot (forall x. "P"(x)) \= \notintro(3, 6) \\
+\: \lnot (forall x. "P"(x)) \= \tick{7} \\
+\close
+\: \lnot (forall x. "P"(x)) \= \existselim(1, 2-8) \\
+\end{proofbox}
+\end{document}

@@ -1,0 +1,23 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: D \lor B \= \hbox{premise} \\
+\: \lnot (D or not C) \= \hbox{premise} \\
+\: B \rightarrow C \= \hbox{premise} \\
+\openAlt
+\: D \= \asm \\
+\: D \lor not C \= \orintro(4) \\
+\: \bot \= \bottomintro(5, 2) \\
+\: C \= \bottomelim(6) \\
+\: C \= \tick{7} \\
+\splitAlt
+\: B \= \asm \\
+\: C \= \implieselim(3, 9) \\
+\closeAlt
+\: C \= \orelim(1, 4-8, 9-10) \\
+\end{proofbox}
+\end{document}

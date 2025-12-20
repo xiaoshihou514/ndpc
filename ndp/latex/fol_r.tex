@@ -1,0 +1,28 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: \forall n. (not "even"(n) \rightarrow "odd"(n)) \= \hbox{premise} \\
+\: \forall n. (not "odd"(n) \rightarrow "even"(n)) \= \hbox{premise} \\
+\open
+\: c \= \forallintroconst \\
+\: not "even"(c) \rightarrow "odd"(c) \= \forallelim(1) \\
+\: not "odd"(c) \rightarrow "even"(c) \= \forallelim(2) \\
+\: "odd"(c) \lor not "odd"(c) \= \lem \\
+\openAlt
+\: odd(c) \= \asm \\
+\: "even"(c) \lor "odd"(c) \= \orintro(7) \\
+\: "even"(c) \lor "odd"(c) \= \tick{8} \\
+\splitAlt
+\: \lnot "odd"(c) \= \asm \\
+\: even(c) \= \implieselim(5, 10) \\
+\: "even"(c) \lor "odd"(c) \= \orintro(11) \\
+\closeAlt
+\: "even"(c) \lor "odd"(c) \= \orelim(6, 7-9, 10-12) \\
+\close
+\: \forall n. ("even"(n) \lor "odd"(n)) \= \forallintro(3, 13) \\
+\end{proofbox}
+\end{document}

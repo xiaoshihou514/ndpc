@@ -1,0 +1,22 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: p \= \hbox{given} \\
+\: q \lor not q \= \lem \\
+\openAlt
+\: q \= \asm \\
+\: p \land q \= \andintro(1, 3) \\
+\: p and q \lor p and not q \= \orintro(4) \\
+\: p and q \lor p and not q \= \tick{5} \\
+\splitAlt
+\: \lnot q \= \asm \\
+\: p \land not q \= \andintro(1, 7) \\
+\: p and q \lor p and not q \= \orintro(8) \\
+\closeAlt
+\: p and q \lor p and not q \= \orelim(2, 3-6, 7-9) \\
+\end{proofbox}
+\end{document}

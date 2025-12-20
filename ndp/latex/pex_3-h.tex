@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: \lnot t \= \hbox{premise} \\
+\: P \rightarrow not (R or Q) \= \hbox{premise} \\
+\: P \rightarrow R or t \= \hbox{premise} \\
+\open
+\: P \= \asm \\
+\: R \lor t \= \implieselim(3, 4) \\
+\: \lnot (R or Q) \= \implieselim(2, 4) \\
+\openAlt
+\: R \= \asm \\
+\: R \lor Q \= \orintro(7) \\
+\: \bot \= \bottomintro(8, 6) \\
+\: \lnot Q \= \bottomelim(9) \\
+\: \lnot Q \= \tick{10} \\
+\splitAlt
+\: t \= \asm \\
+\: \bot \= \bottomintro(12, 1) \\
+\: \lnot Q \= \bottomelim(13) \\
+\closeAlt
+\: \lnot Q \= \orelim(5, 7-11, 12-14) \\
+\close
+\: P \rightarrow not Q \= \impliesintro(4, 15) \\
+\end{proofbox}
+\end{document}

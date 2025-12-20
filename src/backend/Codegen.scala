@@ -28,12 +28,16 @@ trait codegen[A] {
         code
     }
 
-    private def fromSource(inputs: Seq[String], opt: A): Seq[Output] =
+    def fromSource(inputs: Seq[String], opt: A): Seq[Output] =
         pfFromSource(inputs).zip(inputs).map { (pf, dest) =>
             pf match
                 case Success(pf)    => Success((outputPath(dest), compile(pf, opt)))
                 case f @ Failure(_) => f
         }
+
+    def compile(pf: CheckedProof, opt: A): String
+
+    protected val ext: String
 
     private def outputPath(orig: String): os.Path =
         os.FilePath(
@@ -50,7 +54,4 @@ trait codegen[A] {
             case ((left, right), _) => (left, right)
         }
     }
-
-    protected def compile(pf: CheckedProof, opt: A): String
-    protected val ext: String
 }

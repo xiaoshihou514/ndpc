@@ -1,0 +1,18 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\open
+\: p \= \asm \\
+\open
+\: q \= \asm \\
+\: p \= \tick{1} \\
+\close
+\: q \rightarrow p \= \impliesintro(2, 3) \\
+\close
+\: p \rightarrow (q -> p) \= \impliesintro(1, 4) \\
+\end{proofbox}
+\end{document}

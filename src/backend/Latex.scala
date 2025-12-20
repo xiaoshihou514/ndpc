@@ -85,7 +85,7 @@ extension (r: Rule)
 object latex extends codegen[Unit] {
     override protected val ext: String = "tex"
 
-    override protected def compile(pf: CheckedProof, _opt: Unit): String = {
+    override def compile(pf: CheckedProof, _opt: Unit): String = {
         val (orLeft, orRight) = findOrElims(pf.main)
         val (_, body) = toLatex(pf.main, 1, orLeft, orRight)
         latexDocument(body)

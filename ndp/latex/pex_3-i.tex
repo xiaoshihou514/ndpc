@@ -1,0 +1,42 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: C and N \rightarrow t \= \hbox{given} \\
+\: H \land not S \= \hbox{given} \\
+\: H and not (S or C) \rightarrow P \= \hbox{given} \\
+\open
+\: N \land not t \= \asm \\
+\: N \= \andelim(4) \\
+\: \lnot t \= \andelim(4) \\
+\open
+\: C \= \asm \\
+\: C \land N \= \andintro(7, 5) \\
+\: t \= \implieselim(1, 8) \\
+\: \bot \= \bottomintro(9, 6) \\
+\close
+\: \lnot C \= \notintro(7, 10) \\
+\: \lnot S \= \andelim(2) \\
+\open
+\: S \lor C \= \asm \\
+\openAlt
+\: S \= \asm \\
+\: \bot \= \bottomintro(14, 12) \\
+\: \bot \= \tick{15} \\
+\splitAlt
+\: C \= \asm \\
+\: \bot \= \bottomintro(17, 11) \\
+\closeAlt
+\: \bot \= \orelim(13, 14-16, 17-18) \\
+\close
+\: \lnot (S or C) \= \notintro(13, 19) \\
+\: H \= \andelim(2) \\
+\: H \land not (S or C) \= \andintro(21, 20) \\
+\: P \= \implieselim(3, 22) \\
+\close
+\: N and not t \rightarrow P \= \impliesintro(4, 23) \\
+\end{proofbox}
+\end{document}

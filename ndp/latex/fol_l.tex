@@ -1,0 +1,20 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: \forall x. ("A"(x) and "B"(x) \rightarrow "C"(x)) \= \hbox{premise} \\
+\: \exists x. ("A"(x) \land "B"(x)) \= \hbox{given} \\
+\open
+\: "A"(a) \land "B"(a) \= \asm \\
+\: "A"(a) and "B"(a) \rightarrow "C"(a) \= \forallelim(1) \\
+\: C(a) \= \implieselim(4, 3) \\
+\: A(a) \= \andelim(3) \\
+\: "A"(a) \land "C"(a) \= \andintro(6, 5) \\
+\: \exists x. ("A"(x) \land "C"(x)) \= \existsintro(7) \\
+\close
+\: \exists x. ("A"(x) \land "C"(x)) \= \existselim(2, 3-8) \\
+\end{proofbox}
+\end{document}

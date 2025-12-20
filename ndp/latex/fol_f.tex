@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{boxproof}
+\usepackage[a4paper, margin=1in]{geometry}
+\begin{document}
+\begin{proofbox}
+\: (exists x. "F"(x)) \lor (exists x. "G"(x)) \= \hbox{given} \\
+\openAlt
+\: \exists x. (F(x)) \= \asm \\
+\open
+\: F(c) \= \asm \\
+\: "F"(c) \lor "G"(c) \= \orintro(3) \\
+\: \exists x. ("F"(x) \lor "G"(x)) \= \existsintro(4) \\
+\close
+\: \exists x. ("F"(x) \lor "G"(x)) \= \existselim(2, 3-5) \\
+\: \exists x. ("F"(x) \lor "G"(x)) \= \tick{6} \\
+\splitAlt
+\: \exists x. (G(x)) \= \asm \\
+\open
+\: G(d) \= \asm \\
+\: "F"(d) \lor "G"(d) \= \orintro(9) \\
+\: \exists x. ("F"(x) \lor "G"(x)) \= \existsintro(10) \\
+\close
+\: \exists x. ("F"(x) \lor "G"(x)) \= \existselim(8, 9-11) \\
+\: \exists x. ("F"(x) \lor "G"(x)) \= \tick{12} \\
+\closeAlt
+\: \exists x. ("F"(x) \lor "G"(x)) \= \orelim(1, 2-7, 8-13) \\
+\end{proofbox}
+\end{document}
