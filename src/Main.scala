@@ -60,7 +60,7 @@ object Main
                   case (FormatOpt(apply), fs) => formatter.format(fs, apply)
                   case (LatexGen, fs)         => latex.generate(fs, ())
                   case (TypstGen, fs)         => typst.generate(fs, ())
-                  case (LeanGen, fs)          => ???
+                  case (LeanGen, fs)          => lean.generate(fs, ())
                   case (HtmlGen(css), fs)     => html.generate(fs, css)
               }
               .map(sys.exit(_))
