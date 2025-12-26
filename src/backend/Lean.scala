@@ -11,6 +11,64 @@ private type Name = String
 private type Pred = (Name, Int) // name + ary
 private type Decl = (Set[Pred], Set[Name])
 
+case class LeanExpr(val f: String, val args: List[Int]) {
+    def show: String = ???
+}
+object LeanExpr {
+    def andI(l1: Int, l2: Int) = LeanExpr("And.Intro", List(l1, l2))
+}
+
+sealed trait LeanStmt {
+    def show(indent: Int): String
+}
+case class Intro(val l: Int) extends LeanStmt {
+    override def show(indent: Int): String =
+        " " * indent + s"intro h$l"
+}
+case class Have(val l: Int, val ty: String, val rhs: LeanExpr) extends LeanStmt {
+    override def show(indent: Int): String =
+        " " * indent + s"have h$l : $ty := ${rhs.show}"
+}
+case class LeanTick(val now: Int, val from: Int) extends LeanStmt {
+    override def show(indent: Int): String =
+        " " * indent + s"have h$now := h$from"
+}
+case class Exact(val l: Int) extends LeanStmt {
+    override def show(indent: Int): String =
+        " " * indent + s"exact h$l"
+}
+case object LeanPC extends LeanStmt {
+    override def show(indent: Int): String =
+        " " * indent + "apply byContradiction"
+}
+case class Rcases(val from: Int, val c: String, val now: Int) extends LeanStmt {
+    override def show(indent: Int): String =
+        " " * indent + s"rcases h$from with ⟨$c, h$now⟩"
+}
+case class CaseOr(
+    val from: Int,
+    val left: List[LeanStmt],
+    val right: List[LeanStmt],
+    val rangeL: (Int, Int),
+    val rangeR: (Int, Int)
+) extends LeanStmt {
+    override def show(indent: Int): String =
+        val (startL, endL) = rangeL
+        val (startR, endR) = rangeR
+        val bodyL = left.map(_.show(5)).mkString("\n")
+        val bodyR = right.map(_.show(5)).mkString("\n")
+        s"""cases h$from with
+            | | inl h$startL =>
+            |$bodyL
+            |     exact h$endL
+            | | inr h$startR =>
+            |$bodyR
+            |     exact h$endR""".stripMargin
+            .split("\n")
+            .map(" " * indent + _)
+            .mkString("\n")
+}
+
 extension (c: CheckedProof) {
     def globals: Decl = c.main.flatten
         .map {
@@ -22,7 +80,6 @@ extension (c: CheckedProof) {
         }
         .unzip
         .bimap(_.flatten.toSet, _.flatten.toSet)
-    // def premises: (Map[Int, Name], List[LFormula]) = ???
 }
 
 extension (f: LFormula)
@@ -59,9 +116,42 @@ object lean extends codegen[Unit] {
         build(pf.globals, premises.map(_.concl.asLean), compile(body), body.last.concl.asLean)
     }
 
-    private def compile(pf: Vector[Pf]): String = ???
+    private def compile(pfs: Vector[Pf]): String = pfs.map(compile(_).show(2)).mkString("\n")
 
-    @tailrec private def ty(arity: Int): String =
+    private def compile(pf: Pf): LeanStmt = pf.rule match
+        case AndIntro(left, right)                                => ???
+        case ImpliesIntro(ass, res)                               => ???
+        case OrIntro(either)                                      => ???
+        case NotIntro(orig, bottom)                               => ???
+        case DoubleNegIntro(orig)                                 => ???
+        case FalsityIntro(orig, negated)                          => ???
+        case TruthIntro                                           => ???
+        case EquivIntro(leftImp, rightImp)                        => ???
+        case ExistsIntro(orig)                                    => ???
+        case ForallIntro(const, concl)                            => ???
+        case AndElim(orig)                                        => ???
+        case ImpliesElim(ass, imp)                                => ???
+        case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) => ???
+        case NotElim(negated, orig)                               => ???
+        case DoubleNegElim(orig)                                  => ???
+        case FalsityElim(bottom)                                  => ???
+        case EquivElim(equiv, either)                             => ???
+        case ExistsElim(exists, ass, concl)                       => ???
+        case ForallElim(orig)                                     => ???
+        case ForallImpElim(ass, imp)                              => ???
+        case LEM                                                  => ???
+        case MT(imp, not)                                         => ???
+        case PC(orig, bottom)                                     => ???
+        case Refl                                                 => ???
+        case EqSub(orig, eq)                                      => ???
+        case Sym(orig)                                            => ???
+        case ForallIConst                                         => ???
+        case Given                                                => ???
+        case Premise                                              => ???
+        case Ass                                                  => ???
+        case Tick(orig)                                           => ???
+
+    private def ty(arity: Int): String =
         if arity == 1 then "Prop" else s"Prop → ${ty(arity - 1)}"
 
     private def build(decl: Decl, premises: Vector[String], body: String, result: String) =
