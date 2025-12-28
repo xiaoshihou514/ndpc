@@ -1060,7 +1060,7 @@ object checker {
                     !ass.names(x) &&
                     isSubstituteOf(ass, assE, x) =>
                 (ass.names removedAll assE.names).toList match {
-                    case Nil                            => Success(Nil)
+                    case Nil                          => Success(Nil)
                     case t :: Nil if !conclE.names(t) => Success(Nil)
                     case _ =>
                         buildError(

@@ -5,6 +5,7 @@ import ndpc.frontend.expr.formula._
 import scala.annotation.tailrec
 import ndpc.frontend.parser._
 import cats.syntax.all._
+import ndpc.frontend.pretty
 import ndpc.frontend.expr.rule._
 import scala.collection.mutable.ReusableBuilder
 import scala.annotation.targetName
@@ -30,7 +31,7 @@ object LeanExpr {
     def andL(l: Int) = ex("And.left", l)
     def andR(l: Int) = ex("And.right", l)
     def fe(l: Int) = ex("False.elim", l)
-    def mp(l1: Int, l2: String) = LeanExpr(List(s"$l1.mp", l2))
+    def mp(l1: Int, l2: Int) = LeanExpr(List(s"h$l1.mp", l2.toString))
     def em(e: String) = LeanExpr(List("em", e))
     def rfl = ex("rfl")
     def eqsub(l1: Int, l2: Int) = ex("Eq.subst", l1, l2)
@@ -116,7 +117,7 @@ extension (c: CheckedProof) {
         .bimap(_.flatten.toSet, _.flatten.toSet)
 }
 
-extension (f: LFormula)
+extension (f: LFormula) {
     def asLean: String = f match {
         case PredAp(p, args) =>
             if args == Nil then p
@@ -136,6 +137,34 @@ extension (f: LFormula)
         case Forall(x, body) => s"∀ $x : Prop, (${body.asLean})"
         case Exists(x, body) => s"∃ $x : Prop, (${body.asLean})"
     }
+
+    def diff(other: LFormula): Option[String] = {
+        (f, other) match
+            case (PredAp(x, Nil), PredAp(y, Nil)) if x != y => Some(y)
+            case (Eq(l1, r1), Eq(l2, r2)) =>
+                l1.diff(l2) orElse r1.diff(r2)
+            case (And(l1, r1), And(l2, r2)) =>
+                l1.diff(l2) orElse r1.diff(r2)
+            case (Or(l1, r1), Or(l2, r2)) =>
+                l1.diff(l2) orElse r1.diff(r2)
+            case (Implies(l1, r1), Implies(l2, r2)) =>
+                l1.diff(l2) orElse r1.diff(r2)
+            case (Equiv(l1, r1), Equiv(l2, r2)) =>
+                l1.diff(l2) orElse r1.diff(r2)
+            case (Not(p1), Not(p2)) => p1.diff(p2)
+            case (Forall(_, body1), Forall(_, body2)) =>
+                body1.diff(body2)
+            case (Exists(_, body1), Exists(_, body2)) =>
+                body1.diff(body2)
+            case (PredAp(p1, args1), PredAp(p2, args2))
+                if p1 == p2 && args1.length == args2.length =>
+                args1.zip(args2).foldLeft(None) {
+                    case (None, (a1, a2))   => a1.diff(a2)
+                    case (acc @ Some(_), _) => acc
+                }
+            case _ => None
+    }
+}
 
 object lean extends codegen[Unit] {
     override protected val ext: String = "lean"
@@ -205,8 +234,7 @@ object lean extends codegen[Unit] {
     )(using
         lookup: Map[Int, LFormula]
     ): State = {
-        // import ndpc.frontend.pretty
-        // println(s"$now: ${expr.pretty} ${rule}")
+        println(s"$now: ${expr.pretty} ${rule}")
         rule match
             // have h : A ∧ B := And.intro h1 h2
             case AndIntro(l, r) =>
@@ -363,15 +391,10 @@ object lean extends codegen[Unit] {
             //   have hB : B := h1.mp h2
             //   exact hB
             case EquivElim(equiv, either) =>
-                val Implies(left, right) = expr: @unchecked
-                acc.lines += HaveBy(
-                  now,
+                acc.lines += Have(
+                  now.toString,
                   expr.asLean,
-                  Vector(
-                    Intro(""),
-                    Have("0", left.asLean, LeanExpr.mp(equiv, "")),
-                    Exact(0)
-                  )
+                  LeanExpr.mp(equiv, either)
                 )
                 acc
 
@@ -380,7 +403,8 @@ object lean extends codegen[Unit] {
             //   have hC : C := h2 x hx
             //   exact hC
             case ExistsElim(exists, ass, concl) =>
-                val name = (lookup(ass).names -- lookup(exists).names).head
+                val Exists(_, ex) = lookup(exists): @unchecked
+                val name = lookup(ass).diff(ex).get
                 acc.lines += HaveBy(
                   now,
                   expr.asLean,
@@ -390,7 +414,8 @@ object lean extends codegen[Unit] {
 
             // have hPA : P A := h A
             case ForallElim(orig) =>
-                val name = (expr.names -- lookup(orig).names).head
+                val Forall(_, fa) = lookup(orig): @unchecked
+                val name = expr.diff(fa).get
                 acc.lines += Have(
                   now.toString,
                   expr.asLean,
@@ -405,7 +430,8 @@ object lean extends codegen[Unit] {
             //   have hQx : Q x := hPQx hPx
             //   exact hQx
             case ForallImpElim(ass, imp) =>
-                val PredAp(name, Nil) = lookup(ass): @unchecked
+                val Forall(x, impBody) = lookup(imp): @unchecked
+                val name = (expr.names -- (impBody.names - x)).head
                 acc.lines += HaveBy(now, expr.asLean, Intro(name) +: acc.stash :+ Exact(imp))
                 acc.clear
 

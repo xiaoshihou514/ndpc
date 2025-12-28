@@ -26,6 +26,7 @@ object formula {
         def vars: Set[(String, Int)]
         def names: Set[String] = vars.map(_._1)
         // TODO: make this lazy
+        // WTH does that mean
         def substitutes(from: LFormula, to: LFormula): Set[LFormula]
     }
     // 1. If R is an n-ary predicate symbol in L, and t1...tn are
