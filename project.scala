@@ -1,6 +1,7 @@
 //> using scala 3.6
 //> using nativeVersion 0.5.6
 //> using options -feature -Yexplicit-nulls
+//> using options -language experimental.namedTuples
 
 //> using dep com.github.j-mie6::parsley::5.0.0-M12
 //> using dep com.lihaoyi::os-lib::0.11.6

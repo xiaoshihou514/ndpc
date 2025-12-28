@@ -23,8 +23,8 @@ object formula {
 
     // Definition 4.3 (formula)
     sealed trait LFormula {
-        def getVars: Set[(String, Int)]
-        def getNames: Set[String] = getVars.map(_._1)
+        def vars: Set[(String, Int)]
+        def names: Set[String] = vars.map(_._1)
         // TODO: make this lazy
         def substitutes(from: LFormula, to: LFormula): Set[LFormula]
     }
@@ -33,8 +33,8 @@ object formula {
     // NOTE: 0-arity predAp -> variable
     //       predAp -> funcAp
     case class PredAp(p: String, args: List[LFormula]) extends LFormula {
-        def getVars =
-            args.map(_.getVars).flatten.toSet incl (p, args.length)
+        def vars =
+            args.map(_.vars).flatten.toSet incl (p, args.length)
         def substitutes(from: LFormula, to: LFormula) =
             if this == from then Set(to, this)
             else
@@ -47,7 +47,7 @@ object formula {
 
     // 2. If t, t' are L-terms then t = t' is an atomic L-formula.
     case class Eq(left: LFormula, right: LFormula) extends LFormula {
-        def getVars = left.getVars union right.getVars
+        def vars = left.vars union right.vars
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -59,24 +59,24 @@ object formula {
 
     // 3. ⊤ and ⊥ are atomic L-formulas.
     case object Truth extends LFormula {
-        def getVars = Set.empty
+        def vars = Set.empty
         def substitutes(from: LFormula, to: LFormula) = Set(Truth)
     }
     case object Falsity extends LFormula {
-        def getVars = Set.empty
+        def vars = Set.empty
         def substitutes(from: LFormula, to: LFormula) = Set(Falsity)
     }
 
     // 4. If 𝝓, φ are L-formulas then so are ¬𝝓, (𝝓 ∧ φ), (𝝓 ∨ φ), (𝝓 → φ), and (𝝓 ↔ φ).
     case class Not(pf: LFormula) extends LFormula {
-        def getVars = pf.getVars
+        def vars = pf.vars
         def substitutes(from: LFormula, to: LFormula) =
             pf.substitutes(from, to).map(Not.apply)
     }
     object Not extends ParserBridge1[LFormula, Not]
 
     case class And(left: LFormula, right: LFormula) extends LFormula {
-        def getVars = left.getVars union right.getVars
+        def vars = left.vars union right.vars
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -87,7 +87,7 @@ object formula {
     object And extends ParserBridge2[LFormula, LFormula, And]
 
     case class Or(left: LFormula, right: LFormula) extends LFormula {
-        def getVars = left.getVars union right.getVars
+        def vars = left.vars union right.vars
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -98,7 +98,7 @@ object formula {
     object Or extends ParserBridge2[LFormula, LFormula, Or]
 
     case class Implies(left: LFormula, right: LFormula) extends LFormula {
-        def getVars = left.getVars union right.getVars
+        def vars = left.vars union right.vars
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -109,7 +109,7 @@ object formula {
     object Implies extends ParserBridge2[LFormula, LFormula, Implies]
 
     case class Equiv(left: LFormula, right: LFormula) extends LFormula {
-        def getVars = left.getVars union right.getVars
+        def vars = left.vars union right.vars
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -124,7 +124,7 @@ object formula {
         x: String,
         body: LFormula
     ) extends LFormula {
-        def getVars = body.getVars excl (x, 1)
+        def vars = body.vars excl (x, 1)
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitutes(from: LFormula, to: LFormula) =
             body.substitutes(from, to).map(Forall(x, _))
@@ -134,7 +134,7 @@ object formula {
         x: String,
         body: LFormula
     ) extends LFormula {
-        def getVars = body.getVars excl (x, 1)
+        def vars = body.vars excl (x, 1)
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitutes(from: LFormula, to: LFormula) =
             body.substitutes(from, to).map(Exists(x, _))

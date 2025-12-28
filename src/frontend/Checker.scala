@@ -376,9 +376,9 @@ object checker {
                     case ForallIConst =>
                         tryVerifyForallIConst()
                     case Given | Premise =>
-                        Success(concl.getNames.toList)
+                        Success(concl.names.toList)
                     case Ass =>
-                        Success(concl.getNames.toList)
+                        Success(concl.names.toList)
                     case Tick(orig) =>
                         tryVerifyTick(orig)
                 }
@@ -664,7 +664,7 @@ object checker {
                 // concl = exists x. orig[?/x]
                 // x free in orig
                 case (Pf(orig, _, _), Exists(x, conclF))
-                    if !orig.getNames(x) &&
+                    if !orig.names(x) &&
                         isSubstituteOf(orig, conclF, x) =>
                     // if the above holds then concl won't have any free variables
                     // the proof is left as an exercise
@@ -675,7 +675,7 @@ object checker {
                         concl.isInstanceOf[Exists] -> "Conclusion be of form exists ?. A",
                         (
                           concl match {
-                              case Exists(x, _) => !orig.getNames(x)
+                              case Exists(x, _) => !orig.names(x)
                               case _            => false
                           }
                         ) -> "Original free of Conclusion's quantifier",
@@ -719,7 +719,7 @@ object checker {
                       Forall(x, f)
                     )
                     if conclF.substitutes(c, PredAp(x, Nil))(f) &&
-                        !conclF.getNames(x) && boxConcls((cl, ccl)) =>
+                        !conclF.names(x) && boxConcls((cl, ccl)) =>
                     Success(Nil)
                 case (cl @ Pf(c, _, _), ccl @ Pf(conclF, _, _), _) =>
                     buildError(
@@ -732,7 +732,7 @@ object checker {
                         concl.isInstanceOf[Forall] -> "Conclusion is of form forall ?. A",
                         (
                           concl match {
-                              case it @ Forall(_, _) => !conclF.getNames(it.x)
+                              case it @ Forall(_, _) => !conclF.names(it.x)
                               case _                 => false
                           }
                         ) -> "ForallConclusion free of quantifier in Conclusion",
@@ -760,7 +760,7 @@ object checker {
         x: String
     ): Boolean =
         original == substituted ||
-            original.getNames
+            original.names
                 // original[t/x] == substituted?
                 .exists(t =>
                     original.substitutes(
@@ -993,7 +993,7 @@ object checker {
             // bottom = F
             // concl bounded
             case Pf(Falsity, _, _) =>
-                Success(concl.getNames.toList)
+                Success(concl.names.toList)
             case Pf(bottom, _, _) =>
                 buildError(
                   List(false -> "Bottom equals F"),
@@ -1057,11 +1057,11 @@ object checker {
                 )
                 if concl == conclE &&
                     boxConcls((al, cl)) &&
-                    !ass.getNames(x) &&
+                    !ass.names(x) &&
                     isSubstituteOf(ass, assE, x) =>
-                (ass.getNames removedAll assE.getNames).toList match {
+                (ass.names removedAll assE.names).toList match {
                     case Nil                            => Success(Nil)
-                    case t :: Nil if !conclE.getNames(t) => Success(Nil)
+                    case t :: Nil if !conclE.names(t) => Success(Nil)
                     case _ =>
                         buildError(
                           List(
@@ -1111,7 +1111,7 @@ object checker {
             // orig = forall x. concl[?/x]
             // ? bounded
             case Pf(forall @ Forall(x, conclF), _, _) if isSubstituteOf(concl, conclF, x) =>
-                (concl.getNames removedAll conclF.getNames).toList match {
+                (concl.names removedAll conclF.names).toList match {
                     case Nil                => Success(Nil)
                     case t :: Nil if env(t) => Success(Nil)
                     case _ =>
@@ -1152,8 +1152,8 @@ object checker {
             case (Pf(fi @ Forall(x, Implies(assF, conclF)), _, _), Pf(ass, _, _)) =>
                 if isSubstituteOf(ass, assF, x) &&
                     isSubstituteOf(concl, conclF, x) &&
-                    (ass.getNames removedAll assF.getNames) ==
-                        (concl.getNames removedAll conclF.getNames)
+                    (ass.names removedAll assF.names) ==
+                        (concl.names removedAll conclF.names)
                 then Success(Nil)
                 else
                     buildError(
@@ -1163,8 +1163,8 @@ object checker {
                         isSubstituteOf(concl, conclF, x) ->
                             "Conclusion is conclusion in ForallImplies' body with quantifier substituted",
                         (
-                          (ass.getNames removedAll assF.getNames) ==
-                              (concl.getNames removedAll conclF.getNames)
+                          (ass.names removedAll assF.names) ==
+                              (concl.names removedAll conclF.names)
                         ) -> "Assumption and Conclusion uses the same variable for quantifier substituion"
                       ),
                       List(
@@ -1272,7 +1272,7 @@ object checker {
     ) = concl match {
         // concl = a = a
         // a bounded
-        case Eq(l @ PredAp(_, _), r @ PredAp(_, _)) if l == r && l.getNames.forall(env) =>
+        case Eq(l @ PredAp(_, _), r @ PredAp(_, _)) if l == r && l.names.forall(env) =>
             Success(Nil)
         case _ =>
             buildError(
