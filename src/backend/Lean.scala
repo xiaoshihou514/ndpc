@@ -220,7 +220,7 @@ object lean extends codegen[Unit] {
                     (
                       acc.stash ++ compile(scope, acc.linenr),
                       acc.lines,
-                      index + n,
+                      acc.linenr + n - 1,
                       acc.linenr + n
                     )
                 case _ => acc // skip
