@@ -42,11 +42,12 @@ object LeanExpr {
 sealed trait LeanStmt {
     def show(indent: Int): String
 }
-case class Intro(private val ident: String) extends LeanStmt {
-    def this(i: Int) = this(i.toString)
-
+case class Intro(val ident: String) extends LeanStmt {
     override def show(indent: Int): String =
-        " " * indent + s"intro h$ident"
+        " " * indent + s"intro $ident"
+}
+object Intro {
+    def line(i: Int) = Intro(s"h$i")
 }
 case class Have(val ident: String, val ty: String, val rhs: LeanExpr) extends LeanStmt {
     override def show(indent: Int): String =
@@ -266,7 +267,7 @@ object lean extends codegen[Unit] {
                 acc.lines += HaveBy(
                   now,
                   expr.asLean,
-                  Intro(orig.toString) +: acc.stash :+ Exact(bottom)
+                  Intro.line(orig) +: acc.stash :+ Exact(bottom)
                 )
                 acc.clear
 
@@ -310,7 +311,8 @@ object lean extends codegen[Unit] {
 
             // have h : ∃ (x: Prop), P x := Exists.intro A h1
             case ExistsIntro(orig) =>
-                val Exists(name, _) = expr: @unchecked
+                val Exists(_, ex) = expr: @unchecked
+                val name = ex.diff(lookup(orig)).get
                 acc.lines += Have(now.toString, expr.asLean, LeanExpr.exi(name, orig))
                 acc
 
@@ -470,7 +472,7 @@ object lean extends codegen[Unit] {
                   now,
                   expr.asLean,
                   ByContra
-                      +: Intro(s"h$orig") // TODO
+                      +: Intro.line(orig) // TODO
                       +: acc.stash
                       :+ Exact(bottom)
                 )
@@ -491,7 +493,7 @@ object lean extends codegen[Unit] {
                 acc.lines += Have(now.toString, expr.asLean, LeanExpr.sym(orig))
                 acc
             case ForallIConst =>
-                acc.lines += Intro(now.toString)
+                acc.lines += Intro(expr.asLean)
                 acc
 
             // do nothing, assume place of use will fill it in
