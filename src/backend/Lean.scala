@@ -1,3 +1,4 @@
+// Typing in this file is terrible, consider refactoring
 package ndpc.backend
 
 import ndpc.frontend.CheckedProof
@@ -26,7 +27,7 @@ object LeanExpr {
     def orR(l: Int) = ex("Or.inr", l)
     def ti = LeanExpr(List("True.intro"))
     def iffi(l1: Int, l2: Int) = ex("Iff.intro", l1, l2)
-    def exi(name: String, l2: Int) = LeanExpr(List("Exists.intro", name, l2.toString))
+    def exi(name: String, l2: Int) = LeanExpr(List("Exists.intro", name, s"h$l2"))
 
     def andL(l: Int) = ex("And.left", l)
     def andR(l: Int) = ex("And.right", l)
@@ -404,7 +405,7 @@ object lean extends codegen[Unit] {
             //   exact hC
             case ExistsElim(exists, ass, concl) =>
                 val Exists(_, ex) = lookup(exists): @unchecked
-                val name = lookup(ass).diff(ex).get
+                val name = ex.diff(lookup(ass)).get
                 acc.lines += HaveBy(
                   now,
                   expr.asLean,
@@ -415,7 +416,7 @@ object lean extends codegen[Unit] {
             // have hPA : P A := h A
             case ForallElim(orig) =>
                 val Forall(_, fa) = lookup(orig): @unchecked
-                val name = expr.diff(fa).get
+                val name = fa.diff(expr).get
                 acc.lines += Have(
                   now.toString,
                   expr.asLean,

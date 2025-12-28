@@ -13,3 +13,6 @@ ndpc.exe
 /*.ndp
 /*.typ
 /*.lean
+/*.ndp
+
+/ndp/lean/
