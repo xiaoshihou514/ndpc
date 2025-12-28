@@ -120,7 +120,7 @@ extension (f: LFormula)
     def asLean: String = f match {
         case PredAp(p, args) =>
             if args == Nil then p
-            else s"$p ${args.mkString(" ")}"
+            else s"$p ${args.map(_.asLean).mkString(" ")}"
         case Eq(left, right) => s"${left.asLean} = ${right.asLean}"
         case Truth           => "True"
         case Falsity         => "False"
@@ -148,10 +148,12 @@ object lean extends codegen[Unit] {
                 case _               => false
         }
         given Map[Int, LFormula] = pfs.zipWithIndex.map { (x, i) => (i + 1, x.concl) }.toMap
+        val proof = compile(pf.main, 1) :+ Exact(pfs.length)
+
         build(
           pf.globals,
           premises.map(_.concl.asLean),
-          compile(pf.main).map(_.show(2)).mkString("\n"),
+          proof.map(_.show(2)).mkString("\n"),
           body.last.concl.asLean
         )
     }
@@ -159,23 +161,36 @@ object lean extends codegen[Unit] {
     private type State = (
         stash: Vector[LeanStmt],
         lines: ReusableBuilder[LeanStmt, Vector[LeanStmt]],
-        stashEnd: Int
+        stashEnd: Int,
+        linenr: Int
     )
     extension (s: State) {
-        def clear = (Vector.empty, s.lines, s.stashEnd)
+        def clear = (Vector.empty, s.lines, s.stashEnd, s.linenr)
+        def incr = (s.stash, s.lines, s.stashEnd, s.linenr + 1)
     }
 
-    private def compile(pfs: PfScope, index: Int = 1)(using
+    private def compile(pfs: PfScope, index: Int)(using
         lookup: Map[Int, LFormula]
     ): Vector[LeanStmt] = {
-        val (s, ls, _) = pfs.body.zipWithIndex.foldLeft(
-          (stash = Vector.empty[LeanStmt], lines = Vector.newBuilder[LeanStmt], stashEnd = 0)
+        val (s, ls, _, _) = pfs.body.foldLeft(
+          (
+            stash = Vector.empty[LeanStmt],
+            lines = Vector.newBuilder[LeanStmt],
+            stashEnd = 0,
+            linenr = index
+          )
         ) { (acc, x) =>
             x match
-                case (Left(Pf(concl, rule, _)), i) =>
-                    compilePf(index + i, concl, rule, acc)
-                case (Right(scope), i) =>
-                    (compile(scope, index + i), acc.lines, index + i + scope.body.length)
+                case Left(Pf(concl, rule, _)) =>
+                    compilePf(acc.linenr, concl, rule, acc).incr
+                case Right(scope) =>
+                    val n = scope.flatten.length
+                    (
+                      compile(scope, acc.linenr),
+                      acc.lines,
+                      index + n,
+                      acc.linenr + n
+                    )
                 case _ => acc // skip
         }
         ls ++= s
@@ -190,6 +205,8 @@ object lean extends codegen[Unit] {
     )(using
         lookup: Map[Int, LFormula]
     ): State = {
+        // import ndpc.frontend.pretty
+        // println(s"$now: ${expr.pretty} ${rule}")
         rule match
             // have h : A ∧ B := And.intro h1 h2
             case AndIntro(l, r) =>
@@ -213,12 +230,15 @@ object lean extends codegen[Unit] {
                 acc
 
             // have h4 : ¬ A := by
-            //   apply byContradiction
             //   intro h2
             //   have h3 : False := ...
-            //   contradiction
+            //   exact h3
             case NotIntro(orig, bottom) =>
-                acc.lines += HaveBy(now, expr.asLean, ByContra +: acc.stash :+ Contra)
+                acc.lines += HaveBy(
+                  now,
+                  expr.asLean,
+                  Intro(orig.toString) +: acc.stash :+ Exact(bottom)
+                )
                 acc.clear
 
             // have h4 : ¬ ¬ A := by
@@ -360,7 +380,7 @@ object lean extends codegen[Unit] {
             //   have hC : C := h2 x hx
             //   exact hC
             case ExistsElim(exists, ass, concl) =>
-                val PredAp(name, Nil) = lookup(ass): @unchecked
+                val name = (lookup(ass).names -- lookup(exists).names).head
                 acc.lines += HaveBy(
                   now,
                   expr.asLean,
@@ -449,25 +469,31 @@ object lean extends codegen[Unit] {
 
             // do nothing, assume place of use will fill it in
             case Ass => acc
-            // case Tick(orig)                                           =>
+            case Tick(orig) =>
+                acc.lines += Have(now.toString, expr.asLean, LeanExpr(List(s"h$orig")))
+                acc
             case Given | Premise => acc
-            case _               => ???
     }
 
     private def ty(arity: Int): String =
-        if arity == 1 then "Prop" else s"Prop → ${ty(arity - 1)}"
+        if arity == 0 then "Prop" else s"Prop → ${ty(arity - 1)}"
 
     private def build(decl: Decl, premises: Vector[String], body: String, result: String) =
         val (preds, vars) = decl
         val predDecls = preds.map((f, n) => s"axiom $f : ${ty(n)}").mkString("\n")
         val varDecls = vars.mkString(" ")
-        val premiseDecls = premises.zipWithIndex.map((p, n) => s"  (h$n : $p)").mkString("\n")
-        s"""section
+        val premiseDecls = premises.zipWithIndex.map((p, n) => s"  (h${n + 1} : $p)").mkString("\n")
+        s"""-- `lean *.lean` or https://live.lean-lang.org/
+            |section
             |open Classical
+            |set_option linter.unusedVariables false
             |$predDecls
+            |
             |example {$varDecls : Prop}
             |$premiseDecls
             |: $result := by
             |$body
-            |"""
+            |
+            |end
+            |""".stripMargin
 }
