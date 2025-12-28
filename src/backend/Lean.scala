@@ -19,7 +19,7 @@ case class LeanExpr(val parts: List[String]) {
     def show: String = parts.mkString(" ")
 }
 object LeanExpr {
-    def ex(g: String, args: Int*) = LeanExpr(g :: args.map(_.toString).toList)
+    def ex(g: String, args: Int*) = LeanExpr(g :: args.map(x => s"h$x").toList)
 
     def ap(es: String*) = LeanExpr(es.map(x => s"h$x").toList)
     def andI(l1: Int, l2: Int) = ex("And.Intro", l1, l2)
@@ -95,12 +95,13 @@ case class CaseOr(
         val bodyL = left.map(_.show(5)).mkString("\n")
         val bodyR = right.map(_.show(5)).mkString("\n")
         s"""cases h$from with
-            | | inl h$startL =>
-            |$bodyL
-            |     exact h$endL
-            | | inr h$startR =>
-            |$bodyR
-            |     exact h$endR""".stripMargin
+            ~| inl h$startL =>
+            ~$bodyL
+            ~     exact h$endL
+            ~| inr h$startR =>
+            ~${bodyR}
+            ~     exact h$endR"""
+            .stripMargin('~')
             .split("\n")
             .map(" " * indent + _)
             .mkString("\n")
@@ -215,9 +216,9 @@ object lean extends codegen[Unit] {
                 case Left(Pf(concl, rule, _)) =>
                     compilePf(acc.linenr, concl, rule, acc).incr
                 case Right(scope) =>
-                    val n = scope.flatten.length
+                    val n = scope.flatten.collect { case _: Pf => }.length
                     (
-                      compile(scope, acc.linenr),
+                      acc.stash ++ compile(scope, acc.linenr),
                       acc.lines,
                       index + n,
                       acc.linenr + n
@@ -348,13 +349,20 @@ object lean extends codegen[Unit] {
             //     have hC : ...
             //     exact hC
             case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
+                println(acc.stash.map(_.show(0)).mkString("\n"))
                 val (ls, rs) = acc.stash.splitAt(leftConcl - leftAss)
-                acc.lines += CaseOr(
-                  or,
-                  ls,
-                  rs,
-                  (leftAss, leftConcl),
-                  (rightAss, rightConcl)
+                acc.lines += HaveBy(
+                  now,
+                  expr.asLean,
+                  Vector(
+                    CaseOr(
+                      or,
+                      ls,
+                      rs,
+                      (leftAss, leftConcl),
+                      (rightAss, rightConcl)
+                    )
+                  )
                 )
                 acc.clear
 
@@ -513,16 +521,16 @@ object lean extends codegen[Unit] {
         val varDecls = vars.mkString(" ")
         val premiseDecls = premises.zipWithIndex.map((p, n) => s"  (h${n + 1} : $p)").mkString("\n")
         s"""-- `lean *.lean` or https://live.lean-lang.org/
-            |section
-            |open Classical
-            |set_option linter.unusedVariables false
-            |$predDecls
-            |
-            |example {$varDecls : Prop}
-            |$premiseDecls
-            |: $result := by
-            |$body
-            |
-            |end
-            |""".stripMargin
+            ~section
+            ~open Classical
+            ~set_option linter.unusedVariables false
+            ~$predDecls
+            ~
+            ~example {$varDecls : Prop}
+            ~$premiseDecls
+            ~: $result := by
+            ~$body
+            ~
+            ~end
+            ~""".stripMargin('~')
 }
