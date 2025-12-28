@@ -124,7 +124,7 @@ extension (f: LFormula) {
     def asLean: String = f match {
         case PredAp(p, args) =>
             if args == Nil then p
-            else s"$p ${args.map(_.asLean).mkString(" ")}"
+            else s"($p ${args.map(_.asLean).mkString(" ")})"
         case Eq(left, right) => s"${left.asLean} = ${right.asLean}"
         case Truth           => "True"
         case Falsity         => "False"
@@ -348,9 +348,16 @@ object lean extends codegen[Unit] {
             // | inr hB =>
             //     have hC : ...
             //     exact hC
-            case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
+            case it @ OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
+                println(it)
+                println("stash:")
                 println(acc.stash.map(_.show(0)).mkString("\n"))
-                val (ls, rs) = acc.stash.splitAt(leftConcl - leftAss)
+                val (ls, rs) = split(acc.stash, leftConcl - leftAss)
+                println("--------------------------")
+                println(ls.map(_.show(0)).mkString("\n"))
+                println("--------------------------")
+                println(rs.map(_.show(0)).mkString("\n"))
+                println("--------------------------")
                 acc.lines += HaveBy(
                   now,
                   expr.asLean,
@@ -533,4 +540,23 @@ object lean extends codegen[Unit] {
             ~
             ~end
             ~""".stripMargin('~')
+
+    private def split(ss: Vector[LeanStmt], n: Int) = {
+        var l = 0
+        var i = 0
+        var iter = ss.iterator
+        while (l < n) {
+            val s = iter.next()
+            l = l + length(s)
+            i = i + 1
+        }
+        ss.splitAt(i)
+    }
+
+    private def length(s: LeanStmt): Int = s match
+        case HaveBy(l, ty, rhs) => rhs.map(length).sum
+        case CaseOr(from, left, right, rangeL, rangeR) =>
+            1 + (rangeL._2 - rangeL._1) + (rangeR._2 - rangeR._1)
+        case _ => 1
+
 }
