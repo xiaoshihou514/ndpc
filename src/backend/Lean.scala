@@ -74,10 +74,10 @@ object HaveBy {
     //     (l, ty, rhs) => HaveBy(l, ty, rhs, f(rhs.map(LeanStmt.length).sum))
     private def make(f: Int => Int): (Int, LFormula, Vector[LeanStmt]) => HaveBy =
         (l, ty, rhs) => {
-            println("===============")
-            println(rhs.map(_.show(0)).mkString("\n"))
-            println(s"length: ${f(rhs.map(LeanStmt.length).sum)}")
-            println("===============")
+            // println("===============")
+            // println(rhs.map(_.show(0)).mkString("\n"))
+            // println(s"length: ${f(rhs.map(LeanStmt.length).sum)}")
+            // println("===============")
             HaveBy(l, ty, rhs, f(rhs.map(LeanStmt.length).sum))
         }
 
@@ -394,15 +394,15 @@ object lean extends codegen[Unit] {
             //     have hC : ...
             //     exact hC
             case it @ OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
-                println(it)
-                println("stash:")
-                println(acc.stash.map(_.show(0)).mkString("\n"))
+                // println(it)
+                // println("stash:")
+                // println(acc.stash.map(_.show(0)).mkString("\n"))
                 val (ls, rs) = split(acc.stash, leftConcl - leftAss)
-                println("--------------------------")
-                println(ls.map(_.show(0)).mkString("\n"))
-                println("--------------------------")
-                println(rs.map(_.show(0)).mkString("\n"))
-                println("--------------------------")
+                // println("--------------------------")
+                // println(ls.map(_.show(0)).mkString("\n"))
+                // println("--------------------------")
+                // println(rs.map(_.show(0)).mkString("\n"))
+                // println("--------------------------")
                 acc.lines += HaveBy.ore(
                   now,
                   expr,
@@ -439,7 +439,7 @@ object lean extends codegen[Unit] {
                   Vector(
                     ByContra,
                     Intro("tmp"),
-                    Have(tmp(now), Falsity, LeanExpr(List("tmp", h(1)))),
+                    Have(tmp(now), Falsity, LeanExpr(List(h(orig), "tmp"))),
                     Contra
                   )
                 )
