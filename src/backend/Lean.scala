@@ -280,7 +280,7 @@ object lean extends codegen[Unit] {
     )(using
         lookup: Map[Int, LFormula]
     ): State = {
-        println(s"$now: ${expr.pretty} ${rule}")
+        // println(s"$now: ${expr.pretty} ${rule}")
         rule match
             // have h : A ∧ B := And.intro h1 h2
             case AndIntro(l, r) =>
