@@ -22,7 +22,7 @@ object LeanExpr {
     def ex(g: String, args: Int*) = LeanExpr(g :: args.map(x => s"h$x").toList)
 
     def ap(es: String*) = LeanExpr(es.map(x => s"h$x").toList)
-    def andI(l1: Int, l2: Int) = ex("And.Intro", l1, l2)
+    def andI(l1: Int, l2: Int) = ex("And.intro", l1, l2)
     def orL(l: Int) = ex("Or.inl", l)
     def orR(l: Int) = ex("Or.inr", l)
     def ti = LeanExpr(List("True.intro"))
@@ -35,7 +35,9 @@ object LeanExpr {
     def mp(l1: Int, l2: Int) = LeanExpr(List(s"h$l1.mp", l2.toString))
     def em(e: String) = LeanExpr(List("em", e))
     def rfl = ex("rfl")
-    def eqsub(l1: Int, l2: Int) = ex("Eq.subst", l1, l2)
+    def eqsub(symm: Boolean, l1: Int, l2: Int) =
+        if !symm then ex("Eq.subst", l1, l2)
+        else LeanExpr(List("Eq.subst", s"(${sym(l1).show})", s"h$l2"))
     def sym(l: Int) = ex("Eq.symm", l)
 }
 
@@ -49,13 +51,15 @@ case class Intro(val ident: String) extends LeanStmt {
 object Intro {
     def line(i: Int) = Intro(s"h$i")
 }
-case class Have(val ident: String, val ty: String, val rhs: LeanExpr) extends LeanStmt {
+case class Have(val ident: String, val ty: LFormula, val rhs: LeanExpr) extends LeanStmt {
     override def show(indent: Int): String =
-        " " * indent + s"have h$ident : $ty := ${rhs.show}"
+        " " * indent + s"have h$ident : ${ty.asLean} := ${rhs.show}"
 }
-case class HaveBy(val l: Int, val ty: String, val rhs: Vector[LeanStmt]) extends LeanStmt {
+case class HaveBy(val l: Int, val ty: LFormula, val rhs: Vector[LeanStmt]) extends LeanStmt {
     override def show(indent: Int): String =
-        " " * indent + s"have h$l : $ty := by\n" + rhs.map(_.show(indent + 2)).mkString("\n")
+        " " * indent + s"have h$l : ${ty.asLean} := by\n" + rhs
+            .map(_.show(indent + 2))
+            .mkString("\n")
 }
 case class LeanTick(val now: Int, val from: Int) extends LeanStmt {
     override def show(indent: Int): String =
@@ -141,9 +145,9 @@ extension (f: LFormula) {
         case Exists(x, body) => s"∃ $x : Prop, (${body.asLean})"
     }
 
-    def diff(other: LFormula): Option[String] = {
+    def diff(other: LFormula): Option[LFormula] = {
         (f, other) match
-            case (PredAp(x, Nil), PredAp(y, Nil)) if x != y => Some(y)
+            case (PredAp(x, Nil), it @ PredAp(y, Nil)) if x != y => Some(it)
             case (Eq(l1, r1), Eq(l2, r2)) =>
                 l1.diff(l2) orElse r1.diff(r2)
             case (And(l1, r1), And(l2, r2)) =>
@@ -159,12 +163,13 @@ extension (f: LFormula) {
                 body1.diff(body2)
             case (Exists(_, body1), Exists(_, body2)) =>
                 body1.diff(body2)
-            case (PredAp(p1, args1), PredAp(p2, args2))
-                if p1 == p2 && args1.length == args2.length =>
-                args1.zip(args2).foldLeft(None) {
-                    case (None, (a1, a2))   => a1.diff(a2)
-                    case (acc @ Some(_), _) => acc
-                }
+            case (PredAp(p1, args1), r @ PredAp(p2, args2)) =>
+                if p1 == p2 && args1.length == args2.length then
+                    args1.zip(args2).foldLeft(None) {
+                        case (None, (a1, a2))   => a1.diff(a2)
+                        case (acc @ Some(_), _) => acc
+                    }
+                else Some(r)
             case _ => None
     }
 }
@@ -241,7 +246,7 @@ object lean extends codegen[Unit] {
         rule match
             // have h : A ∧ B := And.intro h1 h2
             case AndIntro(l, r) =>
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.andI(l, r))
+                acc.lines += Have(now.toString, expr, LeanExpr.andI(l, r))
                 acc
 
             // have h5 : A → B := by
@@ -249,7 +254,7 @@ object lean extends codegen[Unit] {
             //   ...
             //   exact h4
             case ImpliesIntro(ass, res) =>
-                acc.lines += HaveBy(now, expr.asLean, acc.stash :+ Exact(acc.stashEnd))
+                acc.lines += HaveBy(now, expr, acc.stash :+ Exact(acc.stashEnd))
                 acc.clear
 
             // have h2 : A ∨ B := Or.inl h1
@@ -257,7 +262,7 @@ object lean extends codegen[Unit] {
             case OrIntro(either) =>
                 val Or(left, right) = expr: @unchecked
                 val f = if left == lookup(either) then LeanExpr.orL else LeanExpr.orR
-                acc.lines += Have(now.toString, expr.asLean, f(either))
+                acc.lines += Have(now.toString, expr, f(either))
                 acc
 
             // have h4 : ¬ A := by
@@ -267,7 +272,7 @@ object lean extends codegen[Unit] {
             case NotIntro(orig, bottom) =>
                 acc.lines += HaveBy(
                   now,
-                  expr.asLean,
+                  expr,
                   Intro.line(orig) +: acc.stash :+ Exact(bottom)
                 )
                 acc.clear
@@ -279,10 +284,10 @@ object lean extends codegen[Unit] {
             case DoubleNegIntro(orig) =>
                 acc.lines += HaveBy(
                   now,
-                  expr.asLean,
+                  expr,
                   Vector(
                     Intro(s"p$now"),
-                    Have("p", "False", LeanExpr.ap(s"p$now", orig.toString))
+                    Have("p", Falsity, LeanExpr.ap(s"p$now", orig.toString))
                   )
                 )
                 acc
@@ -291,7 +296,7 @@ object lean extends codegen[Unit] {
             case FalsityIntro(orig, negated) =>
                 acc.lines += Have(
                   now.toString,
-                  expr.asLean,
+                  expr,
                   LeanExpr.ap(negated.toString, orig.toString)
                 )
                 acc
@@ -300,21 +305,21 @@ object lean extends codegen[Unit] {
             case TruthIntro =>
                 acc.lines += Have(
                   now.toString,
-                  expr.asLean,
+                  expr,
                   LeanExpr.ti
                 )
                 acc
 
             // have h : A ↔ B := Iff.intro h1 h2
             case EquivIntro(l, r) =>
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.iffi(l, r))
+                acc.lines += Have(now.toString, expr, LeanExpr.iffi(l, r))
                 acc
 
             // have h : ∃ (x: Prop), P x := Exists.intro A h1
             case ExistsIntro(orig) =>
                 val Exists(_, ex) = expr: @unchecked
-                val name = ex.diff(lookup(orig)).get
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.exi(name, orig))
+                val Some(PredAp(name, Nil)) = ex.diff(lookup(orig)): @unchecked
+                acc.lines += Have(now.toString, expr, LeanExpr.exi(name, orig))
                 acc
 
             // have h9 : (∀ (x: Prop), ...) := by
@@ -322,21 +327,21 @@ object lean extends codegen[Unit] {
             //   have h : ... := ...
             //   exact h
             case ForallIntro(const, concl) =>
-                acc.lines += HaveBy(now, expr.asLean, acc.stash :+ Exact(acc.stashEnd))
+                acc.lines += HaveBy(now, expr, acc.stash :+ Exact(acc.stashEnd))
                 acc.clear
 
             // have hA : A := And.left h
             case AndElim(orig) =>
                 val And(left, right) = lookup(orig): @unchecked
                 val f = if left == expr then LeanExpr.andL else LeanExpr.andR
-                acc.lines += Have(now.toString, expr.asLean, f(orig))
+                acc.lines += Have(now.toString, expr, f(orig))
                 acc
 
             // have hB : B := h1 h2
             case ImpliesElim(ass, imp) =>
                 acc.lines += Have(
                   now.toString,
-                  expr.asLean,
+                  expr,
                   LeanExpr.ap(imp.toString, ass.toString)
                 )
                 acc
@@ -360,7 +365,7 @@ object lean extends codegen[Unit] {
                 println("--------------------------")
                 acc.lines += HaveBy(
                   now,
-                  expr.asLean,
+                  expr,
                   Vector(
                     CaseOr(
                       or,
@@ -377,7 +382,7 @@ object lean extends codegen[Unit] {
             case NotElim(negated, orig) =>
                 acc.lines += Have(
                   now.toString,
-                  expr.asLean,
+                  expr,
                   LeanExpr.ap(negated.toString, orig.toString)
                 )
                 acc
@@ -390,11 +395,11 @@ object lean extends codegen[Unit] {
             case DoubleNegElim(orig) =>
                 acc.lines += HaveBy(
                   now,
-                  expr.asLean,
+                  expr,
                   Vector(
                     ByContra,
                     Intro(""),
-                    Have("_", "False", LeanExpr(List("h", "h1"))),
+                    Have("_", Falsity, LeanExpr(List("h", "h1"))),
                     Contra
                   )
                 )
@@ -402,7 +407,7 @@ object lean extends codegen[Unit] {
 
             // have hA : A := False.elim h
             case FalsityElim(bottom) =>
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.fe(bottom))
+                acc.lines += Have(now.toString, expr, LeanExpr.fe(bottom))
                 acc
 
             // example {A B : Prop} (h1 : A ↔ B) (h2 : A) : B := by
@@ -411,7 +416,7 @@ object lean extends codegen[Unit] {
             case EquivElim(equiv, either) =>
                 acc.lines += Have(
                   now.toString,
-                  expr.asLean,
+                  expr,
                   LeanExpr.mp(equiv, either)
                 )
                 acc
@@ -422,10 +427,10 @@ object lean extends codegen[Unit] {
             //   exact hC
             case ExistsElim(exists, ass, concl) =>
                 val Exists(_, ex) = lookup(exists): @unchecked
-                val name = ex.diff(lookup(ass)).get
+                val Some(PredAp(name, Nil)) = ex.diff(lookup(ass)): @unchecked
                 acc.lines += HaveBy(
                   now,
-                  expr.asLean,
+                  expr,
                   Rcases(exists, name, ass) +: acc.stash :+ Exact(concl)
                 )
                 acc.clear
@@ -433,10 +438,10 @@ object lean extends codegen[Unit] {
             // have hPA : P A := h A
             case ForallElim(orig) =>
                 val Forall(_, fa) = lookup(orig): @unchecked
-                val name = fa.diff(expr).get
+                val Some(PredAp(name, Nil)) = fa.diff(expr): @unchecked
                 acc.lines += Have(
                   now.toString,
-                  expr.asLean,
+                  expr,
                   LeanExpr(List(s"h$orig", name))
                 )
                 acc
@@ -450,13 +455,13 @@ object lean extends codegen[Unit] {
             case ForallImpElim(ass, imp) =>
                 val Forall(x, impBody) = lookup(imp): @unchecked
                 val name = (expr.names -- (impBody.names - x)).head
-                acc.lines += HaveBy(now, expr.asLean, Intro(name) +: acc.stash :+ Exact(imp))
+                acc.lines += HaveBy(now, expr, Intro(name) +: acc.stash :+ Exact(imp))
                 acc.clear
 
             // exact em A
             case LEM =>
                 val Or(e, _) = expr: @unchecked
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.em(e.asLean))
+                acc.lines += Have(now.toString, expr, LeanExpr.em(e.asLean))
                 acc
 
             // example {A B : Prop} (h1 : A → B) (h2 : ¬B) : ¬A := by
@@ -468,10 +473,10 @@ object lean extends codegen[Unit] {
                 val Not(b) = lookup(not): @unchecked
                 acc.lines += HaveBy(
                   now,
-                  expr.asLean,
+                  expr,
                   Vector(
                     Intro("A"),
-                    Have("B", b.asLean, LeanExpr(List(s"h$imp", "hA"))),
+                    Have("B", b, LeanExpr(List(s"h$imp", "hA"))),
                     ExactExpr(LeanExpr(List(s"h$not", "hB")))
                   )
                 )
@@ -485,7 +490,7 @@ object lean extends codegen[Unit] {
             case PC(orig, bottom) =>
                 acc.lines += HaveBy(
                   now,
-                  expr.asLean,
+                  expr,
                   ByContra
                       +: Intro.line(orig) // TODO
                       +: acc.stash
@@ -495,17 +500,19 @@ object lean extends codegen[Unit] {
 
             // have h : A = A := rfl
             case Refl =>
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.rfl)
+                acc.lines += Have(now.toString, expr, LeanExpr.rfl)
                 acc
 
             // have h3 : P B := Eq.subst h1 h2
             case EqSub(orig, eq) =>
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.eqsub(eq, orig))
+                val Eq(l, _) = lookup(eq): @unchecked
+                val symm = lookup(orig).diff(expr).get == l
+                acc.lines += Have(now.toString, expr, LeanExpr.eqsub(symm, eq, orig))
                 acc
 
             // have h1 : B = A := Eq.symm h
             case Sym(orig) =>
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr.sym(orig))
+                acc.lines += Have(now.toString, expr, LeanExpr.sym(orig))
                 acc
             case ForallIConst =>
                 acc.lines += Intro(expr.asLean)
@@ -514,7 +521,7 @@ object lean extends codegen[Unit] {
             // do nothing, assume place of use will fill it in
             case Ass => acc
             case Tick(orig) =>
-                acc.lines += Have(now.toString, expr.asLean, LeanExpr(List(s"h$orig")))
+                acc.lines += Have(now.toString, expr, LeanExpr(List(s"h$orig")))
                 acc
             case Given | Premise => acc
     }
