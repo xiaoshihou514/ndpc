@@ -34,7 +34,9 @@ object LeanExpr {
     def andL(l: Int) = ex("And.left", l)
     def andR(l: Int) = ex("And.right", l)
     def fe(l: Int) = ex("False.elim", l)
-    def mp(l1: Int, l2: Int) = LeanExpr(List(s"h$l1.mp", l2.toString))
+    def mp(l1: Int, l2: Int, leftRight: Boolean) = LeanExpr(
+      List(if leftRight then s"h$l1.mp" else s"h$l1.mpr", h(l2))
+    )
     def em(e: String) = LeanExpr(List("em", e))
     def rfl = ex("rfl")
     def sym(l: Int) = ex("Eq.symm", l)
@@ -454,10 +456,12 @@ object lean extends codegen[Unit] {
             //   have hB : B := h1.mp h2
             //   exact hB
             case EquivElim(equiv, either) =>
+                val Equiv(l, r) = lookup(equiv): @unchecked
+                val lr = lookup(either) == l
                 acc.lines += Have(
                   now.toString,
                   expr,
-                  LeanExpr.mp(equiv, either)
+                  LeanExpr.mp(equiv, either, lr)
                 )
                 acc
 
