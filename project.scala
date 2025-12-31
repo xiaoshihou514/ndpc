@@ -1,5 +1,5 @@
 //> using scala 3.6
-//> using nativeVersion 0.5.6
+//> using nativeVersion 0.5.9
 //> using options -feature -Yexplicit-nulls
 //> using options -language experimental.namedTuples
 
