@@ -5,11 +5,11 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: C and N \rightarrow t \= \hbox{given} \\
-\: H \land not S \= \hbox{given} \\
-\: H and not (S or C) \rightarrow P \= \hbox{given} \\
+\: C \land N \rightarrow t \= \hbox{given} \\
+\: H \land \lnot S \= \hbox{given} \\
+\: H \land \lnot (S \lor C) \rightarrow P \= \hbox{given} \\
 \open
-\: N \land not t \= \asm \\
+\: N \land \lnot t \= \asm \\
 \: N \= \andelim(4) \\
 \: \lnot t \= \andelim(4) \\
 \open
@@ -32,11 +32,11 @@
 \closeAlt
 \: \bot \= \orelim(13, 14-16, 17-18) \\
 \close
-\: \lnot (S or C) \= \notintro(13, 19) \\
+\: \lnot (S \lor C) \= \notintro(13, 19) \\
 \: H \= \andelim(2) \\
-\: H \land not (S or C) \= \andintro(21, 20) \\
+\: H \land \lnot (S \lor C) \= \andintro(21, 20) \\
 \: P \= \implieselim(3, 22) \\
 \close
-\: N and not t \rightarrow P \= \impliesintro(4, 23) \\
+\: N \land \lnot t \rightarrow P \= \impliesintro(4, 23) \\
 \end{proofbox}
 \end{document}

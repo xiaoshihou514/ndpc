@@ -5,11 +5,11 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: \forall x. ((forall y. "child"(y, x) -> "fly"(y)) and "dragon"(x) \rightarrow "happy"(x)) \= \hbox{premise} \\
-\: \forall x. ("green"(x) and "dragon"(x) \rightarrow "fly"(x)) \= \hbox{premise} \\
-\: \forall x. ((exists y. "parent"(y, x) and "green"(y)) \rightarrow "green"(x)) \= \hbox{premise} \\
-\: \forall z. (\forall x. ("child"(x, z) and "dragon"(z) \rightarrow "dragon"(x))) \= \hbox{premise} \\
-\: \forall x. (\forall y. ("child"(y, x) \rightarrow "parent"(x, y))) \= \hbox{premise} \\
+\: \forall x. ((\forall y. (child(y, x) \rightarrow fly(y))) \land dragon(x) \rightarrow happy(x)) \= \hbox{premise} \\
+\: \forall x. (green(x) \land dragon(x) \rightarrow fly(x)) \= \hbox{premise} \\
+\: \forall x. ((\exists y. (parent(y, x) \land green(y))) \rightarrow green(x)) \= \hbox{premise} \\
+\: \forall z. (\forall x. (child(x, z) \land dragon(z) \rightarrow dragon(x))) \= \hbox{premise} \\
+\: \forall x. (\forall y. (child(y, x) \rightarrow parent(x, y))) \= \hbox{premise} \\
 \open
 \: c \= \forallintroconst \\
 \open
@@ -20,27 +20,27 @@
 \: d \= \forallintroconst \\
 \open
 \: child(d, c) \= \asm \\
-\: \forall y. ("child"(y, c) \rightarrow "parent"(c, y)) \= \forallelim(5) \\
+\: \forall y. (child(y, c) \rightarrow parent(c, y)) \= \forallelim(5) \\
 \: parent(c, d) \= \forallelim(10, 11) \\
-\: "parent"(c, d) \land "green"(c) \= \andintro(12, 8) \\
-\: \exists y. ("parent"(y, d) \land "green"(y)) \= \existsintro(13) \\
+\: parent(c, d) \land green(c) \= \andintro(12, 8) \\
+\: \exists y. (parent(y, d) \land green(y)) \= \existsintro(13) \\
 \: green(d) \= \forallelim(14, 3) \\
-\: "child"(d, c) \land "dragon"(c) \= \andintro(10, 7) \\
-\: \forall x. ("child"(x, c) and "dragon"(c) \rightarrow "dragon"(x)) \= \forallelim(4) \\
+\: child(d, c) \land dragon(c) \= \andintro(10, 7) \\
+\: \forall x. (child(x, c) \land dragon(c) \rightarrow dragon(x)) \= \forallelim(4) \\
 \: dragon(d) \= \forallelim(16, 17) \\
-\: "green"(d) \land "dragon"(d) \= \andintro(15, 18) \\
+\: green(d) \land dragon(d) \= \andintro(15, 18) \\
 \: fly(d) \= \forallelim(19, 2) \\
 \close
-\: "child"(d, c) \rightarrow "fly"(d) \= \impliesintro(10, 20) \\
+\: child(d, c) \rightarrow fly(d) \= \impliesintro(10, 20) \\
 \close
-\: \forall y. ("child"(y, c) \rightarrow "fly"(y)) \= \forallintro(9, 21) \\
-\: (forall y. "child"(y, c) -> "fly"(y)) \land "dragon"(c) \= \andintro(22, 7) \\
+\: \forall y. (child(y, c) \rightarrow fly(y)) \= \forallintro(9, 21) \\
+\: (\forall y. (child(y, c) \rightarrow fly(y))) \land dragon(c) \= \andintro(22, 7) \\
 \: happy(c) \= \forallelim(23, 1) \\
 \close
-\: "green"(c) \rightarrow "happy"(c) \= \impliesintro(8, 24) \\
+\: green(c) \rightarrow happy(c) \= \impliesintro(8, 24) \\
 \close
-\: "dragon"(c) \rightarrow ("green"(c) -> "happy"(c)) \= \impliesintro(7, 25) \\
+\: dragon(c) \rightarrow (green(c) \rightarrow happy(c)) \= \impliesintro(7, 25) \\
 \close
-\: \forall x. ("dragon"(x) \rightarrow ("green"(x) -> "happy"(x))) \= \forallintro(6, 26) \\
+\: \forall x. (dragon(x) \rightarrow (green(x) \rightarrow happy(x))) \= \forallintro(6, 26) \\
 \end{proofbox}
 \end{document}

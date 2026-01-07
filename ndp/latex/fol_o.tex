@@ -5,19 +5,19 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: \forall x. ("P"(x) \lor "Q"(x)) \= \hbox{premise} \\
-\: \lnot (forall x. "P"(x)) \= \hbox{premise} \\
+\: \forall x. (P(x) \lor Q(x)) \= \hbox{premise} \\
+\: \lnot (\forall x. (P(x))) \= \hbox{premise} \\
 \open
-\: \forall x. (\lnot "Q"(x)) \= \asm \\
+\: \forall x. (\lnot Q(x)) \= \asm \\
 \open
 \: c \= \forallintroconst \\
-\: "P"(c) \lor "Q"(c) \= \forallelim(1) \\
+\: P(c) \lor Q(c) \= \forallelim(1) \\
 \openAlt
 \: P(c) \= \asm \\
 \: P(c) \= \tick{6} \\
 \splitAlt
 \: Q(c) \= \asm \\
-\: \lnot "Q"(c) \= \forallelim(3) \\
+\: \lnot Q(c) \= \forallelim(3) \\
 \: \bot \= \notelim(9, 8) \\
 \: P(c) \= \bottomelim(10) \\
 \closeAlt
@@ -26,6 +26,6 @@
 \: \forall x. (P(x)) \= \forallintro(4, 12) \\
 \: \bot \= \notelim(2, 13) \\
 \close
-\: \lnot (forall x. not "Q"(x)) \= \notintro(3, 14) \\
+\: \lnot (\forall x. (\lnot Q(x))) \= \notintro(3, 14) \\
 \end{proofbox}
 \end{document}

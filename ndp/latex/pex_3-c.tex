@@ -6,11 +6,11 @@
 \begin{document}
 \begin{proofbox}
 \: D \lor B \= \hbox{premise} \\
-\: \lnot (D or not C) \= \hbox{premise} \\
+\: \lnot (D \lor \lnot C) \= \hbox{premise} \\
 \: B \rightarrow C \= \hbox{premise} \\
 \openAlt
 \: D \= \asm \\
-\: D \lor not C \= \orintro(4) \\
+\: D \lor \lnot C \= \orintro(4) \\
 \: \bot \= \bottomintro(5, 2) \\
 \: C \= \bottomelim(6) \\
 \: C \= \tick{7} \\

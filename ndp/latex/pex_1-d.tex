@@ -5,7 +5,7 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: p \rightarrow (q -> r) \= \hbox{given} \\
+\: p \rightarrow (q \rightarrow r) \= \hbox{given} \\
 \open
 \: p \rightarrow q \= \asm \\
 \open
@@ -16,6 +16,6 @@
 \close
 \: p \rightarrow r \= \impliesintro(3, 6) \\
 \close
-\: (p -> q) \rightarrow (p -> r) \= \impliesintro(2, 7) \\
+\: (p \rightarrow q) \rightarrow (p \rightarrow r) \= \impliesintro(2, 7) \\
 \end{proofbox}
 \end{document}

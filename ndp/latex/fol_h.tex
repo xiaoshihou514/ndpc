@@ -5,15 +5,15 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: (forall x. "F"(x)) \land (forall x. "G"(x)) \= \hbox{given} \\
+\: (\forall x. (F(x))) \land (\forall x. (G(x))) \= \hbox{given} \\
 \open
 \: c \= \forallintroconst \\
 \: \forall x. (F(x)) \= \andelim(1) \\
 \: F(c) \= \forallelim(3) \\
 \: \forall x. (G(x)) \= \andelim(1) \\
 \: G(c) \= \forallelim(5) \\
-\: "F"(c) \land "G"(c) \= \andintro(4, 6) \\
+\: F(c) \land G(c) \= \andintro(4, 6) \\
 \close
-\: \forall x. ("F"(x) \land "G"(x)) \= \forallintro(2, 7) \\
+\: \forall x. (F(x) \land G(x)) \= \forallintro(2, 7) \\
 \end{proofbox}
 \end{document}

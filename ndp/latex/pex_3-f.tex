@@ -6,13 +6,13 @@
 \begin{document}
 \begin{proofbox}
 \: \lnot P \= \hbox{premise} \\
-\: B or W \rightarrow P \= \hbox{premise} \\
-\: not I \rightarrow B \= \hbox{premise} \\
-\: not W \rightarrow M \= \hbox{premise} \\
-\: L \rightarrow not I and not M \= \hbox{premise} \\
+\: B \lor W \rightarrow P \= \hbox{premise} \\
+\: \lnot I \rightarrow B \= \hbox{premise} \\
+\: \lnot W \rightarrow M \= \hbox{premise} \\
+\: L \rightarrow \lnot I \land \lnot M \= \hbox{premise} \\
 \open
 \: L \= \asm \\
-\: not I \land not M \= \implieselim(5, 6) \\
+\: \lnot I \land \lnot M \= \implieselim(5, 6) \\
 \: \lnot I \= \andelim(7) \\
 \: B \= \implieselim(3, 8) \\
 \: B \lor W \= \orintro(9) \\

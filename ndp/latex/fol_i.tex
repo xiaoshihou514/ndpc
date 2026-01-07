@@ -7,7 +7,7 @@
 \begin{proofbox}
 \: a = b \lor a = c \= \hbox{given} \\
 \: a = b \lor c = b \= \hbox{given} \\
-\: "P"(a) \lor "P"(b) \= \hbox{given} \\
+\: P(a) \lor P(b) \= \hbox{given} \\
 \openAlt
 \: a = b \= \asm \\
 \: a = b \= \tick{4} \\
@@ -26,13 +26,13 @@
 \openAlt
 \: P(a) \= \asm \\
 \: P(b) \= =\hbox{sub}(13, 12) \\
-\: "P"(a) \land "P"(b) \= \andintro(13, 14) \\
-\: "P"(a) \land "P"(b) \= \tick{15} \\
+\: P(a) \land P(b) \= \andintro(13, 14) \\
+\: P(a) \land P(b) \= \tick{15} \\
 \splitAlt
 \: P(b) \= \asm \\
 \: P(a) \= =\hbox{sub}(17, 12) \\
-\: "P"(a) \land "P"(b) \= \andintro(18, 17) \\
+\: P(a) \land P(b) \= \andintro(18, 17) \\
 \closeAlt
-\: "P"(a) \land "P"(b) \= \orelim(3, 13-16, 17-19) \\
+\: P(a) \land P(b) \= \orelim(3, 13-16, 17-19) \\
 \end{proofbox}
 \end{document}

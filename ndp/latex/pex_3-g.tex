@@ -5,9 +5,9 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: R \rightarrow (B -> D or L) \= \hbox{given} \\
-\: \lnot (D or G) \= \hbox{given} \\
-\: L or B \rightarrow G \= \hbox{given} \\
+\: R \rightarrow (B \rightarrow D \lor L) \= \hbox{given} \\
+\: \lnot (D \lor G) \= \hbox{given} \\
+\: L \lor B \rightarrow G \= \hbox{given} \\
 \open
 \: B \= \asm \\
 \: L \lor B \= \orintro(4) \\
@@ -16,6 +16,6 @@
 \: \bot \= \bottomintro(7, 2) \\
 \: \lnot R \= \bottomelim(8) \\
 \close
-\: B \rightarrow not R \= \impliesintro(4, 9) \\
+\: B \rightarrow \lnot R \= \impliesintro(4, 9) \\
 \end{proofbox}
 \end{document}

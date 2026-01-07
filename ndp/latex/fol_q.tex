@@ -6,11 +6,11 @@
 \begin{document}
 \begin{proofbox}
 \: \forall x. (likes(x, John)) \= \hbox{premise} \\
-\: \forall y. ("likes"(J o h n, y) \rightarrow y = J a c k) \= \hbox{premise} \\
+\: \forall y. (likes(John, y) \rightarrow y = Jack) \= \hbox{premise} \\
 \open
-\: \lnot (J o h n = J a c k) \= \asm \\
+\: \lnot (John = Jack) \= \asm \\
 \: likes(John, John) \= \forallelim(1) \\
-\: "likes"(J o h n, J o h n) \rightarrow J o h n = J a c k \= \forallelim(2) \\
+\: likes(John, John) \rightarrow John = Jack \= \forallelim(2) \\
 \: John = Jack \= \implieselim(5, 4) \\
 \: \bot \= \notelim(3, 6) \\
 \close

@@ -5,10 +5,10 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: K \leftrightarrow not B \= \hbox{given} \\
+\: K \leftrightarrow \lnot B \= \hbox{given} \\
 \open
 \: K \leftrightarrow B \= \asm \\
-\: K \lor not K \= \lem \\
+\: K \lor \lnot K \= \lem \\
 \openAlt
 \: K \= \asm \\
 \: B \= \iffelim(2, 4) \\
@@ -17,7 +17,7 @@
 \: \bot \= \tick{7} \\
 \splitAlt
 \: \lnot K \= \asm \\
-\: B \lor not B \= \lem \\
+\: B \lor \lnot B \= \lem \\
 \openAlt
 \: B \= \asm \\
 \: K \= \iffelim(2, 11) \\
@@ -32,6 +32,6 @@
 \closeAlt
 \: \bot \= \orelim(3, 4-8, 9-18) \\
 \close
-\: \lnot (K <-> B) \= \notintro(2, 19) \\
+\: \lnot (K \leftrightarrow B) \= \notintro(2, 19) \\
 \end{proofbox}
 \end{document}

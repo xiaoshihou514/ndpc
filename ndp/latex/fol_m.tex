@@ -9,8 +9,8 @@
 \: R(c, c) \= \asm \\
 \: R(c, c) \= \tick{1} \\
 \close
-\: "R"(c, c) \rightarrow "R"(c, c) \= \impliesintro(1, 2) \\
-\: \exists y. ("R"(c, y) \rightarrow "R"(y, c)) \= \existsintro(3) \\
-\: \exists x. (\exists y. ("R"(x, y) \rightarrow "R"(y, x))) \= \existsintro(4) \\
+\: R(c, c) \rightarrow R(c, c) \= \impliesintro(1, 2) \\
+\: \exists y. (R(c, y) \rightarrow R(y, c)) \= \existsintro(3) \\
+\: \exists x. (\exists y. (R(x, y) \rightarrow R(y, x))) \= \existsintro(4) \\
 \end{proofbox}
 \end{document}

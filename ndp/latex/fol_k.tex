@@ -5,12 +5,12 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: \forall x. ("A"(x) \lor "B"(x)) \= \hbox{premise} \\
-\: \forall y. (\lnot "A"(y)) \= \hbox{premise} \\
+\: \forall x. (A(x) \lor B(x)) \= \hbox{premise} \\
+\: \forall y. (\lnot A(y)) \= \hbox{premise} \\
 \open
 \: c \= \forallintroconst \\
-\: "A"(c) \lor "B"(c) \= \forallelim(1) \\
-\: \lnot "A"(c) \= \forallelim(2) \\
+\: A(c) \lor B(c) \= \forallelim(1) \\
+\: \lnot A(c) \= \forallelim(2) \\
 \openAlt
 \: A(c) \= \asm \\
 \: \bot \= \notelim(5, 6) \\

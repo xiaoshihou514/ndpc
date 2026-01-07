@@ -5,19 +5,19 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: \forall x. ("F"(x) \land "G"(x)) \= \hbox{given} \\
+\: \forall x. (F(x) \land G(x)) \= \hbox{given} \\
 \open
 \: c1 \= \forallintroconst \\
-\: "F"(c 1) \land "G"(c 1) \= \forallelim(1) \\
+\: F(c1) \land G(c1) \= \forallelim(1) \\
 \: F(c1) \= \andelim(3) \\
 \close
 \: \forall x. (F(x)) \= \forallintro(2, 4) \\
 \open
 \: c2 \= \forallintroconst \\
-\: "F"(c 2) \land "G"(c 2) \= \forallelim(1) \\
+\: F(c2) \land G(c2) \= \forallelim(1) \\
 \: G(c2) \= \andelim(7) \\
 \close
 \: \forall x. (G(x)) \= \forallintro(6, 8) \\
-\: (forall x. "F"(x)) \land (forall x. "G"(x)) \= \andintro(5, 9) \\
+\: (\forall x. (F(x))) \land (\forall x. (G(x))) \= \andintro(5, 9) \\
 \end{proofbox}
 \end{document}

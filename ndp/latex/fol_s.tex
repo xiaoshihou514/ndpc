@@ -5,20 +5,20 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: \forall n. (not "even"(n) \rightarrow "odd"(n)) \= \hbox{premise} \\
-\: \forall n. ("odd"(n) \rightarrow not "even"(n)) \= \hbox{premise} \\
+\: \forall n. (\lnot even(n) \rightarrow odd(n)) \= \hbox{premise} \\
+\: \forall n. (odd(n) \rightarrow \lnot even(n)) \= \hbox{premise} \\
 \open
 \: a \= \forallintroconst \\
-\: "odd"(a) \rightarrow not "even"(a) \= \forallelim(2) \\
+\: odd(a) \rightarrow \lnot even(a) \= \forallelim(2) \\
 \open
-\: "even"(a) \land "odd"(a) \= \asm \\
+\: even(a) \land odd(a) \= \asm \\
 \: odd(a) \= \andelim(5) \\
-\: \lnot "even"(a) \= \implieselim(4, 6) \\
+\: \lnot even(a) \= \implieselim(4, 6) \\
 \: even(a) \= \andelim(5) \\
 \: \bot \= \notelim(7, 8) \\
 \close
-\: \lnot ("even"(a) and "odd"(a)) \= \notintro(5, 9) \\
+\: \lnot (even(a) \land odd(a)) \= \notintro(5, 9) \\
 \close
-\: \forall n. (\lnot ("even"(n) and "odd"(n))) \= \forallintro(3, 10) \\
+\: \forall n. (\lnot (even(n) \land odd(n))) \= \forallintro(3, 10) \\
 \end{proofbox}
 \end{document}

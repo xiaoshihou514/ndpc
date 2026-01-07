@@ -5,18 +5,18 @@
 \usepackage[a4paper, margin=1in]{geometry}
 \begin{document}
 \begin{proofbox}
-\: \forall x. (\lnot "P"(x)) \= \hbox{given} \\
+\: \forall x. (\lnot P(x)) \= \hbox{given} \\
 \open
 \: \exists x. (P(x)) \= \asm \\
 \open
 \: P(c) \= \asm \\
-\: \lnot "P"(c) \= \forallelim(1) \\
+\: \lnot P(c) \= \forallelim(1) \\
 \: \bot \= \notelim(4, 3) \\
 \: \bot \= \tick{5} \\
 \close
 \: \bot \= \existselim(2, 3-6) \\
 \: \bot \= \tick{7} \\
 \close
-\: \lnot (exists x. "P"(x)) \= \notintro(2, 8) \\
+\: \lnot (\exists x. (P(x))) \= \notintro(2, 8) \\
 \end{proofbox}
 \end{document}
