@@ -93,7 +93,7 @@ object formatter {
                 val prePadding = " ".repeat(indent * 2)
                 val midPadding = " ".repeat(reasonAlign - concl.pretty.length - indent * 2)
 
-                val result = s"$prePadding${concl.pretty} $midPadding[${rule.asString}]$comment"
+                val result = s"$prePadding${concl.pretty} $midPadding[${rule.pretty}]$comment"
 
                 // make or elimination prettier
                 rule match

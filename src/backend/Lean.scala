@@ -11,10 +11,6 @@ import ndpc.frontend.expr.rule._
 import scala.collection.mutable.ReusableBuilder
 import scala.annotation.targetName
 
-private type Name = String
-private type Pred = (Name, Int) // name + ary
-private type Decl = (Set[Pred], Set[Name])
-
 private def h(x: Any) = s"h$x"
 private def tmp(x: Any) = s"tmp$x"
 case class LeanExpr(val parts: List[String]) {
@@ -150,16 +146,12 @@ case class CaseOr(
 }
 
 extension (c: CheckedProof) {
-    def globals: Decl = c.main.flatten
-        .map {
-            case Empty      => (Set.empty, Set.empty)
-            case Comment(_) => (Set.empty, Set.empty)
-            case Pf(concl, _, _) =>
-                val vars = concl.vars
-                (vars.filter(_._2 > 0), vars.filter(_._2 == 0).map(_._1))
-        }
-        .unzip
-        .bimap(_.flatten.toSet, _.flatten.toSet)
+    def globals: Set[Symbol] = c.main.flatten.flatMap {
+        case Empty                       => Set.empty
+        case Comment(_)                  => Set.empty
+        case Pf(PredAp(name, Nil), _, _) => Set(Predicate(name, 0))
+        case Pf(concl, _, _)             => concl.symbols
+    }.toSet
 }
 
 extension (f: LFormula) {
@@ -179,8 +171,8 @@ extension (f: LFormula) {
             s"(${left.asLean}) → (${right.asLean})"
         case Equiv(left, right) =>
             s"(${left.asLean}) ↔ (${right.asLean})"
-        case Forall(x, body) => s"∀ $x : Prop, (${body.asLean})"
-        case Exists(x, body) => s"∃ $x : Prop, (${body.asLean})"
+        case Forall(x, body) => s"∀ $x : U, (${body.asLean})"
+        case Exists(x, body) => s"∃ $x : U, (${body.asLean})"
     }
 
     def diff(other: LFormula): Option[LFormula] = {
@@ -482,11 +474,11 @@ object lean extends codegen[Unit] {
             // have hPA : P A := h A
             case ForallElim(orig) =>
                 val Forall(_, fa) = lookup(orig): @unchecked
-                val Some(PredAp(name, Nil)) = fa.diff(expr): @unchecked
+                val Some(substituted) = fa.diff(expr): @unchecked
                 acc.lines += Have(
                   now.toString,
                   expr,
-                  LeanExpr(List(h(orig), name))
+                  LeanExpr(List(h(orig), substituted.asLean))
                 )
                 acc
 
@@ -574,21 +566,31 @@ object lean extends codegen[Unit] {
             case Given | Premise => acc
     }
 
-    private def ty(arity: Int): String =
-        if arity == 0 then "Prop" else s"Prop → ${ty(arity - 1)}"
+    private def predty(arity: Int): String =
+        if arity == 0 then "Prop" else s"U → ${predty(arity - 1)}"
+    private def functy(arity: Int): String =
+        if arity == 0 then "U" else s"U → ${functy(arity - 1)}"
 
-    private def build(decl: Decl, premises: Vector[String], body: String, result: String) =
-        val (preds, vars) = decl
-        val predDecls = preds.map((f, n) => s"axiom $f : ${ty(n)}").mkString("\n")
-        val varDecls = vars.mkString(" ")
+    private def build(decl: Set[Symbol], premises: Vector[String], body: String, result: String) =
+        val preds = decl.collect { case Predicate(name, arity) => (name, arity) }
+        val vars = decl.collect { case Var(name) => name }
+        val funcs = decl.collect { case Function(name, arity) => (name, arity) }
+        // println(decl)
+
+        val predDecls = preds.map((f, n) => s"variable ($f : ${predty(n)})").mkString("\n")
+        val varDecls = if vars.isEmpty then "" else s"{${vars.mkString(" ")}: U}"
+        val funcDecls = funcs.map((f, n) => s"variable ($f : ${functy(n)})").mkString("\n")
+
         val premiseDecls = premises.zipWithIndex.map((p, n) => s"  (h${n + 1} : $p)").mkString("\n")
         s"""-- `lean *.lean` or https://live.lean-lang.org/
             ~section
             ~open Classical
             ~set_option linter.unusedVariables false
+            ~variable (U : Type)
             ~$predDecls
+            ~$funcDecls
             ~
-            ~example {$varDecls : Prop}
+            ~example $varDecls
             ~$premiseDecls
             ~: $result := by
             ~$body

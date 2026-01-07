@@ -2,14 +2,17 @@
 section
 open Classical
 set_option linter.unusedVariables false
-axiom even : Prop → Prop
-axiom odd : Prop → Prop
+variable (U : Type)
+variable (even : U → Prop)
+variable (odd : U → Prop)
+variable (a : Prop)
 
-example {n a : Prop}
-  (h1 : ∀ n : Prop, ((¬ ((even n))) → ((odd n))))
-  (h2 : ∀ n : Prop, (((odd n)) → (¬ ((even n)))))
-: ∀ n : Prop, (¬ (((even n)) ∧ ((odd n)))) := by
-  have h11 : ∀ n : Prop, (¬ (((even n)) ∧ ((odd n)))) := by
+
+example {a: U}
+  (h1 : ∀ n : U, ((¬ ((even n))) → ((odd n))))
+  (h2 : ∀ n : U, (((odd n)) → (¬ ((even n)))))
+: ∀ n : U, (¬ (((even n)) ∧ ((odd n)))) := by
+  have h11 : ∀ n : U, (¬ (((even n)) ∧ ((odd n)))) := by
     intro a
     have h4 : ((odd a)) → (¬ ((even a))) := h2 a
     have h10 : ¬ (((even a)) ∧ ((odd a))) := by

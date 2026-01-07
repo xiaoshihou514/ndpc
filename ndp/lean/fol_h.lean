@@ -2,17 +2,20 @@
 section
 open Classical
 set_option linter.unusedVariables false
-axiom F : Prop → Prop
-axiom G : Prop → Prop
+variable (U : Type)
+variable (F : U → Prop)
+variable (G : U → Prop)
+variable (c : Prop)
 
-example {x c : Prop}
-  (h1 : (∀ x : Prop, ((F x))) ∧ (∀ x : Prop, ((G x))))
-: ∀ x : Prop, (((F x)) ∧ ((G x))) := by
-  have h8 : ∀ x : Prop, (((F x)) ∧ ((G x))) := by
+
+example {c: U}
+  (h1 : (∀ x : U, ((F x))) ∧ (∀ x : U, ((G x))))
+: ∀ x : U, (((F x)) ∧ ((G x))) := by
+  have h8 : ∀ x : U, (((F x)) ∧ ((G x))) := by
     intro c
-    have h3 : ∀ x : Prop, ((F x)) := And.left h1
+    have h3 : ∀ x : U, ((F x)) := And.left h1
     have h4 : (F c) := h3 c
-    have h5 : ∀ x : Prop, ((G x)) := And.right h1
+    have h5 : ∀ x : U, ((G x)) := And.right h1
     have h6 : (G c) := h5 c
     have h7 : ((F c)) ∧ ((G c)) := And.intro h4 h6
     exact h7

@@ -2,10 +2,10 @@
 // typst compile *.typ
 // Alternatively, preview on https://typst.app
 #start(pf(
-  ($(forall x. x = a) or x = b$, premise),
+  ($forall x. x = a or x = b$, premise),
   ($"g"(a) = b$, premise),
   ($forall x. forall y. "g"(x) = "g"(y) -> x = y$, premise),
-  ($"g"(b) = a or "g"(b) = b$, premise),
+  ($"g"(b) = a or "g"(b) = b$, fae(1)),
 cases(pf(  ($"g"(b) = a$, ass),
   ($"g"("g"(a)) = a$, eqsub(5, 2)),
   ($"g"("g"(a)) = a$, tick(6)),

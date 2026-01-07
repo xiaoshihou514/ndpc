@@ -2,11 +2,13 @@
 section
 open Classical
 set_option linter.unusedVariables false
-axiom likes : Prop → Prop → Prop
+variable (U : Type)
+variable (likes : U → U → Prop)
 
-example {x John y Jack : Prop}
-  (h1 : ∀ x : Prop, ((likes x John)))
-  (h2 : ∀ y : Prop, (((likes John y)) → (y = Jack)))
+
+example {John Jack: U}
+  (h1 : ∀ x : U, ((likes x John)))
+  (h2 : ∀ y : U, (((likes John y)) → (y = Jack)))
 : John = Jack := by
   have h8 : John = Jack := by
     apply byContradiction

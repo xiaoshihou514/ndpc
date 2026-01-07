@@ -2,9 +2,13 @@
 section
 open Classical
 set_option linter.unusedVariables false
+variable (U : Type)
+variable (p : Prop)
+variable (q : Prop)
+variable (r : Prop)
 
 
-example {p q r : Prop}
+example 
   (h1 : (p) → ((q) → (r)))
 : ((p) → (q)) → ((p) → (r)) := by
   have h8 : ((p) → (q)) → ((p) → (r)) := by

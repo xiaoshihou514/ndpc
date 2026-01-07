@@ -2,9 +2,16 @@
 section
 open Classical
 set_option linter.unusedVariables false
+variable (U : Type)
+variable (L : Prop)
+variable (I : Prop)
+variable (M : Prop)
+variable (B : Prop)
+variable (W : Prop)
+variable (P : Prop)
 
 
-example {M I L B P W : Prop}
+example 
   (h1 : ¬ (P))
   (h2 : ((B) ∨ (W)) → (P))
   (h3 : (¬ (I)) → (B))

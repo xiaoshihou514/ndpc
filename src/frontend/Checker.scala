@@ -41,7 +41,7 @@ extension (f: LFormula)
     }
 
 extension (r: Rule)
-    def asString: String = r match {
+    def pretty: String = r match {
         case AndIntro(left, right)         => s"^I($left, $right)"
         case ImpliesIntro(ass, res)        => s"->I($ass, $res)"
         case OrIntro(either)               => s"/I($either)"
@@ -425,7 +425,7 @@ object checker {
       s"  The following assertion(s) implied by $BOLD${input.rule}$RESET does not hold:\n" +
           assertions.filter(!_._1).map("    " + _._2).mkString("\n") +
           "\n  In particular with the following variables:\n" +
-          context.map((desc, f) => s"    $BOLD$desc$RESET: $f").mkString("\n")
+          context.map((desc, f) => s"    $BOLD$desc$RESET: ${f.pretty}").mkString("\n")
     )
 
     private def tryVerifyAndIntro(leftLine: Int, rightLine: Int)(using
@@ -760,11 +760,11 @@ object checker {
         x: String
     ): Boolean =
         original == substituted ||
-            original.names
+            original.subterms
                 // original[t/x] == substituted?
                 .exists(t =>
                     original.substitutes(
-                      PredAp(t, Nil),
+                      t,
                       PredAp(x, Nil)
                     )(substituted)
                 )

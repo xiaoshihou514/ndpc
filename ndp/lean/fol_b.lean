@@ -2,16 +2,19 @@
 section
 open Classical
 set_option linter.unusedVariables false
-axiom P : Prop → Prop
+variable (U : Type)
+variable (P : U → Prop)
+variable (c : Prop)
 
-example {x c : Prop}
-  (h1 : ¬ (∃ x : Prop, ((P x))))
-: ∀ x : Prop, (¬ ((P x))) := by
-  have h7 : ∀ x : Prop, (¬ ((P x))) := by
+
+example {c: U}
+  (h1 : ¬ (∃ x : U, ((P x))))
+: ∀ x : U, (¬ ((P x))) := by
+  have h7 : ∀ x : U, (¬ ((P x))) := by
     intro c
     have h6 : ¬ ((P c)) := by
       intro h3
-      have h4 : ∃ x : Prop, ((P x)) := Exists.intro c h3
+      have h4 : ∃ x : U, ((P x)) := Exists.intro c h3
       have h5 : False := h1 h4
       exact h5
     exact h6

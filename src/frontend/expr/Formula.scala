@@ -21,10 +21,27 @@ object formula {
             r <- right
         } yield f(l, r)
 
+    private def downgrade(syms: Set[Symbol]): Set[Symbol] = syms.map {
+        case Predicate(name, arity) => Function(name, arity)
+        case it                     => it
+    }
+
+    private def symbols_(f: LFormula): Set[Symbol] = f match
+            case PredAp(name, Nil) => Set(Predicate(name, 0))
+            case _ => f.symbols
+    
+    sealed trait Symbol {
+        val name: String
+    }
+    case class Var(val name: String) extends Symbol
+    case class Function(val name: String, arity: Int) extends Symbol
+    case class Predicate(val name: String, arity: Int) extends Symbol
+
     // Definition 4.3 (formula)
     sealed trait LFormula {
-        def vars: Set[(String, Int)]
-        def names: Set[String] = vars.map(_._1)
+        def symbols: Set[Symbol]
+        def names: Set[String] = symbols.map(_.name)
+        def subterms: Set[LFormula]
         // TODO: make this lazy
         // WTH does that mean
         def substitutes(from: LFormula, to: LFormula): Set[LFormula]
@@ -34,8 +51,10 @@ object formula {
     // NOTE: 0-arity predAp -> variable
     //       predAp -> funcAp
     case class PredAp(p: String, args: List[LFormula]) extends LFormula {
-        def vars =
-            args.map(_.vars).flatten.toSet incl (p, args.length)
+        def symbols =
+            downgrade(args.map(_.symbols).flatten.toSet)
+                .incl(if args.length > 0 then Predicate(p, args.length) else Var(p))
+        def subterms = args.flatMap(_.subterms).toSet incl this
         def substitutes(from: LFormula, to: LFormula) =
             if this == from then Set(to, this)
             else
@@ -48,7 +67,8 @@ object formula {
 
     // 2. If t, t' are L-terms then t = t' is an atomic L-formula.
     case class Eq(left: LFormula, right: LFormula) extends LFormula {
-        def vars = left.vars union right.vars
+        def subterms = (left.subterms union right.subterms) incl this
+        def symbols = downgrade(left.symbols union right.symbols)
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -60,24 +80,28 @@ object formula {
 
     // 3. ⊤ and ⊥ are atomic L-formulas.
     case object Truth extends LFormula {
-        def vars = Set.empty
+        def symbols = Set.empty
+        def subterms = Set(this)
         def substitutes(from: LFormula, to: LFormula) = Set(Truth)
     }
     case object Falsity extends LFormula {
-        def vars = Set.empty
+        def symbols = Set.empty
+        def subterms = Set(this)
         def substitutes(from: LFormula, to: LFormula) = Set(Falsity)
     }
 
     // 4. If 𝝓, φ are L-formulas then so are ¬𝝓, (𝝓 ∧ φ), (𝝓 ∨ φ), (𝝓 → φ), and (𝝓 ↔ φ).
     case class Not(pf: LFormula) extends LFormula {
-        def vars = pf.vars
+        def symbols = symbols_(pf)
+        def subterms = pf.subterms incl this
         def substitutes(from: LFormula, to: LFormula) =
             pf.substitutes(from, to).map(Not.apply)
     }
     object Not extends ParserBridge1[LFormula, Not]
 
     case class And(left: LFormula, right: LFormula) extends LFormula {
-        def vars = left.vars union right.vars
+        def symbols = symbols_(left) union symbols_(right)
+        def subterms = (left.subterms union right.subterms) incl this
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -88,7 +112,8 @@ object formula {
     object And extends ParserBridge2[LFormula, LFormula, And]
 
     case class Or(left: LFormula, right: LFormula) extends LFormula {
-        def vars = left.vars union right.vars
+        def symbols = symbols_(left) union symbols_(right)
+        def subterms = (left.subterms union right.subterms) incl this
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -99,7 +124,8 @@ object formula {
     object Or extends ParserBridge2[LFormula, LFormula, Or]
 
     case class Implies(left: LFormula, right: LFormula) extends LFormula {
-        def vars = left.vars union right.vars
+        def symbols = symbols_(left) union symbols_(right)
+        def subterms = (left.subterms union right.subterms) incl this
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -110,7 +136,8 @@ object formula {
     object Implies extends ParserBridge2[LFormula, LFormula, Implies]
 
     case class Equiv(left: LFormula, right: LFormula) extends LFormula {
-        def vars = left.vars union right.vars
+        def symbols = symbols_(left) union symbols_(right)
+        def subterms = (left.subterms union right.subterms) incl this
         def substitutes(from: LFormula, to: LFormula) =
             seq2(
               left = left.substitutes(from, to),
@@ -125,7 +152,8 @@ object formula {
         x: String,
         body: LFormula
     ) extends LFormula {
-        def vars = body.vars excl (x, 1)
+        def symbols = symbols_(body) excl Var(x)
+        def subterms = body.subterms incl this
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitutes(from: LFormula, to: LFormula) =
             body.substitutes(from, to).map(Forall(x, _))
@@ -135,7 +163,8 @@ object formula {
         x: String,
         body: LFormula
     ) extends LFormula {
-        def vars = body.vars excl (x, 1)
+        def symbols = symbols_(body) excl Var(x)
+        def subterms = body.subterms incl this
         // PRE: from is not in vars (we only substitute _free_ variables!)
         def substitutes(from: LFormula, to: LFormula) =
             body.substitutes(from, to).map(Exists(x, _))
