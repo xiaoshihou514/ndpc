@@ -4,43 +4,33 @@
 
 <img src="https://github.com/user-attachments/assets/a6a3fd99-1a96-40c5-805b-235e43202112" alt="logo" width="30%" />
 
-ndpc是为自然演绎证明打造的一套工具链。
+适用于单类谓词形式逻辑的证明器
 
-[快速上手](https://xiaoshihou514.github.io/ndpc/getting-started.html) •
+[入门](https://xiaoshihou514.github.io/ndpc/getting-started.html) •
 [教程](https://xiaoshihou514.github.io/ndpc/tutorial.html) •
-[规则速览](https://xiaoshihou514.github.io/ndpc/rules.html)
+[手册](https://xiaoshihou514.github.io/ndpc/syntax.html)
 
 </div>
 
-## 什么是 ndpc？
+ndpc专注于正确性、可维护性和形式化验证，其代码风格与手写证明相仿。ndpc可以：
 
-Ndpc 为命题逻辑和经典一阶逻辑的[自然演绎](https://wikipedia.org/wiki/Natural_deduction)证明引入了一套标记语言，并支持验证、格式化和HTML导出。
+- 证明检查
+- 生成对应的Lean4证明
+- 将证明导出为HTML、Latex和Typst
 
-与现有同类工具相比，ndpc 更易使用，其语法类似手写证明，无需重新学习。
+## 入门
 
-演示：
+关于安装和基本使用的详细信息，请访问我们的[入门指南页面](https://xiaoshihou514.github.io/ndpc/getting-started.html)。
 
-https://github.com/user-attachments/assets/6f59f9cb-615d-4a95-8829-704568c5d51e
+推荐阅读我们的[入门指南](https://xiaoshihou514.github.io/ndpc/tutorial.html)，亦可参考[语法手册](https://xiaoshihou514.github.io/ndpc/syntax.html)。
 
-## 快速入门
+## 答疑
 
-阅读[快速上手](https://xiaoshihou514.github.io/ndpc/getting-started.html)部分以了解如何安装ndpc以及基础用法。
+[Github工单](https://github.com/xiaoshihou514/ndpc/issues/new)或[Github论坛](https://github.com/xiaoshihou514/ndpc/discussions)
 
-## 教程
-
-完成[在线教程](https://xiaoshihou514.github.io/ndpc/tutorial.html)以快速掌握使用方法。
-
-## 问题排查
-
-> 我的证明是对的！
-
-可以先看看[语法限制](https://xiaoshihou514.github.io/ndpc/syntax-gotchas.html)和[规则速览](https://xiaoshihou514.github.io/ndpc/rules.html)。
-
-在[GitHub讨论区](https://github.com/xiaoshihou514/ndpc/discussions)提问或提出改进建议。
-
-问题请报告至[GitHub工单](https://github.com/xiaoshihou514/ndpc/issues/new)。
-
-## 相关项目
+## 友链
 
 - [ndp.vim](https://github.com/xiaoshihou514/ndp.vim)：ndp文件(Neo)Vim支持
 - [aristotle](https://github.com/xiaoshihou514/aristotle)：ndpc图形界面
+- [boxproof](https://github.com/YunkaiZhang233/boxproof)：Latex后端依赖
+- [boxproof-typst](https://github.com/xiaoshihou514/boxproof-typst): Typst后端依赖

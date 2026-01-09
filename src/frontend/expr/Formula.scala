@@ -27,9 +27,9 @@ object formula {
     }
 
     private def symbols_(f: LFormula): Set[Symbol] = f match
-            case PredAp(name, Nil) => Set(Predicate(name, 0))
-            case _ => f.symbols
-    
+        case PredAp(name, Nil) => Set(Predicate(name, 0))
+        case _                 => f.symbols
+
     sealed trait Symbol {
         val name: String
     }
