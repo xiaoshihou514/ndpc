@@ -1,0 +1,76 @@
+name: Backend tests
+on: [push]
+
+jobs:
+  latex-tests:
+    name: LaTeX Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install LaTeX
+        run: |
+          sudo apt-get install -y texlive-latex-base
+          
+      - name: Download boxproof.sty
+        run: |
+          curl -sSfL https://github.com/YunkaiZhang233/boxproof/raw/refs/heads/main/boxproof.sty -o ndp/latex/boxproof.sty
+          
+      - name: Run LaTeX tests
+        run: |
+          cd ndp/latex
+          for f in *.tex; do
+            if pdflatex -interaction=nonstopmode "$f" > /dev/null; then
+              echo "✓ $f latex ok"
+            else
+              echo "✗ $f latex bad"
+              exit 1
+            fi
+          done
+
+  typst-tests:
+    name: Typst Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      - uses: typst-community/setup-typst@v4
+        
+      - name: Run Typst tests
+        run: |
+          cd ndp/typst
+          for f in *.typ; do
+            if typst compile "$f"; then
+              echo "✓ $f typst ok"
+            else
+              echo "✗ $f typst bad"
+              exit 1
+            fi
+          done
+
+  lean-tests:
+    name: Lean Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Lean
+        run: |
+          curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y
+          source $HOME/.elan/env
+          lean --version
+          
+      - name: Run Lean tests
+        run: |
+          source $HOME/.elan/env
+          cd ndp/lean
+          for f in *.lean; do
+            if lean "$f"; then
+              echo "✓ $f lean ok"
+            else
+              echo "✗ $f lean bad"
+              exit 1
+            fi
+          done
