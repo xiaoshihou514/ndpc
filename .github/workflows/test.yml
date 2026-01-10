@@ -1,22 +1,40 @@
-name: Backend tests
+name: Tests
 on: [push]
 
 jobs:
+  scala-test:
+    name: Scala Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Scala
+        run: |
+          curl -fL https://github.com/coursier/coursier/releases/latest/download/cs-x86_64-pc-linux.gz | gzip -d > cs
+          chmod +x cs
+          ./cs setup --apps scala -y
+          export PATH="$PATH:$HOME/.local/share/coursier/bin"
+          scala --version
+      - name: Compile test
+        run: |
+          export PATH="$PATH:$HOME/.local/share/coursier/bin"
+          scala compile . --server=false
+      - name: Test
+        run: |
+          export PATH="$PATH:$HOME/.local/share/coursier/bin"
+          scala test . --server=false
+
   latex-tests:
     name: LaTeX Tests
     runs-on: ubuntu-latest
-    
+    needs: scala-test
     steps:
       - uses: actions/checkout@v4
-      
       - name: Install LaTeX
         run: |
           sudo apt-get install -y texlive-latex-base
-          
       - name: Download boxproof.sty
         run: |
           curl -sSfL https://github.com/YunkaiZhang233/boxproof/raw/refs/heads/main/boxproof.sty -o ndp/latex/boxproof.sty
-          
       - name: Run LaTeX tests
         run: |
           cd ndp/latex
@@ -32,11 +50,10 @@ jobs:
   typst-tests:
     name: Typst Tests
     runs-on: ubuntu-latest
-    
+    needs: scala-test
     steps:
       - uses: actions/checkout@v4
       - uses: typst-community/setup-typst@v4
-        
       - name: Run Typst tests
         run: |
           cd ndp/typst
@@ -52,16 +69,14 @@ jobs:
   lean-tests:
     name: Lean Tests
     runs-on: ubuntu-latest
-    
+    needs: scala-test
     steps:
       - uses: actions/checkout@v4
-      
       - name: Install Lean
         run: |
           curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y
           source $HOME/.elan/env
           lean --version
-          
       - name: Run Lean tests
         run: |
           source $HOME/.elan/env
