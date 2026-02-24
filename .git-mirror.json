@@ -4,11 +4,19 @@
     "url": "ssh://git@codeberg.org/xiaoshihou/ndpc.git"
   },
   {
+    "name": "disroot",
+    "url": "ssh://git@git.disroot.org/xiaoshihou/ndpc.git"
+  },
+  {
     "name": "sourcehut",
     "url": "git@git.sr.ht:~xiaoshihou/ndpc"
   },
   {
     "name": "gitlab",
     "url": "git@gitlab.com:xiaoshihou/ndpc.git"
+  },
+  {
+    "name": "gitgud",
+    "url": "git@gitgud.io:xiaoshihou514/ndpc.git"
   }
 ]
