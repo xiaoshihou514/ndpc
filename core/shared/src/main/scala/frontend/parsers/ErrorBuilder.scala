@@ -81,7 +81,7 @@ case class EnrichedErr(exp: String, file: Option[String], line: Int, column: Opt
             case Some(col) =>
                 s"""
                     |{
-                    |  "file": "${file.get}",
+                    |  "file": "${file.getOrElse("<stdin>")}",
                     |  "line": $line,
                     |  "column": $col,
                     |  "explanation": "${escape(exp)}"
@@ -90,7 +90,7 @@ case class EnrichedErr(exp: String, file: Option[String], line: Int, column: Opt
             case None =>
                 s"""
                     |{
-                    |  "file": "${file.get}",
+                    |  "file": "${file.getOrElse("<stdin>")}",
                     |  "line": $line,
                     |  "explanation": "${escape(exp)}"
                     |}
