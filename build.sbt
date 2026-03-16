@@ -15,56 +15,28 @@ ThisBuild / scalacOptions ++= Seq(
 
 lazy val catsEffectVersion = "3.7.0"
 
-// Quick commands:
-//   sbt test
-//   sbt coreJVM/test
-//   sbt cli/test
-//   sbt web/fastLinkJS
-//   sbt "cli/run -- check example.ndp"
-//   sbt cli/assembly
-//   sbt cli/graalNativeImage
-//   sbt cliNative/rootNativeLink
-
 lazy val graalNativeImage = taskKey[File]("Build a native-image binary from the cli assembly jar")
 lazy val rootNativeLink = taskKey[File]("Build the Scala Native binary and copy it to the repository root")
 
 lazy val commonResolvers = Seq(Resolver.mavenCentral)
 
-lazy val coreJVM = (project in file("core/jvm"))
+lazy val core = (project in file("core"))
   .settings(
     resolvers ++= commonResolvers,
-    name := "ndpc-core-jvm",
+    name := "ndpc-core",
     libraryDependencies ++= Seq(
       "com.github.j-mie6" %% "parsley" % "5.0.0-M16",
       "com.lihaoyi" %% "os-lib" % "0.11.8" % Test,
       "org.scalatest" %% "scalatest" % "3.2.19" % Test
     ),
-    Compile / unmanagedSourceDirectories += baseDirectory.value.getParentFile / "shared" / "src" / "main" / "scala",
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "shared" / "src" / "main" / "scala",
+    Test / unmanagedSourceDirectories += baseDirectory.value / "shared" / "src" / "test" / "scala",
     Test / fork := true,
     Test / javaOptions += s"-Dndpc.repoRoot=${(LocalRootProject / baseDirectory).value.getAbsolutePath}"
   )
 
-lazy val coreJS = (project in file("core/js"))
-  .enablePlugins(ScalaJSPlugin)
-  .settings(
-    resolvers ++= commonResolvers,
-    name := "ndpc-core-js",
-    scalaJSUseMainModuleInitializer := false,
-    libraryDependencies ++= Seq(
-      "com.github.j-mie6" %%% "parsley" % "5.0.0-M16"
-    ),
-    Compile / unmanagedSourceDirectories += baseDirectory.value.getParentFile / "shared" / "src" / "main" / "scala"
-  )
-
-lazy val core = (project in file("core"))
-  .aggregate(coreJVM, coreJS)
-  .settings(
-    name := "ndpc-core",
-    publish / skip := true
-  )
-
 lazy val cli = (project in file("cli"))
-  .dependsOn(coreJVM)
+  .dependsOn(core)
   .settings(
     resolvers ++= commonResolvers,
     name := "ndpc-cli",
@@ -127,18 +99,19 @@ lazy val cliNative = (project in file("cli-native"))
 
 lazy val web = (project in file("web"))
   .enablePlugins(org.scalajs.sbtplugin.ScalaJSPlugin)
-  .dependsOn(coreJS)
   .settings(
     resolvers ++= commonResolvers,
     name := "ndpc-web",
     scalaJSUseMainModuleInitializer := true,
     libraryDependencies ++= Seq(
+      "com.github.j-mie6" %%% "parsley" % "5.0.0-M16",
       "com.raquo" %%% "laminar" % "17.2.0"
-    )
+    ),
+    Compile / unmanagedSourceDirectories += (LocalRootProject / baseDirectory).value / "core" / "shared" / "src" / "main" / "scala"
   )
 
 lazy val root = (project in file("."))
-  .aggregate(coreJVM, coreJS, cli, web)
+  .aggregate(core, cli, web)
   .settings(
     name := "ndpc",
     publish / skip := true

@@ -16,7 +16,7 @@ jobs:
         uses: sbt/setup-sbt@v1
       - name: Run core tests
         run: |
-          sbt coreJVM/test
+          sbt core/test
 
   cli-tests:
     name: CLI tests
@@ -64,10 +64,10 @@ jobs:
           sudo apt-get install -y texlive-latex-base
       - name: Download boxproof.sty
         run: |
-          curl -sSfL https://github.com/YunkaiZhang233/boxproof/raw/refs/heads/main/boxproof.sty -o ndp/latex/boxproof.sty
+          curl -sSfL https://github.com/YunkaiZhang233/boxproof/raw/refs/heads/main/boxproof.sty -o test/latex/boxproof.sty
       - name: Run LaTeX tests
         run: |
-          cd ndp/latex
+          cd test/latex
           for f in *.tex; do
             if pdflatex -interaction=nonstopmode "$f" > /dev/null; then
               echo "✓ $f latex ok"
@@ -86,7 +86,7 @@ jobs:
       - uses: typst-community/setup-typst@v4
       - name: Run Typst tests
         run: |
-          cd ndp/typst
+          cd test/typst
           for f in *.typ; do
             if typst compile "$f"; then
               echo "✓ $f typst ok"
@@ -110,7 +110,7 @@ jobs:
       - name: Run Lean tests
         run: |
           source $HOME/.elan/env
-          cd ndp/lean
+          cd test/lean
           for f in *.lean; do
             if lean "$f"; then
               echo "✓ $f lean ok"
