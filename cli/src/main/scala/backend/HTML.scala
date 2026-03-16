@@ -9,6 +9,8 @@ import ndpc.frontend.parser.{Pf, PfScope, Line}
 
 import scala.collection.mutable.StringBuilder
 
+private def ph = paren(_.asHTML)
+
 // Extension functions for HTML representation
 extension (f: LFormula)
     def asHTML: String = f match {
@@ -18,13 +20,13 @@ extension (f: LFormula)
         case Eq(left, right)  => s"${left.asHTML} = ${right.asHTML}"
         case Truth            => "&top;"
         case Falsity          => "&perp;"
-        case Not(pf)          => s"&not;${parenthesizeHTML(f, pf)}"
-        case And(left, right) => s"${parenthesizeHTML(f, left)} &and; ${parenthesizeHTML(f, right)}"
-        case Or(left, right)  => s"${parenthesizeHTML(f, left)} &or; ${parenthesizeHTML(f, right)}"
+        case Not(pf)          => s"&not;${ph(f, pf)}"
+        case And(left, right) => s"${ph(f, left)} &and; ${ph(f, right)}"
+        case Or(left, right)  => s"${ph(f, left)} &or; ${ph(f, right)}"
         case Implies(left, right) =>
-            s"${parenthesizeHTML(f, left)} &rarr; ${parenthesizeHTML(f, right)}"
+            s"${ph(f, left)} &rarr; ${ph(f, right)}"
         case Equiv(left, right) =>
-            s"${parenthesizeHTML(f, left)} &LeftRightArrow; ${parenthesizeHTML(f, right)}"
+            s"${ph(f, left)} &LeftRightArrow; ${ph(f, right)}"
         case Forall(x, body) => s"&forall; $x. (${body.asHTML})"
         case Exists(x, body) => s"&exist; $x. (${body.asHTML})"
     }
@@ -64,25 +66,6 @@ extension (r: Rule)
         case Ass                            => "ass"
         case Tick(orig)                     => s"&#10003;($orig)"
     }
-
-private def parenthesizeHTML(parent: LFormula, child: LFormula): String = {
-    def precedence(lf: LFormula): Int = lf match {
-        case PredAp(_, _)  => 7
-        case Truth         => 7
-        case Falsity       => 7
-        case Not(_)        => 6
-        case Eq(_, _)      => 5
-        case And(_, _)     => 4
-        case Or(_, _)      => 3
-        case Equiv(_, _)   => 2
-        case Implies(_, _) => 1
-        case Forall(_, _)  => 0
-        case Exists(_, _)  => 0
-    }
-
-    if precedence(parent) < precedence(child) then child.asHTML
-    else s"(${child.asHTML})"
-}
 
 object html extends codegen[Option[java.nio.file.Path]] {
     override val ext = "html"

@@ -7,6 +7,8 @@ import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}
 
+private def pt = paren(_.asTypst)
+
 extension (f: LFormula)
     def asTypst: String = f match {
         case PredAp(p, args) =>
@@ -15,38 +17,18 @@ extension (f: LFormula)
         case Eq(left, right) => s"${left.asTypst} = ${right.asTypst}"
         case Truth           => "top"
         case Falsity         => "bot"
-        case Not(pf)         => s"not ${paren(f, pf)}"
+        case Not(pf)         => s"not ${pt(f, pf)}"
         case And(left, right) =>
-            s"${paren(f, left)} and ${paren(f, right)}"
+            s"${pt(f, left)} and ${pt(f, right)}"
         case Or(left, right) =>
-            s"${paren(f, left)} or ${paren(f, right)}"
+            s"${pt(f, left)} or ${pt(f, right)}"
         case Implies(left, right) =>
-            s"${paren(f, left)} -> ${paren(f, right)}"
+            s"${pt(f, left)} -> ${pt(f, right)}"
         case Equiv(left, right) =>
-            s"${paren(f, left)} <-> ${paren(f, right)}"
+            s"${pt(f, left)} <-> ${pt(f, right)}"
         case Forall(x, body) => s"forall $x. ${body.asTypst}"
         case Exists(x, body) => s"exists $x. ${body.asTypst}"
     }
-
-// Helper function for parenthesis handling in asTypst
-private def paren(parent: LFormula, child: LFormula): String = {
-    def precedence(lf: LFormula): Int = lf match {
-        case PredAp(_, _)  => 7
-        case Truth         => 7
-        case Falsity       => 7
-        case Not(_)        => 6
-        case Eq(_, _)      => 5
-        case And(_, _)     => 4
-        case Or(_, _)      => 3
-        case Equiv(_, _)   => 2
-        case Implies(_, _) => 1
-        case Forall(_, _)  => 0
-        case Exists(_, _)  => 0
-    }
-
-    if precedence(parent) < precedence(child) then child.asTypst
-    else s"(${child.asTypst})"
-}
 
 extension (r: Rule)
     def asTypst: String = r match {

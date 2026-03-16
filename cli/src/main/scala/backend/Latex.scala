@@ -7,6 +7,8 @@ import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}
 
+private def pl = paren(_.asLatex)
+
 extension (f: LFormula)
     def asLatex: String = f match {
         case PredAp(p, args) =>
@@ -15,38 +17,18 @@ extension (f: LFormula)
         case Eq(left, right) => s"${left.asLatex} = ${right.asLatex}"
         case Truth           => "\\top"
         case Falsity         => "\\bot"
-        case Not(pf)         => s"\\lnot ${paren(f, pf)}"
+        case Not(pf)         => s"\\lnot ${pl(f, pf)}"
         case And(left, right) =>
-            s"${paren(f, left)} \\land ${paren(f, right)}"
+            s"${pl(f, left)} \\land ${pl(f, right)}"
         case Or(left, right) =>
-            s"${paren(f, left)} \\lor ${paren(f, right)}"
+            s"${pl(f, left)} \\lor ${pl(f, right)}"
         case Implies(left, right) =>
-            s"${paren(f, left)} \\rightarrow ${paren(f, right)}"
+            s"${pl(f, left)} \\rightarrow ${pl(f, right)}"
         case Equiv(left, right) =>
-            s"${paren(f, left)} \\leftrightarrow ${paren(f, right)}"
+            s"${pl(f, left)} \\leftrightarrow ${pl(f, right)}"
         case Forall(x, body) => s"\\forall $x. (${body.asLatex})"
         case Exists(x, body) => s"\\exists $x. (${body.asLatex})"
     }
-
-// Helper function for parenthesis handling in asLatex
-private def paren(parent: LFormula, child: LFormula): String = {
-    def precedence(lf: LFormula): Int = lf match {
-        case PredAp(_, _)  => 7
-        case Truth         => 7
-        case Falsity       => 7
-        case Not(_)        => 6
-        case Eq(_, _)      => 5
-        case And(_, _)     => 4
-        case Or(_, _)      => 3
-        case Equiv(_, _)   => 2
-        case Implies(_, _) => 1
-        case Forall(_, _)  => 0
-        case Exists(_, _)  => 0
-    }
-
-    if precedence(parent) < precedence(child) then child.asLatex
-    else s"(${child.asLatex})"
-}
 
 extension (r: Rule)
     def asLatex: String = r match {
