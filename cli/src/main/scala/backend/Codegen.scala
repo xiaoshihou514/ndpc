@@ -5,10 +5,34 @@ import cats.syntax.all.*
 import ndpc.{CliRuntime, IORuntime}
 import ndpc.frontend.CheckedProof
 import ndpc.frontend.checker.pfFromSource
+import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}
 import ndpc.utils.NdpcError
 import parsley.{Result, Success, Failure}
+
+// Helper function for parenthesis handling
+private def paren(f: LFormula => String): (LFormula, LFormula) => String = {
+    def precedence(lf: LFormula): Int = lf match {
+        case PredAp(_, _)  => 7
+        case Truth         => 7
+        case Falsity       => 7
+        case Not(_)        => 6
+        case Eq(_, _)      => 5
+        case And(_, _)     => 4
+        case Or(_, _)      => 3
+        case Equiv(_, _)   => 2
+        case Implies(_, _) => 1
+        case Forall(_, _)  => 0
+        case Exists(_, _)  => 0
+    }
+    
+    { (parent, child) =>
+
+    if precedence(parent) < precedence(child) then f(child)
+    else s"(${f(child)})"
+    }
+}
 
 trait codegen[A] {
     type Output = Result[NdpcError, (os.Path, String)]
@@ -16,7 +40,7 @@ trait codegen[A] {
     def generate(inputs: Seq[String], opt: A, runtime: CliRuntime = IORuntime): IO[Int] =
         fromSource(inputs, opt, runtime).flatMap { results =>
             val errors = results.collect { case f @ Failure(_) => f }
-            val successes = results.flatten
+            val successes = results.collect { case Success(value) => value }
 
             val printErrors =
                 if errors.nonEmpty then runtime.printErrorHuman(errors)

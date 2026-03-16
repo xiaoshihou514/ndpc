@@ -10,7 +10,7 @@ object formatter {
     def format(inputs: Seq[String], apply: Boolean, runtime: CliRuntime = IORuntime): IO[Int] =
         formattedFromSource(inputs, runtime).flatMap { results =>
             val errors = results.collect { case f @ Failure(_) => f }
-            val successes = results.flatten
+            val successes = results.collect { case Success(value) => value }
 
             val printErrors =
                 if errors.nonEmpty then runtime.printErrorHuman(errors)

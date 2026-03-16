@@ -9,7 +9,7 @@ resolvers += Resolver.url(
   url("https://repo.typesafe.com/typesafe/ivy-releases/")
 )(Resolver.ivyStylePatterns)
 
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.18.2")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.20.2")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "2.3.1")
 addSbtPlugin("org.scala-native" % "sbt-scala-native" % "0.5.9")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.2")

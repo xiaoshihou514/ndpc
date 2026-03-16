@@ -7,7 +7,7 @@ import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
 
 ThisBuild / organization := "io.github.xiaoshihou514"
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.6.0"
+ThisBuild / scalaVersion := "3.8.2"
 ThisBuild / scalacOptions ++= Seq(
   "-feature",
   "-Yexplicit-nulls"
@@ -72,7 +72,7 @@ lazy val cliNative = (project in file("cli-native"))
   .settings(
     resolvers ++= commonResolvers,
     name := "ndpc-cli-native",
-    scalaVersion := "3.6.4",
+    scalaVersion := "3.8.2",
     libraryDependencies ++= Seq(
       "com.github.j-mie6" %%% "parsley" % "5.0.0-M16",
       "com.monovore" %%% "decline" % "2.5.0",
