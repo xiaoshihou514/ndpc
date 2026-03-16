@@ -1,0 +1,7 @@
+
+{
+  "file": "test_and_intro_error_msg.ndp",
+  "line": 3,
+  "explanation": "  The following assertion(s) implied by AndIntro(1,2) does not hold:\n    Conclusion equal to left ^ right\n  In particular with the following variables:\n    Conclusion: p ^ r\n    Left: q\n    Right: r"
+}
+                    

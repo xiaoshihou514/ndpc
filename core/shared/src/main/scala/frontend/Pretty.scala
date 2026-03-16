@@ -1,8 +1,8 @@
 package ndpc.frontend
 
-import ndpc.frontend.expr.formula._
-import ndpc.frontend.expr.rule._
-import ndpc.utils._
+import ndpc.frontend.expr.formula.*
+import ndpc.frontend.expr.rule.*
+import ndpc.utils.*
 import ndpc.frontend.parser.PfScope
 
 case class CheckedProof(main: PfScope)

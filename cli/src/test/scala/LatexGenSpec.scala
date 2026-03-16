@@ -6,8 +6,8 @@ import ndpc.backend.latex
 import parsley.Success
 
 class LatexGenSpec extends UnitSpec {
-    val inputs = TestPaths.path("ndp/checker/success")
-    val outputs = TestPaths.path("ndp/latex")
+    val inputs = TestPaths.path("test/checker/success")
+    val outputs = TestPaths.path("test/latex")
 
     "All valid ndp" should "generate valid latex output" in {
         val result = latex.fromSource(os.list(inputs).map(_.toString), ()).unsafeRunSync()

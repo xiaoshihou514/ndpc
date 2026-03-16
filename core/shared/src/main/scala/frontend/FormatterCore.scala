@@ -1,10 +1,10 @@
 package ndpc.frontend
 
-import ndpc.frontend.expr.formula._
+import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.Tick
-import ndpc.frontend.parser._
+import ndpc.frontend.parser.*
 import ndpc.frontend.pretty.*
-import ndpc.utils._
+import ndpc.utils.*
 import parsley.{Result, Success, Failure}
 
 object formatterCore {

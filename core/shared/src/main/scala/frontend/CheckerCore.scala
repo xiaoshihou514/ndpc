@@ -1,9 +1,9 @@
 package ndpc.frontend
 
-import ndpc.frontend.parser._
-import ndpc.frontend.expr.rule._
-import ndpc.frontend.expr.formula._
-import ndpc.utils._
+import ndpc.frontend.parser.*
+import ndpc.frontend.expr.rule.*
+import ndpc.frontend.expr.formula.*
+import ndpc.utils.*
 import ndpc.frontend.parsers.EnrichedErr
 import parsley.{Result, Success, Failure}
 import ndpc.frontend.pretty.*
@@ -46,7 +46,8 @@ object checkerCore {
                   EnrichedErr(
                     "Did not expect \"Assume\" and \"Premise\" to be used in places other than the start of proof",
                     None,
-                    s"(line ${upf.lines.indexOf(it)})"
+                    upf.lines.indexOf(it),
+                    None
                   )
                 )
             case _ =>
@@ -79,7 +80,8 @@ object checkerCore {
                   EnrichedErr(
                     s"Found empty box, does this file only contain empty lines and comments?",
                     None,
-                    s"(line $lineNr)"
+                    lineNr,
+                    None
                   )
                 )
             case _ :+ Right(tail @ PfScope(_)) =>
@@ -87,7 +89,8 @@ object checkerCore {
                   EnrichedErr(
                     "Box ended with another box",
                     None,
-                    s"(line: ${lines.indexOf(tail)})"
+                    lines.indexOf(tail),
+                    None
                   )
                 )
             case Left(head @ Pf(_, Ass | ForallIConst | Given | Premise, _)) +: _ :+ Left(
@@ -104,10 +107,11 @@ object checkerCore {
                     s"Box starting at line $lineNr did not start with a valid proof "
                         + "(expected assumption, forall I const, given, premise)",
                     None,
-                    s"(line ${lines.indexOf(head)})"
+                    lines.indexOf(head),
+                    None
                   )
                 )
-            case _ => Failure(EnrichedErr(s"Unknown error", None, ""))
+            case _ => Failure(EnrichedErr(s"Unknown error", None, 0, None))
         }
     }
 
@@ -145,7 +149,8 @@ object checkerCore {
                                   EnrichedErr(
                                     reason,
                                     None,
-                                    s"(line ${lineNr + offset})"
+                                    lineNr + offset,
+                                    None
                                   )
                                 )
                             case Success(vars) =>

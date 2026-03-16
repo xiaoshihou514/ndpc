@@ -1,44 +1,47 @@
 package ndpc.frontend
 
 import cats.effect.IO
-import cats.syntax.all._
-import ndpc.cliRuntime
-import ndpc.utils._
+import cats.syntax.all.*
+import ndpc.{CliRuntime, IORuntime}
+import ndpc.utils.*
 import parsley.{Result, Success, Failure}
 
 object formatter {
-    def format(inputs: Seq[String], apply: Boolean): IO[Int] =
-        formattedFromSource(inputs).flatMap { results =>
+    def format(inputs: Seq[String], apply: Boolean, runtime: CliRuntime = IORuntime): IO[Int] =
+        formattedFromSource(inputs, runtime).flatMap { results =>
             val errors = results.collect { case f @ Failure(_) => f }
             val successes = results.flatten
 
             val printErrors =
-                if errors.nonEmpty then cliRuntime.printErrorHuman(errors)
+                if errors.nonEmpty then runtime.printErrorHuman(errors)
                 else IO.unit
 
             val action =
                 if apply then
                     successes.toList.foldLeftM(errors.length) { case (code, (dest, result)) =>
                         val path = os.FilePath(dest).resolveFrom(os.pwd)
-                        cliRuntime.writeText(path, result).attempt.flatMap {
+                        runtime.writeText(path, result).attempt.flatMap {
                             case Right(_) => IO.pure(code)
                             case Left(exception) =>
-                                cliRuntime.error(s"Can't write to $dest: $exception").as(code + 1)
+                                runtime.error(s"Can't write to $dest: $exception").as(code + 1)
                         }
                     }
                 else
                     successes.toList
                         .traverse_ { case (_, formatted) =>
-                            cliRuntime.stdoutln(formatted) *> cliRuntime.stdoutln()
+                            runtime.stdoutln(formatted) *> runtime.stdoutln()
                         }
                         .as(errors.length)
 
             printErrors *> action
         }
 
-    def formattedFromSource(inputs: Seq[String]): IO[Seq[Result[NdpcError, (String, String)]]] =
+    def formattedFromSource(
+        inputs: Seq[String],
+        runtime: CliRuntime = IORuntime
+    ): IO[Seq[Result[NdpcError, (String, String)]]] =
         inputs.toList.traverse { input =>
-            cliRuntime.readInput(input).attempt.map {
+            runtime.readInput(input).attempt.map {
                 case Right(contents) =>
                     attachFile(input, formatterCore.formattedFromString(contents)) match
                         case Success(formatted) => Success((input, formatted))

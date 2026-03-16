@@ -1,0 +1,8 @@
+
+{
+  "file": "spelling_error.ndp",
+  "line": 1,
+  "column": 26,
+  "explanation": "  unexpected \"ggiven]\"\n  expected Given, Law of Exclueded Middle, or REFLective rule\n  >~(exists x. P(x))       [ggiven]\n                            ^^^^^^^\n  >  c [forall  I const]"
+}
+                    

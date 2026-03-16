@@ -3,12 +3,13 @@ package ndpc.backend
 
 import cats.effect.IO
 import ndpc.frontend.CheckedProof
-import ndpc.frontend.expr.formula._
+import ndpc.CliRuntime
+import ndpc.frontend.expr.formula.*
 import scala.annotation.tailrec
-import ndpc.frontend.parser._
-import cats.syntax.all._
+import ndpc.frontend.parser.*
+import cats.syntax.all.*
 import ndpc.frontend.pretty
-import ndpc.frontend.expr.rule._
+import ndpc.frontend.expr.rule.*
 import scala.collection.mutable.ReusableBuilder
 import scala.annotation.targetName
 
@@ -208,7 +209,7 @@ extension (f: LFormula) {
 object lean extends codegen[Unit] {
     override protected val ext: String = "lean"
 
-    override def compile(pf: CheckedProof, _opt: Unit): IO[String] = IO.pure {
+    override def compile(pf: CheckedProof, _opt: Unit, _runtime: CliRuntime): IO[String] = IO.pure {
         val pfs = pf.main.flatten.collect { case p: Pf => p }.toVector
         val (premises, body) = pfs.span {
             _.rule match

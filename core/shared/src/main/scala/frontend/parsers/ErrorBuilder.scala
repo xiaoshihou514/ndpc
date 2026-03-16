@@ -7,9 +7,9 @@ abstract class ErrBuilder extends ErrorBuilder[EnrichedErr] {
     val Indent = " " * 2
 
     override def build(pos: Position, source: Source, lines: ErrorInfoLines): EnrichedErr =
-        EnrichedErr(lines.mkString(Indent, "\n" + Indent, ""), source, pos)
+        EnrichedErr(lines.mkString(Indent, "\n" + Indent, ""), source, pos._1, Some(pos._2))
 
-    type Position = String
+    type Position = (Int, Int)
     type Source = Option[String]
     type UnexpectedLine = Option[String]
     type ExpectedLine = Option[String]
@@ -22,7 +22,7 @@ abstract class ErrBuilder extends ErrorBuilder[EnrichedErr] {
     type Raw = String
     type Named = String
     type EndOfInput = String
-    override def pos(line: Int, col: Int): Position = DefaultErrorBuilder.pos(line, col)
+    override def pos(line: Int, col: Int): Position = (line, col)
     override def source(sourceName: Option[String]): Source = DefaultErrorBuilder.source(sourceName)
     override def vanillaError(
         unexpected: UnexpectedLine,
@@ -66,12 +66,32 @@ abstract class ErrBuilder extends ErrorBuilder[EnrichedErr] {
     override val endOfInput: EndOfInput = DefaultErrorBuilder.EndOfInput
 }
 
-case class EnrichedErr(exp: String, file: Option[String], location: String):
-    def toJson(): String =
-        s"""
-            |{
-            |  "file": "${file.get}",
-            |  "line": $location,
-            |  "explanation": "${exp.replace("\n", "\\n")}"
-            |}
-            """.stripMargin
+case class EnrichedErr(exp: String, file: Option[String], line: Int, column: Option[Int]):
+    private def escape(s: String) = s
+        .replace("\n", "\\n")
+        .replace("\"", "\\\"")
+
+    def location: String =
+        column match
+            case Some(col) => s"(line $line, column $col)"
+            case None      => s"(line $line)"
+
+    def toJson: String =
+        column match
+            case Some(col) =>
+                s"""
+                    |{
+                    |  "file": "${file.get}",
+                    |  "line": $line,
+                    |  "column": $col,
+                    |  "explanation": "${escape(exp)}"
+                    |}
+                    """.stripMargin
+            case None =>
+                s"""
+                    |{
+                    |  "file": "${file.get}",
+                    |  "line": $line,
+                    |  "explanation": "${escape(exp)}"
+                    |}
+                    """.stripMargin

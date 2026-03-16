@@ -1,6 +1,6 @@
 package ndpc.frontend.expr
 
-import ndpc.frontend.expr.formula._
+import ndpc.frontend.expr.formula.*
 
 import parsley.generic.*
 

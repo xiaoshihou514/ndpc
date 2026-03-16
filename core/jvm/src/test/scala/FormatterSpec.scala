@@ -4,8 +4,8 @@ import ndpc.frontend.formatterCore.formattedFromString
 import parsley.Success
 
 class FormatterSpec extends UnitSpec {
-    val inputs = TestPaths.path("ndp/formatter/before")
-    val outputs = TestPaths.path("ndp/formatter/after")
+    val inputs = TestPaths.path("test/formatter/before")
+    val outputs = TestPaths.path("test/formatter/after")
 
     "All valid ndp" should "be formatted according to spec" in {
         val result = os.list(inputs).map(os.read(_)).map(formattedFromString)

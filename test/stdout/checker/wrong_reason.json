@@ -1,0 +1,7 @@
+
+{
+  "file": "wrong_reason.ndp",
+  "line": 3,
+  "explanation": "  The following assertion(s) implied by ForallIConst does not hold:\n    Conclusion is a single variable\n  In particular with the following variables:\n    Conclusion: forall x. (P(x))"
+}
+                    

@@ -1,0 +1,7 @@
+Syntax error:
+oops_rust_file.ndp, (line 1, column 4):
+  unexpected "mai"
+  expected "(", "=", ->, /, <->, [, ^, space, or tab
+  >fn main() {
+      ^^^
+  >    println!("Hello, world!");

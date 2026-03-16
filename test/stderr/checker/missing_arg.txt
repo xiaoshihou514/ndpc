@@ -1,0 +1,8 @@
+Syntax error:
+missing_arg.ndp, (line 5, column 15):
+  unexpected ")"
+  expected "," or digit
+  >    exists x. P(x) [existsI ( 3 )]
+  >    F   [~E (1)]
+                 ^
+  >  ~P(c)[~I(3,   5)]

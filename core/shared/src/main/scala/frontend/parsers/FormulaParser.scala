@@ -1,7 +1,7 @@
 package ndpc.frontend.parsers
 
-import ndpc.frontend.expr.formula._
-import ndpc.frontend.parsers.utils._
+import ndpc.frontend.expr.formula.*
+import ndpc.frontend.parsers.utils.*
 import ndpc.frontend.parsers.lexer.{identifier, symbol, lexeme}
 import ndpc.frontend.parsers.lexer.implicits.implicitSymbol
 
@@ -10,8 +10,8 @@ import parsley.Parsley.{pure, notFollowedBy, atomic}
 import parsley.combinator.sepBy
 import parsley.syntax.character.charLift
 import parsley.expr.{precedence, Ops, InfixL, Prefix}
-import parsley.errors.combinator._
-import parsley.debug._
+import parsley.errors.combinator.*
+import parsley.debug.*
 
 object FormulaParser {
 

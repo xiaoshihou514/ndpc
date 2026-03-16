@@ -1,0 +1,7 @@
+Semantics error:
+or_and_typo.ndp, (line 4):
+  The following assertion(s) implied by ForallElim(1) does not hold:
+    Conclusion is Forall's body with quantifier substituted
+  In particular with the following variables:
+    Conclusion: A(c) / B(c)
+    Forall: forall x. (A(x) ^ B(x))

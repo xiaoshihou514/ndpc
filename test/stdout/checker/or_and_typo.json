@@ -1,0 +1,7 @@
+
+{
+  "file": "or_and_typo.ndp",
+  "line": 4,
+  "explanation": "  The following assertion(s) implied by ForallElim(1) does not hold:\n    Conclusion is Forall's body with quantifier substituted\n  In particular with the following variables:\n    Conclusion: A(c) / B(c)\n    Forall: forall x. (A(x) ^ B(x))"
+}
+                    

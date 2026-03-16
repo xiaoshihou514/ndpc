@@ -1,10 +1,10 @@
 package ndpc.backend
 
 import cats.effect.IO
-import ndpc.cliRuntime
+import ndpc.CliRuntime
 import ndpc.frontend.CheckedProof
-import ndpc.frontend.expr.formula._
-import ndpc.frontend.expr.rule._
+import ndpc.frontend.expr.formula.*
+import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}
 
 import scala.collection.mutable.StringBuilder
@@ -89,16 +89,17 @@ object html extends codegen[Option[java.nio.file.Path]] {
 
     override def compile(
         pf: CheckedProof,
-        cssPath: Option[java.nio.file.Path]
+        cssPath: Option[java.nio.file.Path],
+        runtime: CliRuntime
     ): IO[String] =
         cssPath match
             case None => IO.pure(renderHtml(pf, defaultCSS))
             case Some(path) =>
-                cliRuntime.readPath(path).attempt.flatMap {
+                runtime.readPath(path).attempt.flatMap {
                     case Right(css) => IO.pure(renderHtml(pf, css))
                     case Left(e) =>
-                        cliRuntime.stderrln(s"Failed to read from $path for custom CSS: $e") *>
-                            cliRuntime.stderrln("Using default css instead") *>
+                        runtime.stderrln(s"Failed to read from $path for custom CSS: $e") *>
+                            runtime.stderrln("Using default css instead") *>
                             IO.pure(renderHtml(pf, defaultCSS))
                 }
 

@@ -1,13 +1,13 @@
 package ndpc.frontend
 
-import ndpc.frontend.expr.formula._
+import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.{Rule, Tick}
 import ndpc.frontend.parsers.FormulaParser
 import ndpc.frontend.parsers.FormulaParser.lformula
 import ndpc.frontend.parsers.lexer.implicits.implicitSymbol
 import ndpc.frontend.parsers.lexer.lexeme
 import ndpc.frontend.parsers.RuleParser.rule
-import ndpc.frontend.parsers.utils._
+import ndpc.frontend.parsers.utils.*
 
 import parsley.{Parsley, Result}
 import parsley.Parsley.{eof, many, atomic, pure}
@@ -16,8 +16,8 @@ import parsley.character.item
 import parsley.state.{RefMaker, forP}
 import parsley.syntax.character.charLift
 import parsley.generic.ParserBridge3
-import parsley.errors.combinator._
-import parsley.debug._
+import parsley.errors.combinator.*
+import parsley.debug.*
 
 import scala.util.{Try, Either}
 import ndpc.frontend.parsers.EnrichedErr

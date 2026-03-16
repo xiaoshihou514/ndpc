@@ -6,8 +6,8 @@ import ndpc.backend.lean
 import parsley.Success
 
 class LeanGenSpec extends UnitSpec {
-    val inputs = TestPaths.path("ndp/checker/success")
-    val outputs = TestPaths.path("ndp/lean")
+    val inputs = TestPaths.path("test/checker/success")
+    val outputs = TestPaths.path("test/lean")
 
     "All valid ndp" should "generate valid lean output" in {
         val result = lean.fromSource(os.list(inputs).map(_.toString), ()).unsafeRunSync()

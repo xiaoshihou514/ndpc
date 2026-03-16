@@ -1,11 +1,11 @@
 package ndpc
 
 import cats.effect.{ExitCode, IO, IOApp}
-import cats.syntax.all._
-import com.monovore.decline._
+import cats.syntax.all.*
+import com.monovore.decline.*
 import java.nio.file.Path
-import ndpc.backend._
-import ndpc.frontend._
+import ndpc.backend.*
+import ndpc.frontend.*
 
 object Main extends IOApp {
     private val inputs = Opts.arguments[String](metavar = "file").map(_.toList)
@@ -61,7 +61,7 @@ object Main extends IOApp {
     override def run(args: List[String]): IO[ExitCode] =
         command.parse(args, sys.env) match
             case Left(help) =>
-                cliRuntime.printHelp(help.toString).as {
+                IORuntime.printHelp(help.toString).as {
                     if help.errors.isEmpty then ExitCode.Success else ExitCode.Error
                 }
             case Right((runOpt, files)) =>

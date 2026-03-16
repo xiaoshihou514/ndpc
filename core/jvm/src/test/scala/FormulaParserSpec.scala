@@ -1,7 +1,7 @@
 package ndpc
 
-import ndpc.frontend.parsers.FormulaParser._
-import ndpc.frontend.expr.formula._
+import ndpc.frontend.parsers.FormulaParser.*
+import ndpc.frontend.expr.formula.*
 
 def p(s: String) = PredAp(s, Nil)
 

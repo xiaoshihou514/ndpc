@@ -3,7 +3,7 @@ package ndpc.frontend.parsers
 import parsley.Parsley
 import parsley.token.{Lexer, Basic}
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc, SpaceDesc}
-import parsley.errors.combinator._
+import parsley.errors.combinator.*
 
 object lexer {
     private val ops = Set(

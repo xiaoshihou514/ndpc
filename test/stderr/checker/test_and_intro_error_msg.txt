@@ -1,0 +1,8 @@
+Semantics error:
+test_and_intro_error_msg.ndp, (line 3):
+  The following assertion(s) implied by AndIntro(1,2) does not hold:
+    Conclusion equal to left ^ right
+  In particular with the following variables:
+    Conclusion: p ^ r
+    Left: q
+    Right: r

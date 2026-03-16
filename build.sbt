@@ -1,9 +1,9 @@
-import sbt._
-import Keys._
-import scala.sys.process._
-import sbtassembly.AssemblyPlugin.autoImport._
+import sbt.*
+import Keys.*
+import scala.sys.process.*
+import sbtassembly.AssemblyPlugin.autoImport.*
 import org.scalajs.sbtplugin.ScalaJSPlugin
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport._
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
 
 ThisBuild / organization := "io.github.xiaoshihou514"
 ThisBuild / version := "0.1.0-SNAPSHOT"

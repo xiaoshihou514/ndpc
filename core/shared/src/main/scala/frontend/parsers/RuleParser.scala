@@ -3,12 +3,12 @@ package ndpc.frontend.parsers
 import parsley.Parsley
 import parsley.Parsley.{atomic, some}
 import parsley.syntax.character.{charLift, stringLift}
-import parsley.errors.combinator._
-import parsley.debug._
+import parsley.errors.combinator.*
+import parsley.debug.*
 
-import ndpc.frontend.expr.rule._
-import ndpc.frontend.parsers.utils._
-import ndpc.frontend.parsers.lexer._
+import ndpc.frontend.expr.rule.*
+import ndpc.frontend.parsers.utils.*
+import ndpc.frontend.parsers.lexer.*
 
 object RuleParser {
     private def unary(
