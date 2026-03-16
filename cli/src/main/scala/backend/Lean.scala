@@ -1,6 +1,7 @@
 // Typing in this file is terrible, consider refactoring
 package ndpc.backend
 
+import cats.effect.IO
 import ndpc.frontend.CheckedProof
 import ndpc.frontend.expr.formula._
 import scala.annotation.tailrec
@@ -207,7 +208,7 @@ extension (f: LFormula) {
 object lean extends codegen[Unit] {
     override protected val ext: String = "lean"
 
-    override def compile(pf: CheckedProof, _opt: Unit): String = {
+    override def compile(pf: CheckedProof, _opt: Unit): IO[String] = IO.pure {
         val pfs = pf.main.flatten.collect { case p: Pf => p }.toVector
         val (premises, body) = pfs.span {
             _.rule match
@@ -225,22 +226,22 @@ object lean extends codegen[Unit] {
         )
     }
 
-    private type State = (
+    case class State(
         stash: Vector[LeanStmt],
         lines: ReusableBuilder[LeanStmt, Vector[LeanStmt]],
         stashEnd: Int,
         linenr: Int
     )
     extension (s: State) {
-        def clear = (Vector.empty, s.lines, s.stashEnd, s.linenr)
-        def incr = (s.stash, s.lines, s.stashEnd, s.linenr + 1)
+        def clear = State(Vector.empty, s.lines, s.stashEnd, s.linenr)
+        def incr = State(s.stash, s.lines, s.stashEnd, s.linenr + 1)
     }
 
     private def compile(pfs: PfScope, index: Int)(using
         lookup: Map[Int, LFormula]
     ): Vector[LeanStmt] = {
-        val (s, ls, _, _) = pfs.body.foldLeft(
-          (
+        val acc = pfs.body.foldLeft(
+          State(
             stash = Vector.empty[LeanStmt],
             lines = Vector.newBuilder[LeanStmt],
             stashEnd = 0,
@@ -252,7 +253,7 @@ object lean extends codegen[Unit] {
                     compilePf(acc.linenr, concl, rule, acc).incr
                 case Right(scope) =>
                     val n = scope.flatten.collect { case _: Pf => }.length
-                    (
+                    State(
                       acc.stash ++ compile(scope, acc.linenr),
                       acc.lines,
                       acc.linenr + n - 1,
@@ -260,8 +261,8 @@ object lean extends codegen[Unit] {
                     )
                 case _ => acc // skip
         }
-        ls ++= s
-        ls.result()
+        acc.lines ++= acc.stash
+        acc.lines.result()
     }
 
     private def compilePf(

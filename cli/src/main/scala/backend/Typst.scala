@@ -1,5 +1,6 @@
 package ndpc.backend
 
+import cats.effect.IO
 import ndpc.frontend.CheckedProof
 import ndpc.frontend.expr.formula._
 import ndpc.frontend.expr.rule._
@@ -85,7 +86,7 @@ extension (r: Rule)
 object typst extends codegen[Unit] {
     override protected val ext: String = "typ"
 
-    override def compile(pf: CheckedProof, _opt: Unit): String = {
+    override def compile(pf: CheckedProof, _opt: Unit): IO[String] = IO.pure {
         val (orLeft, orRight) = findOrElims(pf.main)
         val (body, _) = toTypst(pf.main, 1, orLeft, orRight)
         typstDocument(body)

@@ -5,150 +5,22 @@ import ndpc.frontend.expr.rule._
 import ndpc.frontend.expr.formula._
 import ndpc.utils._
 import ndpc.frontend.parsers.EnrichedErr
-
-import scala.io.Source
-import scala.util.Try
-import scala.collection.mutable.Set
 import parsley.{Result, Success, Failure}
+import ndpc.frontend.pretty.*
 
-case class CheckedProof(main: PfScope)
+import scala.collection.mutable.Set
 
-extension [A](xs: List[A])
-    def remove(x: A): List[A] = xs match {
-        case `x` :: tail  => tail
-        case head :: tail => head :: tail.remove(x)
-        case _            => Nil
-    }
+object checkerCore {
+    def checkedFromString(contents: String): Result[NdpcError, CheckedProof] =
+        parse(contents) match
+            case Success(ast) =>
+                checkParsed(ast) match
+                    case Success(pf)                  => Success(pf)
+                    case Failure(reason: EnrichedErr) => Failure(SemanticsError(reason))
+            case Failure(reason) => Failure(SyntaxError(reason))
 
-// Extension functions for toString representation
-extension (f: LFormula)
-    def pretty: String = f match {
-        case PredAp(p, args) =>
-            if args == Nil then p
-            else s"$p(${args.map(_.pretty).mkString(", ")})"
-        case Eq(left, right)  => s"${left.pretty} = ${right.pretty}"
-        case Truth            => "T"
-        case Falsity          => "F"
-        case Not(pf)          => s"~${parenthesizeString(f, pf)}"
-        case And(left, right) => s"${parenthesizeString(f, left)} ^ ${parenthesizeString(f, right)}"
-        case Or(left, right)  => s"${parenthesizeString(f, left)} / ${parenthesizeString(f, right)}"
-        case Implies(left, right) =>
-            s"${parenthesizeString(f, left)} -> ${parenthesizeString(f, right)}"
-        case Equiv(left, right) =>
-            s"${parenthesizeString(f, left)} <-> ${parenthesizeString(f, right)}"
-        case Forall(x, body) => s"forall $x. (${body.pretty})"
-        case Exists(x, body) => s"exists $x. (${body.pretty})"
-    }
-
-extension (r: Rule)
-    def pretty: String = r match {
-        case AndIntro(left, right)         => s"^I($left, $right)"
-        case ImpliesIntro(ass, res)        => s"->I($ass, $res)"
-        case OrIntro(either)               => s"/I($either)"
-        case NotIntro(orig, bottom)        => s"~I($orig, $bottom)"
-        case DoubleNegIntro(orig)          => s"~~I($orig)"
-        case FalsityIntro(orig, negated)   => s"FI($orig, $negated)"
-        case TruthIntro                    => "TI"
-        case EquivIntro(leftImp, rightImp) => s"<->I($leftImp, $rightImp)"
-        case ExistsIntro(orig)             => s"existsI($orig)"
-        case ForallIntro(const, concl)     => s"forallI($const, $concl)"
-        case AndElim(orig)                 => s"^E($orig)"
-        case ImpliesElim(ass, imp)         => s"->E($ass, $imp)"
-        case OrElim(or, leftAss, leftConcl, rightAss, rightConcl) =>
-            s"/E($or, $leftAss, $leftConcl, $rightAss, $rightConcl)"
-        case NotElim(negated, orig)         => s"~E($negated, $orig)"
-        case DoubleNegElim(orig)            => s"~~E($orig)"
-        case FalsityElim(bottom)            => s"FE($bottom)"
-        case EquivElim(equiv, either)       => s"<->E($equiv, $either)"
-        case ExistsElim(exists, ass, concl) => s"existsE($exists, $ass, $concl)"
-        case ForallElim(orig)               => s"forallE($orig)"
-        case ForallImpElim(ass, imp)        => s"forall->E($ass, $imp)"
-        case LEM                            => "LEM"
-        case MT(imp, not)                   => s"MT($imp, $not)"
-        case PC(orig, bottom)               => s"PC($orig, $bottom)"
-        case Refl                           => "refl"
-        case EqSub(orig, eq)                => s"=sub($orig, $eq)"
-        case Sym(orig)                      => s"sym($orig)"
-        case ForallIConst                   => "forall I const"
-        case Given                          => "given"
-        case Premise                        => "premise"
-        case Ass                            => "ass"
-        case Tick(orig)                     => s"tick($orig)"
-    }
-
-// Helper function for parenthesis handling in toString
-private def parenthesizeString(parent: LFormula, child: LFormula): String = {
-    def precedence(lf: LFormula): Int = lf match {
-        case PredAp(_, _)  => 7
-        case Truth         => 7
-        case Falsity       => 7
-        case Not(_)        => 6
-        case Eq(_, _)      => 5
-        case And(_, _)     => 4
-        case Or(_, _)      => 3
-        case Equiv(_, _)   => 2
-        case Implies(_, _) => 1
-        case Forall(_, _)  => 0
-        case Exists(_, _)  => 0
-    }
-
-    if precedence(parent) < precedence(child) then child.pretty
-    else s"(${child.pretty})"
-}
-
-object checker {
-    def check(inputs: Seq[String], toJson: Boolean): Int = {
-        val errors = pfFromSource(inputs)
-            .collect { case f @ Failure(_) => f }
-        if !errors.isEmpty then
-            if toJson then printErrorJson(errors)
-            else printErrorHuman(errors)
-        else ok("All proofs are valid!")
-        errors.length
-    }
-
-    // I really want consistent error handling here so I went for java exceptions,
-    // which is well captured by scala.util.Try
-    def pfFromSource(
-        inputs: Seq[String]
-    ): Seq[Result[NdpcError, CheckedProof]] =
-        inputs.map { (input: String) =>
-            Try(input)
-                .map { (i: String) =>
-                    val src = i match {
-                        case "-"  => Source.stdin
-                        case file => Source.fromFile(file)
-                    }
-                    try src.getLines mkString "\n"
-                    finally src.close()
-                }
-                .map { (contents: String) =>
-                    parse(contents) match {
-                        case Success(ast) => ast
-                        case Failure(reason) =>
-                            throw new ParserException(reason)
-                    }
-                }
-                .map { (upf: UncheckedProof) =>
-                    checkOne(upf) match {
-                        case Success(pf)                  => pf
-                        case Failure(reason: EnrichedErr) => throw new CheckException(reason)
-                    }
-                } match {
-                case scala.util.Success(pf) => Success(pf)
-                case scala.util.Failure(exception) => {
-                    exception match {
-                        case ParserException(reason) =>
-                            Failure(SyntaxError(reason.copy(file = Some(input))))
-                        case CheckException(reason) =>
-                            Failure(SemanticsError(reason.copy(file = Some(input))))
-                        case throwable @ _ =>
-                            Failure(IOError(input, throwable.toString))
-                    }
-                }
-            }
-        }
-
+    def checkParsed(upf: UncheckedProof): Result[EnrichedErr, CheckedProof] =
+        checkOne(upf)
     private def isPremise(line: Either[Line, PfScope]) =
         line match
             case Left(Pf(_, Given | Premise, _)) => true
@@ -422,10 +294,10 @@ object checker {
         assertions: List[(Boolean, String)],
         context: List[(String, LFormula)]
     )(using input: Pf): Failure[String] = Failure(
-      s"  The following assertion(s) implied by $BOLD${input.rule}$RESET does not hold:\n" +
+      s"  The following assertion(s) implied by ${input.rule} does not hold:\n" +
           assertions.filter(!_._1).map("    " + _._2).mkString("\n") +
           "\n  In particular with the following variables:\n" +
-          context.map((desc, f) => s"    $BOLD$desc$RESET: ${f.pretty}").mkString("\n")
+          context.map((desc, f) => s"    $desc: ${f.pretty}").mkString("\n")
     )
 
     private def tryVerifyAndIntro(leftLine: Int, rightLine: Int)(using

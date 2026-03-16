@@ -1,17 +1,13 @@
 package ndpc.backend
 
-import ndpc.frontend.checker.pfFromSource
-import ndpc.frontend.parser._
-import ndpc.utils._
+import cats.effect.IO
+import ndpc.cliRuntime
+import ndpc.frontend.CheckedProof
 import ndpc.frontend.expr.formula._
 import ndpc.frontend.expr.rule._
-import ndpc.frontend.parsers.EnrichedErr
-import ndpc.frontend.CheckedProof
+import ndpc.frontend.parser.{Pf, PfScope, Line}
 
 import scala.collection.mutable.StringBuilder
-import scala.io.Source
-import scala.util.Try
-import parsley.{Result, Success, Failure}
 
 // Extension functions for HTML representation
 extension (f: LFormula)
@@ -69,8 +65,6 @@ extension (r: Rule)
         case Tick(orig)                     => s"&#10003;($orig)"
     }
 
-// TODO: extract this and precedence
-// Helper function for parenthesis handling in toHTML
 private def parenthesizeHTML(parent: LFormula, child: LFormula): String = {
     def precedence(lf: LFormula): Int = lf match {
         case PredAp(_, _)  => 7
@@ -96,19 +90,21 @@ object html extends codegen[Option[java.nio.file.Path]] {
     override def compile(
         pf: CheckedProof,
         cssPath: Option[java.nio.file.Path]
-    ): String = {
-        val css = cssPath match
-            case None => defaultCSS
+    ): IO[String] =
+        cssPath match
+            case None => IO.pure(renderHtml(pf, defaultCSS))
             case Some(path) =>
-                Try(os.Path(path)).map(os.read(_)) match
-                    case scala.util.Failure(e) =>
-                        printerrln(s"Failed to read from $path for custom CSS: $e")
-                        printerrln("Using default css instead")
-                        defaultCSS
-                    case scala.util.Success(value) => value
+                cliRuntime.readPath(path).attempt.flatMap {
+                    case Right(css) => IO.pure(renderHtml(pf, css))
+                    case Left(e) =>
+                        cliRuntime.stderrln(s"Failed to read from $path for custom CSS: $e") *>
+                            cliRuntime.stderrln("Using default css instead") *>
+                            IO.pure(renderHtml(pf, defaultCSS))
+                }
+
+    private def renderHtml(pf: CheckedProof, css: String): String =
         val (body, _) = toHTML(pf.main, 1)
         HTML5(css, body)
-    }
 
     private def toHTML(s: PfScope, lineNr: Int): (String, Int) =
         val (current, body) = s.body
@@ -126,37 +122,37 @@ object html extends codegen[Option[java.nio.file.Path]] {
             }
         (
           s"""
-            <div class="box"><ul>
-                $body
-            </ul></div>
-          """,
+             <div class="box"><ul>
+                 $body
+             </ul></div>
+           """,
           current
         )
 
     private def mkLine(concl: LFormula, rule: Rule, lineNr: Int): String =
         s"""
-        <li>
-            <p>$lineNr</p>
-            ${concl.asHTML}
-            <div class="rule">${rule.asHTML}</div>
-        </li>
-    """
+         <li>
+             <p>$lineNr</p>
+             ${concl.asHTML}
+             <div class="rule">${rule.asHTML}</div>
+         </li>
+     """
 
     private def HTML5(css: String, body: String) =
         s"""
-        <!doctype html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <title>Proof</title>
-            <style>
-                $css
-            </style>
-            <body>
-                $body
-            </body>
-        </html>
-    """
+         <!doctype html>
+         <html lang="en">
+           <head>
+             <meta charset="UTF-8">
+             <title>Proof</title>
+             <style>
+                 $css
+             </style>
+             <body>
+                 $body
+             </body>
+         </html>
+     """
 
     private val defaultCSS = s"""
       body {

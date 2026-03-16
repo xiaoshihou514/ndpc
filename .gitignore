@@ -4,9 +4,9 @@
 .vscode/
 .idea/
 
-/ndpc
-ndpc.jar
-ndpc.exe
+/ndpc.jar
+/ndpc-*
+
 /*.sty
 /*.tex
 /*.pdf
@@ -14,3 +14,5 @@ ndpc.exe
 /*.typ
 /*.lean
 /*.ndp
+
+**/target/

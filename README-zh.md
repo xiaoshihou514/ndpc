@@ -18,6 +18,49 @@ ndpc专注于正确性、可维护性和形式化验证，其代码风格与手�
 - 生成对应的Lean4证明
 - 将证明导出为HTML、Latex和Typst
 
+## Monorepo 结构
+
+- `core/`：共享的语法树、解析器、检查器与格式化核心逻辑
+- `cli/`：命令行入口、后端生成器与发布打包
+- `web/`：基于 Laminar + Scala.js 的前端脚手架，并已接入共享核心逻辑
+
+## 构建与测试
+
+需要先安装 [sbt](https://www.scala-sbt.org/) 和 JDK。
+
+```bash
+sbt coreJVM/test
+sbt cli/test
+sbt web/fastLinkJS
+sbt "cli/run -- check example.ndp"
+```
+
+## 发布构建
+
+构建可运行 jar：
+
+```bash
+sbt cli/assembly
+```
+
+产物文件为仓库根目录下的 `ndpc.jar`。
+
+使用 GraalVM `native-image` 构建原生可执行文件：
+
+```bash
+sbt cli/graalNativeImage
+```
+
+产物文件为仓库根目录下的 `ndpc-graal`。
+
+使用 Scala Native 构建原生可执行文件：
+
+```bash
+sbt cliNative/rootNativeLink
+```
+
+产物文件为仓库根目录下的 `ndpc-native`。
+
 ## 入门
 
 关于安装和基本使用的详细信息，请访问我们的[入门指南页面](https://xiaoshihou514.github.io/ndpc/getting-started.html)。

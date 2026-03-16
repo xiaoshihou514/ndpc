@@ -1,6 +1,17 @@
 format:
-	scala format src/
+	sbt scalafmtAll
+
+compile:
+	sbt compile
+
+test:
+	sbt test
+
+run:
+	sbt "cli/run -- $(ARGS)"
 
 release:
-	scala --power package . --native --native-mode release-full --force -o ndpc
-	scala --power package . --assembly --force -o ndpc.jar
+	sbt cli/assembly cli/graalNativeImage cliNative/rootNativeLink
+
+clean:
+	sbt clean
