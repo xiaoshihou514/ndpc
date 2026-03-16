@@ -1,6 +1,6 @@
 package ndpc
 
-import ndpc.frontend.checkerCore.checkedFromString
+import ndpc.frontend.Checker.checkedFromString
 import parsley.{Failure, Success}
 
 class CheckerSpec extends UnitSpec {

@@ -43,7 +43,7 @@ object formatter {
         inputs.toList.traverse { input =>
             runtime.readInput(input).attempt.map {
                 case Right(contents) =>
-                    attachFile(input, formatterCore.formattedFromString(contents)) match
+                    attachFile(input, Formatter.formattedFromString(contents)) match
                         case Success(formatted) => Success((input, formatted))
                         case Failure(reason)    => Failure(reason)
                 case Left(exception) =>

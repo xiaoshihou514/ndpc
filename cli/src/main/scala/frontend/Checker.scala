@@ -25,7 +25,7 @@ object checker {
         inputs.toList.traverse { input =>
             runtime.readInput(input).attempt.map {
                 case Right(contents) =>
-                    attachFile(input, checkerCore.checkedFromString(contents))
+                    attachFile(input, Checker.checkedFromString(contents))
                 case Left(exception) =>
                     Failure(IOError(input, exception.toString))
             }

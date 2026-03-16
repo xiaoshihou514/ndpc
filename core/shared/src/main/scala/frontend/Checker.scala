@@ -10,7 +10,7 @@ import ndpc.frontend.pretty.*
 
 import scala.collection.mutable.Set
 
-object checkerCore {
+object Checker {
     def checkedFromString(contents: String): Result[NdpcError, CheckedProof] =
         parse(contents) match
             case Success(ast) =>

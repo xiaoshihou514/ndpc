@@ -1,6 +1,6 @@
 package ndpc
 
-import ndpc.frontend.formatterCore.formattedFromString
+import ndpc.frontend.Formatter.formattedFromString
 import parsley.Success
 
 class FormatterSpec extends UnitSpec {

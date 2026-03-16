@@ -1,7 +1,7 @@
 package ndpc.web
 
 import com.raquo.laminar.api.L.*
-import ndpc.frontend.checkerCore
+import ndpc.frontend.Checker
 
 import org.scalajs.dom
 
@@ -25,7 +25,7 @@ x [^E(1)]""")
         renderOnDomContentLoaded(dom.document.getElementById("app"), app)
 
     private def renderStatus(input: String): String =
-        checkerCore.checkedFromString(input) match
+        Checker.checkedFromString(input) match
             case parsley.Success(_) => "Proof parses and checks in shared core."
             case parsley.Failure(error) =>
                 error match

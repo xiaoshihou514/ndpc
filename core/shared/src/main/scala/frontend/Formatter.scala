@@ -7,7 +7,7 @@ import ndpc.frontend.pretty.*
 import ndpc.utils.*
 import parsley.{Result, Success, Failure}
 
-object formatterCore {
+object Formatter {
     def formattedFromString(contents: String): Result[NdpcError, String] =
         parse(contents) match
             case Success(ast)    => Success(formatPure(ast))
