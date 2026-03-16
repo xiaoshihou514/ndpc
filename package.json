@@ -1,0 +1,15 @@
+{
+  "name": "ndpc-webui",
+  "version": "0.1.0-SNAPSHOT",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@scala-js/vite-plugin-scalajs": "^1.0.0",
+    "vite": "^4.1.0"
+  }
+}

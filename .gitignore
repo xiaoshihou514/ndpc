@@ -16,3 +16,5 @@
 /*.ndp
 
 **/target/
+
+/node_modules/
