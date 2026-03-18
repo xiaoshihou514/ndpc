@@ -22,13 +22,16 @@ class CliBehaviorSpec extends UnitSpec {
 
             val state = runtime.state.unsafeRunSync()
             state.stdout shouldBe empty
-            normalized(state.stderr.text) shouldBe normalized(expected("test/stderr/checker-success.txt"))
+            normalized(state.stderr.text) shouldBe normalized(
+              expected("test/stderr/checker-success.txt")
+            )
         }
     }
 
     it should "write human diagnostics to stderr for every checker failure fixture" in {
         forAll(os.list(TestPaths.path("test/checker/failure"))) { input =>
-            val runtime = TestCliRuntime.create(inputs = Map(input.last -> os.read(input))).unsafeRunSync()
+            val runtime =
+                TestCliRuntime.create(inputs = Map(input.last -> os.read(input))).unsafeRunSync()
 
             checker.check(Seq(input.last), false, runtime).unsafeRunSync() shouldBe 1
 
@@ -42,7 +45,8 @@ class CliBehaviorSpec extends UnitSpec {
 
     it should "write json diagnostics to stdout for every checker failure fixture" in {
         forAll(os.list(TestPaths.path("test/checker/failure"))) { input =>
-            val runtime = TestCliRuntime.create(inputs = Map(input.last -> os.read(input))).unsafeRunSync()
+            val runtime =
+                TestCliRuntime.create(inputs = Map(input.last -> os.read(input))).unsafeRunSync()
 
             checker.check(Seq(input.last), true, runtime).unsafeRunSync() shouldBe 1
 
