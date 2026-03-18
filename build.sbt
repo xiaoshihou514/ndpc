@@ -98,14 +98,17 @@ lazy val cliNative = (project in file("cli-native"))
   )
 
 lazy val web = (project in file("web"))
-  .enablePlugins(org.scalajs.sbtplugin.ScalaJSPlugin)
+  .enablePlugins(org.scalajs.sbtplugin.ScalaJSPlugin, org.scalablytyped.converter.plugin.ScalablyTypedConverterExternalNpmPlugin)
   .settings(
     resolvers ++= commonResolvers,
     name := "ndpc-web",
     scalaJSUseMainModuleInitializer := true,
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+    externalNpm := baseDirectory.value.getParentFile,
+    stIgnore ++= List("vite", "@scala-js"),
     libraryDependencies ++= Seq(
       "com.github.j-mie6" %%% "parsley" % "5.0.0-M16",
-      "com.raquo" %%% "laminar" % "17.2.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.8.0"
     ),
     Compile / unmanagedSourceDirectories += (LocalRootProject / baseDirectory).value / "core" / "shared" / "src" / "main" / "scala"
   )

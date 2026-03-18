@@ -1,13 +1,97 @@
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+/* ── Reset & full-screen layout ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: system-ui, sans-serif;
 }
 
-#facade {
-  text-align: center;
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #252526;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+  min-height: 40px;
+}
+
+.toolbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #cccccc;
+  letter-spacing: 0.04em;
+  margin-right: auto;
+}
+
+.toolbar-btn {
+  background: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.toolbar-btn:hover { background: #505050; }
+
+.toolbar-select {
+  background: #3c3c3c;
+  color: #cccccc;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+.toolbar-select:hover { background: #505050; }
+
+/* ── Editor container ────────────────────────────────────────────────── */
+.editor-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CodeMirror fills the container */
+.editor-container .cm-editor {
+  height: 100%;
+  overflow: auto;
+}
+
+/* ── Status indicator ────────────────────────────────────────────────── */
+.status-indicator {
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.status-ok    { color: #4ec9b0; }
+.status-error { color: #f44747; }
+
+/* ── Indent guide lines ──────────────────────────────────────────────── */
+.cm-indent-markers { --indent-marker-bg-color: #333; --indent-marker-active-bg-color: #555; }
+
+.cm-tooltip {
+  font-size: 13px;
+}
+.cm-tooltip-ndpc {
+  padding: 6px 10px;
+  max-width: 420px;
+  line-height: 1.5;
 }
 

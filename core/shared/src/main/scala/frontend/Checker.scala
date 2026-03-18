@@ -74,7 +74,7 @@ object Checker {
         boxConcls: Conclusions
     ): Result[EnrichedErr, Int] = {
         // verify head and tail
-        input.body.filterNot(isComment(_)).toVector match {
+        input.body.filterNot(isComment).toVector match {
             case v if v.isEmpty =>
                 Failure(
                   EnrichedErr(
@@ -89,7 +89,7 @@ object Checker {
                   EnrichedErr(
                     "Box ended with another box",
                     None,
-                    lines.indexOf(tail),
+                    lines.indexOf(tail) + 1,
                     None
                   )
                 )
@@ -105,13 +105,13 @@ object Checker {
                 Failure(
                   EnrichedErr(
                     s"Box starting at line $lineNr did not start with a valid proof "
-                        + "(expected assumption, forall I const, given, premise)",
+                        + s"(expected assumption, forall I const, given, premise)",
                     None,
-                    lines.indexOf(head),
+                    lines.indexOf(head) + 1,
                     None
                   )
                 )
-            case _ => Failure(EnrichedErr(s"Unknown error", None, 0, None))
+            case _ => Failure(EnrichedErr(s"Unknown error", None, 1, None))
         }
     }
 

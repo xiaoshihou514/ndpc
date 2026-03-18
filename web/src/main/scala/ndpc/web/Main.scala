@@ -1,35 +1,42 @@
 package ndpc.web
 
-import com.raquo.laminar.api.L.*
-import ndpc.frontend.Checker
-
 import org.scalajs.dom
+import org.scalajs.dom.html
+import ndpc.web.components.*
 
-object Main {
+object Main:
     def main(args: Array[String]): Unit =
-        val initialProof = Var("""x ^ y [premise]
-x [^E(1)]""")
+        val root = dom.document.getElementById("app")
 
-        val app = div(
-          h1("ndpc web scaffold"),
-          p("This Scala.js/Laminar app already links against the shared core proof logic."),
-          textArea(
-            rows := 8,
-            cols := 60,
-            value <-- initialProof.signal,
-            onInput.mapToValue --> initialProof.writer
-          ),
-          pre(child.text <-- initialProof.signal.map(renderStatus))
-        )
+        // ---- Toolbar ----
+        val toolbar = dom.document.createElement("div").asInstanceOf[dom.html.Div]
+        toolbar.className = "toolbar"
 
-        renderOnDomContentLoaded(dom.document.getElementById("app"), app)
+        val title = dom.document.createElement("span").asInstanceOf[dom.html.Span]
+        title.className   = "toolbar-title"
+        title.textContent = "ndpc"
+        toolbar.appendChild(title)
 
-    private def renderStatus(input: String): String =
-        Checker.checkedFromString(input) match
-            case parsley.Success(_) => "Proof parses and checks in shared core."
-            case parsley.Failure(error) =>
-                error match
-                    case ndpc.utils.SyntaxError(reason)    => s"Syntax error: ${reason.location}"
-                    case ndpc.utils.SemanticsError(reason) => s"Semantics error: ${reason.location}"
-                    case ndpc.utils.IOError(_, reason)     => s"I/O error: $reason"
-}
+        // ---- Editor container ----
+        val editorContainer = dom.document.createElement("div").asInstanceOf[dom.html.Div]
+        editorContainer.className = "editor-container"
+
+        root.appendChild(toolbar)
+        root.appendChild(editorContainer)
+
+        // Create the CodeMirror editor
+        val (view, statusSpan) = Editor.create(editorContainer)
+
+        // ---- Status indicator (placed right after title) ----
+        toolbar.insertBefore(statusSpan, toolbar.firstChild.nextSibling)
+
+        // ---- Theme toggle ----
+        val isDark    = dom.window.localStorage.getItem("ndpc-theme") != "light"
+        val themeBtn  = dom.document.createElement("button").asInstanceOf[dom.html.Button]
+        themeBtn.className   = "toolbar-btn"
+        themeBtn.textContent = if isDark then "☀ Light" else "☾ Dark"
+        themeBtn.addEventListener("click", (_: dom.Event) => Theme.toggle(view, themeBtn))
+        toolbar.appendChild(themeBtn)
+
+        // ---- Examples dropdown ----
+        Examples.buildSelect(view, toolbar)
