@@ -4,6 +4,7 @@ import parsley.Parsley
 import parsley.token.{Lexer, Basic}
 import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc, SpaceDesc}
 import parsley.errors.combinator.*
+import parsley.Parsley.eof
 
 object lexer {
     private val ops = Set(
@@ -48,5 +49,5 @@ object lexer {
     val symbol = lexer.lexeme.symbol
     val implicits = lexer.lexeme.symbol.implicits
     def lexeme[A](p: Parsley[A]): Parsley[A] = lexer.lexeme(p)
-    def fully[A](p: Parsley[A]): Parsley[A] = lexer.fully(p)
+    def fully[A](p: Parsley[A]): Parsley[A] = p <~ eof
 }
