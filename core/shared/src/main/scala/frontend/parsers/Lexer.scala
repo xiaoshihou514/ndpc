@@ -48,4 +48,5 @@ object lexer {
     val symbol = lexer.lexeme.symbol
     val implicits = lexer.lexeme.symbol.implicits
     def lexeme[A](p: Parsley[A]): Parsley[A] = lexer.lexeme(p)
+    def fully[A](p: Parsley[A]): Parsley[A] = lexer.fully(p)
 }

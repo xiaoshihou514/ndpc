@@ -5,19 +5,19 @@ import ndpc.frontend.expr.rule.{Rule, Tick}
 import ndpc.frontend.parsers.FormulaParser
 import ndpc.frontend.parsers.FormulaParser.lformula
 import ndpc.frontend.parsers.lexer.implicits.implicitSymbol
-import ndpc.frontend.parsers.lexer.lexeme
+import ndpc.frontend.parsers.lexer.{lexeme, fully}
 import ndpc.frontend.parsers.RuleParser.rule
 import ndpc.frontend.parsers.utils.*
 
 import parsley.{Parsley, Result}
 import parsley.Parsley.{eof, many, atomic, pure}
-import parsley.combinator.manyTill
+import parsley.combinator.{manyTill, option}
 import parsley.character.item
 import parsley.state.{RefMaker, forP}
 import parsley.syntax.character.charLift
 import parsley.generic.ParserBridge3
 import parsley.errors.combinator.*
-import parsley.debug.*
+// import parsley.debug.*
 
 import scala.util.{Try, Either}
 import ndpc.frontend.parsers.EnrichedErr
@@ -100,7 +100,7 @@ object parser {
 
     // format: off
     private def p(): Parsley[UncheckedProof] = State.empty.makeRef { state =>
-        val comment = ("--" ~> manyTill(item, '\n' <|> eof))
+        val comment = ("--" ~> manyTill(item, '\n'))
             .map(it => Comment(it.mkString))
 
         val empty = manyTill(" " <|> "\t", '\n') as Empty
@@ -109,7 +109,7 @@ object parser {
             state.update(Pf(
                 (lexeme(lformula)),
                 ("[" ~> lexeme(rule) <~ "]"),
-                comment.map(Some.apply) <|> (('\n' <|> eof) as None)
+                comment.map(Some.apply) <|> (option('\n') as None)
             )
             .map { pf => (s: State) =>
                 s.addLine(pf)
@@ -166,5 +166,5 @@ object parser {
     }
     // format: on
     implicit val eb: ErrorBuilder[EnrichedErr] = new ErrBuilder with MatchParserDemand
-    def parse(input: String) = p().parse(input)
+    def parse(input: String) = fully(p()).parse(input)
 }
