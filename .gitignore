@@ -17,3 +17,4 @@
 
 **/target/
 /node_modules/
+/.vite
