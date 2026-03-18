@@ -10,12 +10,12 @@ private object CmLangIndent extends js.Object
 private object CmIndentMarkers extends js.Object
 
 object IndentLines:
-    private val lang    = CmLangIndent.asInstanceOf[js.Dynamic]
+    private val lang = CmLangIndent.asInstanceOf[js.Dynamic]
     private val markers = CmIndentMarkers.asInstanceOf[js.Dynamic]
 
     val extension: js.Array[js.Any] = js.Array(
-        // Set the logical indent unit to 2 spaces
-        lang.indentUnit.of("  "),
-        // Visual indent guide lines
-        markers.indentationMarkers(),
+      // Set the logical indent unit to 2 spaces
+      lang.indentUnit.of("  "),
+      // Visual indent guide lines
+      markers.indentationMarkers()
     )

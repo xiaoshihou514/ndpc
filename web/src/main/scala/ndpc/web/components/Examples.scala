@@ -13,28 +13,24 @@ object Examples:
            |q ^ p [^I(3, 2)]""".stripMargin
 
     private val all: List[(String, String)] = List(
-        "∧ intro/elim" -> default,
-
-        "Modus ponens chain" ->
-            """|p [premise]
+      "∧ intro/elim" -> default,
+      "Modus ponens chain" ->
+          """|p [premise]
                |p -> q [premise]
                |q -> r [premise]
                |q [->E(1, 2)]
                |r [->E(4, 3)]""".stripMargin,
-
-        "Double negation" ->
-            """|p [premise]
+      "Double negation" ->
+          """|p [premise]
                |~~p [~~I(1)]
                |p [~~E(2)]""".stripMargin,
-
-        "Implication intro (sub-proof)" ->
-            """|q [premise]
+      "Implication intro (sub-proof)" ->
+          """|q [premise]
                |  p [ass]
                |  p ^ q [^I(2, 1)]
                |p -> p ^ q [->I(2, 3)]""".stripMargin,
-
-        "Law of Excluded Middle" ->
-            """|p / ~p [LEM]""".stripMargin,
+      "Law of Excluded Middle" ->
+          """|p / ~p [LEM]""".stripMargin
     )
 
     /** Appends a <select> dropdown to `parent` that loads examples into the editor. */
@@ -43,30 +39,33 @@ object Examples:
         select.className = "toolbar-select"
 
         val placeholder = dom.document.createElement("option").asInstanceOf[dom.html.Option]
-        placeholder.text     = "Load example…"
+        placeholder.text = "Load example…"
         placeholder.disabled = true
         placeholder.selected = true
         select.appendChild(placeholder)
 
         all.foreach { (name, text) =>
             val opt = dom.document.createElement("option").asInstanceOf[dom.html.Option]
-            opt.text  = name
+            opt.text = name
             opt.value = text
             select.appendChild(opt)
         }
 
-        select.addEventListener("change", (_: dom.Event) =>
-            val text = select.value
-            view.asInstanceOf[js.Dynamic].dispatch(
-                js.Dynamic.literal(
-                    changes = js.Dynamic.literal(
-                        from   = 0,
-                        to     = view.state.doc.asInstanceOf[js.Dynamic].length,
-                        insert = text,
+        select.addEventListener(
+          "change",
+          (_: dom.Event) =>
+              val text = select.value
+              view.asInstanceOf[js.Dynamic]
+                  .dispatch(
+                    js.Dynamic.literal(
+                      changes = js.Dynamic.literal(
+                        from = 0,
+                        to = view.state.doc.asInstanceOf[js.Dynamic].length,
+                        insert = text
+                      )
                     )
-                )
-            )
-            select.selectedIndex = 0
+                  )
+              select.selectedIndex = 0
         )
 
         parent.appendChild(select)

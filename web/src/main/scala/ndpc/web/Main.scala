@@ -13,7 +13,7 @@ object Main:
         toolbar.className = "toolbar"
 
         val title = dom.document.createElement("span").asInstanceOf[dom.html.Span]
-        title.className   = "toolbar-title"
+        title.className = "toolbar-title"
         title.textContent = "ndpc"
         toolbar.appendChild(title)
 
@@ -31,9 +31,9 @@ object Main:
         toolbar.insertBefore(statusSpan, toolbar.firstChild.nextSibling)
 
         // ---- Theme toggle ----
-        val isDark    = dom.window.localStorage.getItem("ndpc-theme") != "light"
-        val themeBtn  = dom.document.createElement("button").asInstanceOf[dom.html.Button]
-        themeBtn.className   = "toolbar-btn"
+        val isDark = dom.window.localStorage.getItem("ndpc-theme") != "light"
+        val themeBtn = dom.document.createElement("button").asInstanceOf[dom.html.Button]
+        themeBtn.className = "toolbar-btn"
         themeBtn.textContent = if isDark then "☀ Light" else "☾ Dark"
         themeBtn.addEventListener("click", (_: dom.Event) => Theme.toggle(view, themeBtn))
         toolbar.appendChild(themeBtn)

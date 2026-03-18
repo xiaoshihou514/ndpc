@@ -26,11 +26,10 @@ private def paren(f: LFormula => String): (LFormula, LFormula) => String = {
         case Forall(_, _)  => 0
         case Exists(_, _)  => 0
     }
-    
-    { (parent, child) =>
 
-    if precedence(parent) < precedence(child) then f(child)
-    else s"(${f(child)})"
+    { (parent, child) =>
+        if precedence(parent) < precedence(child) then f(child)
+        else s"(${f(child)})"
     }
 }
 

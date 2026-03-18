@@ -12,8 +12,8 @@ object Completion:
     private val ac = CmAutoComplete.asInstanceOf[js.Dynamic]
 
     private val keywordCompletions: js.Array[js.Dynamic] = js.Array(
-        completion("forall", "∀  universal quantifier"),
-        completion("exists", "∃  existential quantifier"),
+      completion("forall", "∀  universal quantifier"),
+      completion("exists", "∃  existential quantifier")
     )
 
     // All rule completions (inside brackets), built once from Docs
@@ -30,7 +30,7 @@ object Completion:
 
     /** Returns true if the cursor at `pos` in `doc` is inside an open `[` bracket. */
     private def inBracket(docStr: String, pos: Int): Boolean =
-        var i     = pos - 1
+        var i = pos - 1
         var depth = 0
         while i >= 0 do
             val ch = docStr.charAt(i)
@@ -44,20 +44,19 @@ object Completion:
 
     private val ndpcCompletionSource: js.Function1[js.Dynamic, js.Any] =
         (ctx: js.Dynamic) =>
-            val pos    = ctx.pos.asInstanceOf[Int]
+            val pos = ctx.pos.asInstanceOf[Int]
             val docStr = ctx.state.doc.toString().asInstanceOf[String]
             if inBracket(docStr, pos) then
                 // Inside brackets: always offer rule completions.
                 // Scan back to the last delimiter to find the token start.
                 // CM6 will filter the list by what the user has typed so far.
                 var from = pos
-                while from > 0 && !" ,[()\n".contains(docStr.charAt(from - 1)) do
-                    from -= 1
+                while from > 0 && !" ,[()\n".contains(docStr.charAt(from - 1)) do from -= 1
                 js.Dynamic.literal(
-                    from     = from,
-                    options  = ruleCompletions,
-                    // Keep the popup open as more characters are typed
-                    validFor = new js.RegExp("[^\\s,\\[\\]()]*"),
+                  from = from,
+                  options = ruleCompletions,
+                  // Keep the popup open as more characters are typed
+                  validFor = new js.RegExp("[^\\s,\\[\\]()]*")
                 )
             else
                 // Outside brackets: only complete word-based keywords (forall, exists).
@@ -69,7 +68,7 @@ object Completion:
                     js.Dynamic.literal(from = from, options = keywordCompletions)
 
     val extension: js.Any = ac.autocompletion(
-        js.Dynamic.literal(
-            `override` = js.Array(ndpcCompletionSource)
-        )
+      js.Dynamic.literal(
+        `override` = js.Array(ndpcCompletionSource)
+      )
     )
