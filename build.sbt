@@ -108,7 +108,8 @@ lazy val web = (project in file("web"))
     stIgnore ++= List("vite", "@scala-js"),
     libraryDependencies ++= Seq(
       "com.github.j-mie6" %%% "parsley" % "5.0.0-M16",
-      "org.scala-js" %%% "scalajs-dom" % "2.8.0"
+      "org.scala-js" %%% "scalajs-dom" % "2.8.0",
+      "com.raquo" %%% "laminar" % "17.2.1"
     ),
     Compile / unmanagedSourceDirectories += (LocalRootProject / baseDirectory).value / "core" / "shared" / "src" / "main" / "scala"
   )

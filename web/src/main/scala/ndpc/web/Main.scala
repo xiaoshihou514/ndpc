@@ -1,42 +1,105 @@
 package ndpc.web
 
+import scala.scalajs.js
+import com.raquo.laminar.api.L.*
 import org.scalajs.dom
-import org.scalajs.dom.html
 import ndpc.web.components.*
+import typings.codemirrorView.mod.{EditorView => CmEditorView}
 
 object Main:
     def main(args: Array[String]): Unit =
-        val root = dom.document.getElementById("app")
+        Theme.initBodyClass()
 
-        // ---- Toolbar ----
-        val toolbar = dom.document.createElement("div").asInstanceOf[dom.html.Div]
-        toolbar.className = "toolbar"
+        val errors = Var(List.empty[CheckError])
+        val viewVar = Var[Option[CmEditorView]](None)
 
-        val title = dom.document.createElement("span").asInstanceOf[dom.html.Span]
-        title.className = "toolbar-title"
-        title.textContent = "ndpc"
-        toolbar.appendChild(title)
+        val editorEl = div(
+          cls := "editor-container",
+          onMountCallback { ctx =>
+              val view = Editor.create(ctx.thisNode.ref, errors)
+              viewVar.set(Some(view))
+          }
+        )
 
-        // ---- Editor container ----
-        val editorContainer = dom.document.createElement("div").asInstanceOf[dom.html.Div]
-        editorContainer.className = "editor-container"
+        // ── Derived signals ──────────────────────────────────────────
+        val errorCount = errors.signal.map(_.length)
 
-        root.appendChild(toolbar)
-        root.appendChild(editorContainer)
+        val statusText = errorCount.map { n =>
+            if n == 0 then "🎉" else "❌"
+        }
+        val statusCls = errorCount.map { n =>
+            if n == 0 then "status-indicator status-ok"
+            else "status-indicator status-error"
+        }
 
-        // Create the CodeMirror editor
-        val (view, statusSpan) = Editor.create(editorContainer)
+        def withView(f: CmEditorView => Unit): Unit =
+            viewVar.now().foreach(f)
 
-        // ---- Status indicator (placed right after title) ----
-        toolbar.insertBefore(statusSpan, toolbar.firstChild.nextSibling)
+        // ── Toolbar ──────────────────────────────────────────────────
+        val toolbar = div(
+          cls := "toolbar",
+          span(cls := "toolbar-title", "ndpc"),
+          span(cls <-- statusCls, child.text <-- statusText),
+          label(
+            cls   := "theme-switch",
+            title := "Toggle light/dark theme",
+            input(
+              typ     := "checkbox",
+              checked <-- Theme.isDarkVar.signal,
+              onClick --> { _ => withView(Theme.toggle) }
+            ),
+            span(cls := "theme-switch-slider"),
+          ),
+          select(
+            cls := "toolbar-select",
+            option(value := "", disabled := true, selected := true, "Load example…"),
+            Examples.all.map { (name, text) => option(value := text, name) },
+            onChange --> { e =>
+                val sel = e.target.asInstanceOf[dom.html.Select]
+                val text = sel.value
+                withView { view =>
+                    view.asInstanceOf[js.Dynamic]
+                        .dispatch(
+                          js.Dynamic.literal(
+                            changes = js.Dynamic.literal(
+                              from = 0,
+                              to = view.state.doc.asInstanceOf[js.Dynamic].length,
+                              insert = text
+                            )
+                          )
+                        )
+                }
+                sel.selectedIndex = 0
+            }
+          )
+        )
 
-        // ---- Theme toggle ----
-        val isDark = dom.window.localStorage.getItem("ndpc-theme") != "light"
-        val themeBtn = dom.document.createElement("button").asInstanceOf[dom.html.Button]
-        themeBtn.className = "toolbar-btn"
-        themeBtn.textContent = if isDark then "☀ Light" else "☾ Dark"
-        themeBtn.addEventListener("click", (_: dom.Event) => Theme.toggle(view, themeBtn))
-        toolbar.appendChild(themeBtn)
+        // ── Info panel ───────────────────────────────────────────────
+        val infoPanel = div(
+          cls := "info-panel",
+          children <-- errors.signal.map {
+              case Nil =>
+                  List(div(cls := "info-ok", "✓ All proofs are correct"))
+              case errs =>
+                  errs.map { err =>
+                      div(
+                        cls := "info-error-item",
+                        div(
+                          cls := "info-error-location",
+                          s"Line ${err.line}, col ${err.col}"
+                        ),
+                        div(cls := "info-error-message", err.message)
+                      )
+                  }
+          }
+        )
 
-        // ---- Examples dropdown ----
-        Examples.buildSelect(view, toolbar)
+        // ── Layout ───────────────────────────────────────────────────
+        renderOnDomContentLoaded(
+          dom.document.getElementById("app"),
+          div(
+            cls := "app-root",
+            toolbar,
+            div(cls := "content-row", editorEl, infoPanel)
+          )
+        )
