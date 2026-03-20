@@ -4,6 +4,11 @@ import scala.sys.process.*
 import sbtassembly.AssemblyPlugin.autoImport.*
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
+import org.scalajs.linker.interface.ModuleSplitStyle
+
+Global / onChangedBuildSource := ReloadOnSourceChanges
+// this allows tasks to be killed with Ctrl+C without exiting SBT
+Global / cancelable := true
 
 ThisBuild / organization := "io.github.xiaoshihou514"
 ThisBuild / version := "0.1.0-SNAPSHOT"
@@ -103,7 +108,13 @@ lazy val web = (project in file("web"))
     resolvers ++= commonResolvers,
     name := "ndpc-web",
     scalaJSUseMainModuleInitializer := true,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+    Compile / scalaJSLinkerConfig ~= {
+        _.withSourceMap(false)
+         .withModuleKind(ModuleKind.ESModule)
+         // this ensures everything in the `web` package has its own module, which
+         // improves the incremental building and live reload.
+         .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("web", "core")))
+    },
     externalNpm := baseDirectory.value.getParentFile,
     stIgnore ++= List("vite", "@scala-js"),
     libraryDependencies ++= Seq(

@@ -22,14 +22,9 @@ object Main:
         )
 
         // ── Derived signals ──────────────────────────────────────────
-        val errorCount = errors.signal.map(_.length)
 
-        val statusText = errorCount.map { n =>
-            if n == 0 then "🎉" else "❌"
-        }
-        val statusCls = errorCount.map { n =>
-            if n == 0 then "status-indicator status-ok"
-            else "status-indicator status-error"
+        val statusText = errors.signal.map { es =>
+            if es.isEmpty then "🎉" else "❌"
         }
 
         def withView(f: CmEditorView => Unit): Unit =
@@ -38,17 +33,17 @@ object Main:
         // ── Toolbar ──────────────────────────────────────────────────
         val toolbar = div(
           cls := "toolbar",
-          span(cls := "toolbar-title", "ndpc"),
-          span(cls <-- statusCls, child.text <-- statusText),
+          span(cls := "toolbar-title", "ndpc playground"),
+          span(child.text <-- statusText),
           label(
-            cls   := "theme-switch",
+            cls := "theme-switch",
             title := "Toggle light/dark theme",
             input(
-              typ     := "checkbox",
+              typ := "checkbox",
               checked <-- Theme.isDarkVar.signal,
               onClick --> { _ => withView(Theme.toggle) }
             ),
-            span(cls := "theme-switch-slider"),
+            span(cls := "theme-switch-slider")
           ),
           select(
             cls := "toolbar-select",
@@ -79,11 +74,10 @@ object Main:
           cls := "info-panel",
           children <-- errors.signal.map {
               case Nil =>
-                  List(div(cls := "info-ok", "✓ All proofs are correct"))
+                  List(div(cls := "info-ok", "✓ All proofs are correct!"))
               case errs =>
                   errs.map { err =>
                       div(
-                        cls := "info-error-item",
                         div(
                           cls := "info-error-location",
                           s"Line ${err.line}, col ${err.col}"

@@ -19,8 +19,8 @@ object Completion:
     // All rule completions (inside brackets), built once from Docs
     private val ruleCompletions: js.Array[js.Dynamic] =
         Docs.docs.toArray
-            .filterNot { case (k, _) => k == "forall" || k == "exists" }
-            .map { case (label, doc) =>
+            .filterNot { (k, _) => k == "forall" || k == "exists" }
+            .map { (label, doc) =>
                 js.Dynamic.literal(label = label, `type` = "function", info = doc)
             }
             .toJSArray
@@ -30,17 +30,8 @@ object Completion:
 
     /** Returns true if the cursor at `pos` in `doc` is inside an open `[` bracket. */
     private def inBracket(docStr: String, pos: Int): Boolean =
-        var i = pos - 1
-        var depth = 0
-        while i >= 0 do
-            val ch = docStr.charAt(i)
-            if ch == ']' then depth += 1
-            else if ch == '[' then
-                if depth == 0 then return true
-                else depth -= 1
-            else if ch == '\n' then return false // don't cross line boundaries
-            i -= 1
-        false
+        val prefix = docStr.substring(0, pos)
+        prefix.contains("[") && !prefix.contains("]")
 
     private val ndpcCompletionSource: js.Function1[js.Dynamic, js.Any] =
         (ctx: js.Dynamic) =>

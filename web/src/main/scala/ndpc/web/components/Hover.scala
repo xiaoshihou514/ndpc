@@ -15,26 +15,24 @@ object Hover:
     private val tooltipSource: js.Function3[EditorView, Double, js.Any, js.Any] =
         (view, pos, _side) =>
             val state = view.state.asInstanceOf[js.Dynamic]
-            val word  = state.wordAt(pos)
+            val word = state.wordAt(pos)
             if (word == null) null.asInstanceOf[js.Any]
             else
                 val text = state.sliceDoc(word.from, word.to).asInstanceOf[String]
                 Docs.docs.get(text) match
-                    case None => null.asInstanceOf[js.Any]
+                    case None              => null.asInstanceOf[js.Any]
                     case Some(description) =>
                         // Build tooltip DOM with Laminar — access .ref for the raw node.
                         val container = div(
-                            cls := "cm-tooltip-ndpc",
-                            b(text),
-                            s": $description",
+                          cls := "cm-tooltip-ndpc",
+                          b(text),
+                          s": $description"
                         )
                         js.Dynamic.literal(
-                            pos    = word.from,
-                            end    = word.to,
-                            above  = true,
-                            create = (() =>
-                                js.Dynamic.literal(dom = container.ref)
-                            ): js.Function0[js.Dynamic]
+                          pos = word.from,
+                          end = word.to,
+                          above = true,
+                          create = () => js.Dynamic.literal(dom = container.ref)
                         )
 
     val extension: js.Any = cmView.hoverTooltip(tooltipSource)

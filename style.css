@@ -1,3 +1,5 @@
+@import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
+
 /* ── CSS variables (VSCode Dark defaults) ────────────────────────────── */
 :root {
   --bg: #1f1f1f;
@@ -67,7 +69,6 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--fg);
-  font-family: system-ui, sans-serif;
   transition:
     background 0.15s,
     color 0.15s;
@@ -220,6 +221,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  font-family: "Fira Code", monospace;
   transition:
     background 0.15s,
     border-color 0.15s;
@@ -231,20 +233,10 @@ body {
   padding-top: 4px;
 }
 
-.info-error-item {
-  border-left: 3px solid var(--err);
-  padding: 6px 10px;
-  background: var(--err-bg);
-  border-radius: 0 4px 4px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .info-error-location {
   color: var(--syn-punct);
   font-size: 11px;
-  font-family: "Cascadia Code", "Fira Code", monospace;
+  font-family: "Fira Code", monospace;
 }
 
 .info-error-message {
@@ -260,12 +252,6 @@ body {
   padding: 2px 10px;
   border-radius: 4px;
   font-weight: 500;
-}
-.status-ok {
-  color: var(--ok);
-}
-.status-error {
-  color: var(--err);
 }
 
 /* ── Indent guide lines ──────────────────────────────────────────────── */
