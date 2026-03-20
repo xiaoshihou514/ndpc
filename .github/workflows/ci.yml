@@ -11,7 +11,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
       - name: Setup sbt
         uses: sbt/setup-sbt@v1
       - name: Run core tests
@@ -28,7 +28,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
+          cache: sbt
       - name: Setup sbt
         uses: sbt/setup-sbt@v1
       - name: Run CLI tests
@@ -45,7 +46,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
+          cache: sbt
       - name: Setup sbt
         uses: sbt/setup-sbt@v1
       - name: Build Scala.js frontend
@@ -119,3 +121,32 @@ jobs:
               exit 1
             fi
           done
+
+  playground-upload:
+    name: Publish web ui
+    needs: [web-build, latex-tests, typst-tests, lean-tests]
+    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+      - name: Setup nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22.x"
+      - name: Build webui
+        run: |
+          npm ci
+          npm run build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Deploy to Github Pages
+        uses: actions/deploy-pages@v4
