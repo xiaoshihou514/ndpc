@@ -118,7 +118,7 @@ object Theme:
         else dom.document.body.classList.remove("theme-light")
         view.asInstanceOf[js.Dynamic]
             .dispatch(
-                js.Dynamic.literal(
-                    effects = compartment.reconfigure(newTheme.asInstanceOf[Extension])
-                )
+              js.Dynamic.literal(
+                effects = compartment.reconfigure(newTheme.asInstanceOf[Extension])
+              )
             )

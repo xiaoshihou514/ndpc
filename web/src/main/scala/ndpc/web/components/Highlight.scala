@@ -79,8 +79,13 @@ object Highlight:
         lang.syntaxHighlighting(
           lang.HighlightStyle.define(
             js.Array(
-              js.Dynamic.literal(tag = tags.lineComment, color = "var(--syn-comment)", fontStyle = "italic"),
-              js.Dynamic.literal(tag = tags.keyword, color = "var(--syn-keyword)", fontWeight = "bold"),
+              js.Dynamic.literal(
+                tag = tags.lineComment,
+                color = "var(--syn-comment)",
+                fontStyle = "italic"
+              ),
+              js.Dynamic
+                  .literal(tag = tags.keyword, color = "var(--syn-keyword)", fontWeight = "bold"),
               js.Dynamic.literal(tag = tags.operator, color = "var(--syn-op)"),
               js.Dynamic.literal(tag = tags.number, color = "var(--syn-number)"),
               js.Dynamic.literal(tag = tags.typeName, color = "var(--syn-type)"),
