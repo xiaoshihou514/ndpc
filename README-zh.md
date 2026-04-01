@@ -6,9 +6,9 @@
 
 适用于单类谓词形式逻辑的证明器
 
-[入门](https://xiaoshihou514.github.io/ndpc/getting-started.html) •
-[教程](https://xiaoshihou514.github.io/ndpc/tutorial.html) •
-[手册](https://xiaoshihou514.github.io/ndpc/syntax.html)
+[入门](https://xiaoshihou514.github.io/ndpc/docs/getting-started.html) •
+[教程](https://xiaoshihou514.github.io/ndpc/docs/tutorial.html) •
+[手册](https://xiaoshihou514.github.io/ndpc/docs/syntax.html)
 
 </div>
 
@@ -20,13 +20,13 @@ ndpc专注于正确性、可维护性和形式化验证，其代码风格与手�
 
 ## 入门
 
-关于安装和基本使用的详细信息，请访问我们的[入门指南页面](https://xiaoshihou514.github.io/ndpc/getting-started.html)。
+关于安装和基本使用的详细信息，请访问我们的[入门指南页面](https://xiaoshihou514.github.io/ndpc/docs/getting-started.html)。
 
-推荐阅读我们的[入门指南](https://xiaoshihou514.github.io/ndpc/tutorial.html)，亦可参考[语法手册](https://xiaoshihou514.github.io/ndpc/syntax.html)。
+推荐阅读我们的[入门指南](https://xiaoshihou514.github.io/ndpc/docs/tutorial.html)，亦可参考[语法手册](https://xiaoshihou514.github.io/ndpc/docs/syntax.html)。
 
 ## 答疑
 
-[Github工单](https://github.com/xiaoshihou514/ndpc/issues/new)或[Github论坛](https://github.com/xiaoshihou514/ndpc/discussions)
+[Github工单](https://github.com/xiaoshihou514/ndpc/docs/issues/new)或[Github论坛](https://github.com/xiaoshihou514/ndpc/docs/discussions)
 
 ## 友链
 

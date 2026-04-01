@@ -107,6 +107,7 @@ jobs:
         run: |
           npm ci
           npm run build
+          cp assets/* dist/assets/
       - name: Deploy to Github Pages
         uses: actions/git-pages@v2
         with:

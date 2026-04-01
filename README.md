@@ -6,9 +6,9 @@
 
 Proof assistant for single sorted predicate logic.
 
-[Getting started](https://xiaoshihou514.github.io/ndpc/getting-started.html) •
-[Tutorial](https://xiaoshihou514.github.io/ndpc/tutorial.html) •
-[Reference](https://xiaoshihou514.github.io/ndpc/syntax.html)
+[Getting started](https://xiaoshihou514.github.io/ndpc/docs/getting-started.html) •
+[Tutorial](https://xiaoshihou514.github.io/ndpc/docs/tutorial.html) •
+[Reference](https://xiaoshihou514.github.io/ndpc/docs/syntax.html)
 
 </div>
 
@@ -22,13 +22,13 @@ Ndpc enables correct, maintainable and formally verified proofs for single sorte
 
 ## Getting started
 
-Go to our [getting started page](https://xiaoshihou514.github.io/ndpc/getting-started.html) for details about installation and basic usage.
+Go to our [getting started page](https://xiaoshihou514.github.io/ndpc/docs/getting-started.html) for details about installation and basic usage.
 
-An online tutorial is available [here](https://xiaoshihou514.github.io/ndpc/tutorial.html). There is also a [language reference](https://xiaoshihou514.github.io/ndpc/syntax.html).
+An online tutorial is available [here](https://xiaoshihou514.github.io/ndpc/docs/tutorial.html). There is also a [language reference](https://xiaoshihou514.github.io/ndpc/docs/syntax.html).
 
 ## Troubleshooting
 
-Use [github issues](https://github.com/xiaoshihou514/ndpc/issues/new) or [github discussions](https://github.com/xiaoshihou514/ndpc/discussions).
+Use [github issues](https://github.com/xiaoshihou514/ndpc/docs/issues/new) or [github discussions](https://github.com/xiaoshihou514/ndpc/docs/discussions).
 
 ## Related projects
 
