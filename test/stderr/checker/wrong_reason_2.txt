@@ -1,0 +1,12 @@
+Semantics error:
+wrong_reason_2.ndp, (line 6):
+  The following assertion(s) implied by ForallIntro(3,2) does not hold:
+    C is a constant
+    Conclusion is of form forall ?. A
+    ForallConclusion free of quantifier in Conclusion
+    Conclusion if of form forall x. ForallConclusion[?/x]
+    C and ForallConclusion is assumption and conclusion of a box
+  In particular with the following variables:
+    C: forall x. (P(x))
+    Conclusion: P(c)
+    ForallConclusion: ~P(c)

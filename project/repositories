@@ -1,0 +1,6 @@
+[repositories]
+local
+sbt-plugin-releases: https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/, [ivy]
+typesafe-ivy-releases: https://repo.typesafe.com/typesafe/ivy-releases/, [ivy]
+sonatype-releases: https://oss.sonatype.org/content/repositories/releases
+maven-central

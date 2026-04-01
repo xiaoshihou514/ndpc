@@ -1,0 +1,8 @@
+
+{
+  "file": "missing_arg.ndp",
+  "line": 5,
+  "column": 15,
+  "explanation": "  unexpected \")\"\n  expected \",\" or digit\n  >    exists x. P(x) [existsI ( 3 )]\n  >    F   [~E (1)]\n                 ^\n  >  ~P(c)[~I(3,   5)]"
+}
+                    

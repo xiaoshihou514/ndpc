@@ -2,42 +2,72 @@ name: Tests
 on: [push]
 
 jobs:
-  scala-test:
-    name: Scala Test
+  core-tests:
+    name: Core tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Scala
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+      - name: Run core tests
         run: |
-          curl -fL https://github.com/coursier/coursier/releases/latest/download/cs-x86_64-pc-linux.gz | gzip -d > cs
-          chmod +x cs
-          ./cs setup --apps scala -y
-          export PATH="$PATH:$HOME/.local/share/coursier/bin"
-          scala --version
-      - name: Compile test
+          sbt core/test
+
+  cli-tests:
+    name: CLI tests
+    runs-on: ubuntu-latest
+    needs: core-tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+      - name: Run CLI tests
         run: |
-          export PATH="$PATH:$HOME/.local/share/coursier/bin"
-          scala compile . --server=false
-      - name: Test
+          sbt cli/test
+
+  web-build:
+    name: Web build
+    runs-on: ubuntu-latest
+    needs: core-tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+      - name: Build Scala.js frontend
         run: |
-          export PATH="$PATH:$HOME/.local/share/coursier/bin"
-          scala test . --server=false
+          sbt web/fastLinkJS
 
   latex-tests:
     name: LaTeX Tests
     runs-on: ubuntu-latest
-    needs: scala-test
+    needs: cli-tests
     steps:
       - uses: actions/checkout@v4
       - name: Install LaTeX
         run: |
+          sudo apt-get update
           sudo apt-get install -y texlive-latex-base
       - name: Download boxproof.sty
         run: |
-          curl -sSfL https://github.com/YunkaiZhang233/boxproof/raw/refs/heads/main/boxproof.sty -o ndp/latex/boxproof.sty
+          curl -sSfL https://github.com/YunkaiZhang233/boxproof/raw/refs/heads/main/boxproof.sty -o test/latex/boxproof.sty
       - name: Run LaTeX tests
         run: |
-          cd ndp/latex
+          cd test/latex
           for f in *.tex; do
             if pdflatex -interaction=nonstopmode "$f" > /dev/null; then
               echo "✓ $f latex ok"
@@ -50,13 +80,13 @@ jobs:
   typst-tests:
     name: Typst Tests
     runs-on: ubuntu-latest
-    needs: scala-test
+    needs: cli-tests
     steps:
       - uses: actions/checkout@v4
       - uses: typst-community/setup-typst@v4
       - name: Run Typst tests
         run: |
-          cd ndp/typst
+          cd test/typst
           for f in *.typ; do
             if typst compile "$f"; then
               echo "✓ $f typst ok"
@@ -69,7 +99,7 @@ jobs:
   lean-tests:
     name: Lean Tests
     runs-on: ubuntu-latest
-    needs: scala-test
+    needs: cli-tests
     steps:
       - uses: actions/checkout@v4
       - name: Install Lean
@@ -80,7 +110,7 @@ jobs:
       - name: Run Lean tests
         run: |
           source $HOME/.elan/env
-          cd ndp/lean
+          cd test/lean
           for f in *.lean; do
             if lean "$f"; then
               echo "✓ $f lean ok"

@@ -1,0 +1,6 @@
+Semantics error:
+wrong_reason.ndp, (line 3):
+  The following assertion(s) implied by ForallIConst does not hold:
+    Conclusion is a single variable
+  In particular with the following variables:
+    Conclusion: forall x. (P(x))

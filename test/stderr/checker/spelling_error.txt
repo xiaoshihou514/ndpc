@@ -1,0 +1,7 @@
+Syntax error:
+spelling_error.ndp, (line 1, column 26):
+  unexpected "ggiven]"
+  expected Given, Law of Exclueded Middle, or REFLective rule
+  >~(exists x. P(x))       [ggiven]
+                            ^^^^^^^
+  >  c [forall  I const]

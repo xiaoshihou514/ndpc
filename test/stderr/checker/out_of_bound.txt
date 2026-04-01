@@ -1,0 +1,3 @@
+Semantics error:
+out_of_bound.ndp, (line 7):
+Line numbers 666 referenced in ExistsElim(2,3,666) are not accessible to line 7.

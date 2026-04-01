@@ -1,0 +1,7 @@
+
+{
+  "file": "wrong_reason_2.ndp",
+  "line": 6,
+  "explanation": "  The following assertion(s) implied by ForallIntro(3,2) does not hold:\n    C is a constant\n    Conclusion is of form forall ?. A\n    ForallConclusion free of quantifier in Conclusion\n    Conclusion if of form forall x. ForallConclusion[?/x]\n    C and ForallConclusion is assumption and conclusion of a box\n  In particular with the following variables:\n    C: forall x. (P(x))\n    Conclusion: P(c)\n    ForallConclusion: ~P(c)"
+}
+                    

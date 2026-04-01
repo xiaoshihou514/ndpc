@@ -1,12 +1,13 @@
 .scala-build
 .bsp
+.bloop
 .metals
 .vscode/
 .idea/
 
-/ndpc
-ndpc.jar
-ndpc.exe
+/ndpc.jar
+/ndpc-*
+
 /*.sty
 /*.tex
 /*.pdf
@@ -14,3 +15,8 @@ ndpc.exe
 /*.typ
 /*.lean
 /*.ndp
+
+**/target/
+/node_modules/
+/.vite
+/dist
