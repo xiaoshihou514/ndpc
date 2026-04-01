@@ -1,0 +1,7 @@
+
+{
+  "file": "premise_at_wrong_place_2.ndp",
+  "line": 3,
+  "explanation": "Did not expect \"Assume\" and \"Premise\" to be used in places other than the start of proof"
+}
+                    

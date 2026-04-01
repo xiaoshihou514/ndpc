@@ -1,0 +1,8 @@
+
+{
+  "file": "oops_rust_file.ndp",
+  "line": 1,
+  "column": 4,
+  "explanation": "  unexpected \"mai\"\n  expected \"(\", \"=\", ->, /, <->, [, ^, space, or tab\n  >fn main() {\n      ^^^\n  >    println!(\"Hello, world!\");"
+}
+                    

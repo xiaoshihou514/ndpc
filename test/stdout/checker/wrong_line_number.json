@@ -1,0 +1,7 @@
+
+{
+  "file": "wrong_line_number.ndp",
+  "line": 6,
+  "explanation": "  The following assertion(s) implied by OrIntro(3) does not hold:\n    Either is either side of Conclusion\n  In particular with the following variables:\n    Conclusion: (exists x. (F(x))) / (exists x. (G(x)))\n    Either: F(c)"
+}
+                    

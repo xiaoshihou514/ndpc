@@ -1,0 +1,8 @@
+
+{
+  "file": "gibbrish.ndp",
+  "line": 2,
+  "column": 11,
+  "explanation": "  unexpected \"***\"\n  expected \"(\", \"=\", ->, /, <->, [, ^, space, or tab\n  >\n  >sjdklasjd *******&&&&*@&*$&(@!#_)@*)(%&#*(@$#))#&@*$&%\n             ^^^\n  >"
+}
+                    

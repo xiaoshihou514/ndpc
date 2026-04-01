@@ -1,0 +1,3 @@
+Semantics error:
+trick_assumption.ndp, (line 5):
+Line numbers 4 referenced in Tick(4) are not accessible to line 5.

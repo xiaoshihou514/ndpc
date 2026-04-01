@@ -1,0 +1,3 @@
+Semantics error:
+recursive_tick.ndp, (line 4):
+Line numbers 5 referenced in Tick(5) are not accessible to line 4.

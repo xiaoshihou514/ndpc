@@ -1,0 +1,7 @@
+Semantics error:
+wrong_line_number.ndp, (line 6):
+  The following assertion(s) implied by OrIntro(3) does not hold:
+    Either is either side of Conclusion
+  In particular with the following variables:
+    Conclusion: (exists x. (F(x))) / (exists x. (G(x)))
+    Either: F(c)
