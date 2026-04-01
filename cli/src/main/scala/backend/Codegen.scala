@@ -10,6 +10,7 @@ import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}
 import ndpc.utils.NdpcError
 import parsley.{Result, Success, Failure}
+import scala.collection.mutable
 
 // Helper function for parenthesis handling
 private def paren(f: LFormula => String): (LFormula, LFormula) => String = {
@@ -36,7 +37,7 @@ private def paren(f: LFormula => String): (LFormula, LFormula) => String = {
 trait Codegen[A] {
     type Output = Result[NdpcError, (os.Path, String)]
 
-    def generate(inputs: Seq[String], opt: A, runtime: CliRuntime = IORuntime): IO[Int] =
+    def generate(inputs: List[String], opt: A, runtime: CliRuntime = IORuntime): IO[Int] =
         fromSource(inputs, opt, runtime).flatMap { results =>
             val errors = results.collect { case f @ Failure(_) => f }
             val successes = results.collect { case Success(value) => value }
@@ -55,7 +56,7 @@ trait Codegen[A] {
             }
         }
 
-    def fromSource(inputs: Seq[String], opt: A, runtime: CliRuntime = IORuntime): IO[Seq[Output]] =
+    def fromSource(inputs: List[String], opt: A, runtime: CliRuntime = IORuntime): IO[Seq[Output]] =
         pfFromSource(inputs, runtime).flatMap {
             _.zip(inputs).toList.traverse { (pf, dest) =>
                 pf match
@@ -74,14 +75,23 @@ trait Codegen[A] {
           orig.replaceAll("\\.[^.]*$", "") + s".$ext"
         ).resolveFrom(os.pwd)
 
-    protected def findOrElims(s: PfScope): (Set[(Int, Int)], Set[(Int, Int)]) = {
-        s.body.foldLeft((Set.empty, Set.empty)) {
-            case ((left, right), Left(Pf(_, OrElim(_, la, lc, ra, rc), _))) =>
-                (left incl (la, lc), right incl (ra, rc))
-            case ((left, right), Right(sc: PfScope)) =>
-                val (leftSub, rightSub) = findOrElims(sc)
-                (left ++ leftSub, right ++ rightSub)
-            case ((left, right), _) => (left, right)
+    protected type Pair = (Int, Int)
+    protected type Pairs = Set[Pair]
+    protected def findOrElims(
+        s: PfScope,
+        left: mutable.Builder[Pair, Pairs] = Set.newBuilder[Pair],
+        right: mutable.Builder[Pair, Pairs] = Set.newBuilder[Pair]
+    ): (Pairs, Pairs) = {
+        for (stmt <- s.body) {
+            stmt match {
+                case Left(Pf(_, OrElim(_, la, lc, ra, rc), _)) =>
+                    left.addOne((la, lc))
+                    right.addOne((ra, rc))
+                case Right(sc: PfScope) =>
+                    findOrElims(sc, left, right)
+                case _ => // pass
+            }
         }
+        (left.result(), right.result())
     }
 }
