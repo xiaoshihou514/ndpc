@@ -5,7 +5,7 @@ on:
 jobs:
   core-tests:
     name: Core tests
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     steps:
       - uses: actions/checkout@v6
       - name: Setup JDK
@@ -22,7 +22,7 @@ jobs:
 
   cli-tests:
     name: CLI tests
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     needs: core-tests
     steps:
       - uses: actions/checkout@v6
@@ -40,7 +40,7 @@ jobs:
 
   latex-tests:
     name: LaTeX Tests
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     needs: cli-tests
     steps:
       - uses: actions/checkout@v6
@@ -58,7 +58,7 @@ jobs:
 
   typst-tests:
     name: Typst Tests
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     needs: cli-tests
     steps:
       - uses: actions/checkout@v6
@@ -70,7 +70,7 @@ jobs:
 
   lean-tests:
     name: Lean Tests
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     needs: cli-tests
     steps:
       - uses: actions/checkout@v6
@@ -86,7 +86,7 @@ jobs:
 
   playground-upload:
     name: Publish web ui
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     needs: [latex-tests, typst-tests, lean-tests]
     if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
     steps:
