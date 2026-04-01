@@ -52,15 +52,8 @@ jobs:
           curl -sSfL https://github.com/YunkaiZhang233/boxproof/raw/refs/heads/main/boxproof.sty -o test/latex/boxproof.sty
       - name: Run LaTeX tests
         run: |
-          cd test/latex
-          for f in *.tex; do
-            if pdflatex -interaction=nonstopmode "$f" > /dev/null; then
-              echo "✓ $f latex ok"
-            else
-              echo "✗ $f latex bad"
-              exit 1
-            fi
-          done
+          cd test
+          ./test_latex.sh
 
   typst-tests:
     name: Typst Tests
@@ -71,15 +64,8 @@ jobs:
       - uses: typst-community/setup-typst@v4
       - name: Run Typst tests
         run: |
-          cd test/typst
-          for f in *.typ; do
-            if typst compile "$f"; then
-              echo "✓ $f typst ok"
-            else
-              echo "✗ $f typst bad"
-              exit 1
-            fi
-          done
+          cd test
+          ./test_typst.sh
 
   lean-tests:
     name: Lean Tests
@@ -94,22 +80,14 @@ jobs:
           lean --version
       - name: Run Lean tests
         run: |
-          source $HOME/.elan/env
-          cd test/lean
-          for f in *.lean; do
-            if lean "$f"; then
-              echo "✓ $f lean ok"
-            else
-              echo "✗ $f lean bad"
-              exit 1
-            fi
-          done
+          cd test
+          ./test_lean.sh
 
   playground-upload:
     name: Publish web ui
     runs-on: ubuntu-latest
     needs: [latex-tests, typst-tests, lean-tests]
-    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master')
+    if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
     steps:
       - uses: actions/checkout@v4
       - name: Setup JDK
