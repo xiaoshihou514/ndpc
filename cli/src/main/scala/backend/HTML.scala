@@ -9,7 +9,7 @@ import ndpc.frontend.parser.{Pf, PfScope, Line}
 
 import scala.collection.mutable.StringBuilder
 
-private def ph = paren(_.asHTML)
+private def parenthesizeHTML = paren(_.asHTML)
 
 // Extension functions for HTML representation
 extension (f: LFormula)
@@ -20,13 +20,13 @@ extension (f: LFormula)
         case Eq(left, right)  => s"${left.asHTML} = ${right.asHTML}"
         case Truth            => "&top;"
         case Falsity          => "&perp;"
-        case Not(pf)          => s"&not;${ph(f, pf)}"
-        case And(left, right) => s"${ph(f, left)} &and; ${ph(f, right)}"
-        case Or(left, right)  => s"${ph(f, left)} &or; ${ph(f, right)}"
+        case Not(pf)          => s"&not;${parenthesizeHTML(f, pf)}"
+        case And(left, right) => s"${parenthesizeHTML(f, left)} &and; ${parenthesizeHTML(f, right)}"
+        case Or(left, right)  => s"${parenthesizeHTML(f, left)} &or; ${parenthesizeHTML(f, right)}"
         case Implies(left, right) =>
-            s"${ph(f, left)} &rarr; ${ph(f, right)}"
+            s"${parenthesizeHTML(f, left)} &rarr; ${parenthesizeHTML(f, right)}"
         case Equiv(left, right) =>
-            s"${ph(f, left)} &LeftRightArrow; ${ph(f, right)}"
+            s"${parenthesizeHTML(f, left)} &LeftRightArrow; ${parenthesizeHTML(f, right)}"
         case Forall(x, body) => s"&forall; $x. (${body.asHTML})"
         case Exists(x, body) => s"&exist; $x. (${body.asHTML})"
     }
@@ -67,12 +67,12 @@ extension (r: Rule)
         case Tick(orig)                     => s"&#10003;($orig)"
     }
 
-object html extends codegen[Option[java.nio.file.Path]] {
+object html extends Codegen[Option[os.Path]] {
     override val ext = "html"
 
     override def compile(
         pf: CheckedProof,
-        cssPath: Option[java.nio.file.Path],
+        cssPath: Option[os.Path],
         runtime: CliRuntime
     ): IO[String] =
         cssPath match

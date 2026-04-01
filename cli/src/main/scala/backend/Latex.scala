@@ -7,7 +7,7 @@ import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}
 
-private def pl = paren(_.asLatex)
+private def parenthesizeLatex = paren(_.asLatex)
 
 extension (f: LFormula)
     def asLatex: String = f match {
@@ -17,15 +17,15 @@ extension (f: LFormula)
         case Eq(left, right) => s"${left.asLatex} = ${right.asLatex}"
         case Truth           => "\\top"
         case Falsity         => "\\bot"
-        case Not(pf)         => s"\\lnot ${pl(f, pf)}"
+        case Not(pf)         => s"\\lnot ${parenthesizeLatex(f, pf)}"
         case And(left, right) =>
-            s"${pl(f, left)} \\land ${pl(f, right)}"
+            s"${parenthesizeLatex(f, left)} \\land ${parenthesizeLatex(f, right)}"
         case Or(left, right) =>
-            s"${pl(f, left)} \\lor ${pl(f, right)}"
+            s"${parenthesizeLatex(f, left)} \\lor ${parenthesizeLatex(f, right)}"
         case Implies(left, right) =>
-            s"${pl(f, left)} \\rightarrow ${pl(f, right)}"
+            s"${parenthesizeLatex(f, left)} \\rightarrow ${parenthesizeLatex(f, right)}"
         case Equiv(left, right) =>
-            s"${pl(f, left)} \\leftrightarrow ${pl(f, right)}"
+            s"${parenthesizeLatex(f, left)} \\leftrightarrow ${parenthesizeLatex(f, right)}"
         case Forall(x, body) => s"\\forall $x. (${body.asLatex})"
         case Exists(x, body) => s"\\exists $x. (${body.asLatex})"
     }
@@ -66,7 +66,7 @@ extension (r: Rule)
         case Tick(orig)                     => s"\\tick{$orig}"
     }
 
-object latex extends codegen[Unit] {
+object latex extends Codegen[Unit] {
     override protected val ext: String = "tex"
 
     override def compile(pf: CheckedProof, _opt: Unit, _runtime: CliRuntime): IO[String] = IO.pure {

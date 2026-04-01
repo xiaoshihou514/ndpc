@@ -18,7 +18,7 @@ class CliBehaviorSpec extends UnitSpec {
             val checkerSuccessInput = path.toString() -> os.read(path)
             val runtime = TestCliRuntime.create(inputs = Map(checkerSuccessInput)).unsafeRunSync()
 
-            checker.check(Seq(checkerSuccessInput._1), false, runtime).unsafeRunSync() shouldBe 0
+            checker.check(List(checkerSuccessInput._1), false, runtime).unsafeRunSync() shouldBe 0
 
             val state = runtime.state.unsafeRunSync()
             state.stdout shouldBe empty
@@ -33,7 +33,7 @@ class CliBehaviorSpec extends UnitSpec {
             val runtime =
                 TestCliRuntime.create(inputs = Map(input.last -> os.read(input))).unsafeRunSync()
 
-            checker.check(Seq(input.last), false, runtime).unsafeRunSync() shouldBe 1
+            checker.check(List(input.last), false, runtime).unsafeRunSync() shouldBe 1
 
             val state = runtime.state.unsafeRunSync()
             state.stdout shouldBe empty
@@ -48,7 +48,7 @@ class CliBehaviorSpec extends UnitSpec {
             val runtime =
                 TestCliRuntime.create(inputs = Map(input.last -> os.read(input))).unsafeRunSync()
 
-            checker.check(Seq(input.last), true, runtime).unsafeRunSync() shouldBe 1
+            checker.check(List(input.last), true, runtime).unsafeRunSync() shouldBe 1
 
             val state = runtime.state.unsafeRunSync()
             state.stderr shouldBe empty

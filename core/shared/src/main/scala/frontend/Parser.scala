@@ -10,7 +10,7 @@ import ndpc.frontend.parsers.RuleParser.rule
 import ndpc.frontend.parsers.utils.*
 
 import parsley.{Parsley, Result}
-import parsley.Parsley.{many, atomic, pure, lookAhead, eof}
+import parsley.Parsley.{many, atomic, pure, eof}
 import parsley.combinator.{manyTill, option}
 import parsley.character.item
 import parsley.state.{RefMaker, forP}
@@ -100,7 +100,7 @@ object parser {
 
     // format: off
     private def p(): Parsley[UncheckedProof] = State.empty.makeRef { state =>
-        val comment = ("--" ~> manyTill(item, '\n' <|> lookAhead(eof)))
+        val comment = ("--" ~> manyTill(item, '\n' <|> eof))
             .map(it => Comment(it.mkString))//.debug("comment")
 
         val empty = manyTill(" " <|> "\t", '\n') as Empty

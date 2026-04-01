@@ -7,7 +7,7 @@ import ndpc.utils.*
 import parsley.{Result, Success, Failure}
 
 object checker {
-    def check(inputs: Seq[String], toJson: Boolean, runtime: CliRuntime = IORuntime): IO[Int] =
+    def check(inputs: List[String], toJson: Boolean, runtime: CliRuntime = IORuntime): IO[Int] =
         pfFromSource(inputs, runtime).flatMap { results =>
             val errors = results.collect { case f @ Failure(_) => f }
             val output =
@@ -19,10 +19,10 @@ object checker {
         }
 
     def pfFromSource(
-        inputs: Seq[String],
+        inputs: List[String],
         runtime: CliRuntime = IORuntime
     ): IO[Seq[Result[NdpcError, CheckedProof]]] =
-        inputs.toList.traverse { input =>
+        inputs.traverse { input =>
             runtime.readInput(input).attempt.map {
                 case Right(contents) =>
                     attachFile(input, Checker.checkedFromString(contents))

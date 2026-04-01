@@ -206,7 +206,7 @@ extension (f: LFormula) {
     }
 }
 
-object lean extends codegen[Unit] {
+object lean extends Codegen[Unit] {
     override protected val ext: String = "lean"
 
     override def compile(pf: CheckedProof, _opt: Unit, _runtime: CliRuntime): IO[String] = IO.pure {
@@ -253,7 +253,10 @@ object lean extends codegen[Unit] {
                 case Left(Pf(concl, rule, _)) =>
                     compilePf(acc.linenr, concl, rule, acc).incr
                 case Right(scope) =>
-                    val n = scope.flatten.collect { case _: Pf => }.length
+                    val n = scope.flatten.count {
+                        case _: Pf => true
+                        case _     => false
+                    }
                     State(
                       acc.stash ++ compile(scope, acc.linenr),
                       acc.lines,

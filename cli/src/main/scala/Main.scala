@@ -3,7 +3,6 @@ package ndpc
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.*
 import com.monovore.decline.*
-import java.nio.file.Path
 import ndpc.backend.*
 import ndpc.frontend.*
 
@@ -43,7 +42,7 @@ object Main extends IOApp {
                 ).as(LeanGen) orElse
                 (
                     Opts.flag("html", help = "generate corresponding html proof"),
-                    Opts.option[Path]("css", help = "custom css path", metavar = "file").orNone,
+                    Opts.option[java.nio.file.Path]("css", help = "custom css path", metavar = "file").map(os.Path(_)).orNone,
                 ).mapN((_, css) => HtmlGen(css)),
                 inputs
             ).tupled

@@ -7,7 +7,7 @@ import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}
 
-private def pt = paren(_.asTypst)
+private def parenthesizeTypst = paren(_.asTypst)
 
 extension (f: LFormula)
     def asTypst: String = f match {
@@ -17,15 +17,15 @@ extension (f: LFormula)
         case Eq(left, right) => s"${left.asTypst} = ${right.asTypst}"
         case Truth           => "top"
         case Falsity         => "bot"
-        case Not(pf)         => s"not ${pt(f, pf)}"
+        case Not(pf)         => s"not ${parenthesizeTypst(f, pf)}"
         case And(left, right) =>
-            s"${pt(f, left)} and ${pt(f, right)}"
+            s"${parenthesizeTypst(f, left)} and ${parenthesizeTypst(f, right)}"
         case Or(left, right) =>
-            s"${pt(f, left)} or ${pt(f, right)}"
+            s"${parenthesizeTypst(f, left)} or ${parenthesizeTypst(f, right)}"
         case Implies(left, right) =>
-            s"${pt(f, left)} -> ${pt(f, right)}"
+            s"${parenthesizeTypst(f, left)} -> ${parenthesizeTypst(f, right)}"
         case Equiv(left, right) =>
-            s"${pt(f, left)} <-> ${pt(f, right)}"
+            s"${parenthesizeTypst(f, left)} <-> ${parenthesizeTypst(f, right)}"
         case Forall(x, body) => s"forall $x. ${body.asTypst}"
         case Exists(x, body) => s"exists $x. ${body.asTypst}"
     }
@@ -66,7 +66,7 @@ extension (r: Rule)
         case Tick(orig)                     => s"tick($orig)"
     }
 
-object typst extends codegen[Unit] {
+object typst extends Codegen[Unit] {
     override protected val ext: String = "typ"
 
     override def compile(pf: CheckedProof, _opt: Unit, _runtime: CliRuntime): IO[String] = IO.pure {

@@ -10,7 +10,7 @@ class TypstGenSpec extends UnitSpec {
     val outputs = TestPaths.path("test/typst")
 
     "All valid ndp" should "generate valid typst output" in {
-        val result = typst.fromSource(os.list(inputs).map(_.toString), ()).unsafeRunSync()
+        val result = typst.fromSource(os.list(inputs).map(_.toString).toList, ()).unsafeRunSync()
         all(result) shouldBe a[Success[(os.Path, String)]]
         result.map(_.get._1.last) should contain theSameElementsAs os.list(outputs).map(_.last)
     }
