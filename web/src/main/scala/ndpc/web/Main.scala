@@ -33,7 +33,8 @@ object Main:
         // ── Toolbar ──────────────────────────────────────────────────
         val toolbar = div(
           cls := "toolbar",
-          span(cls := "toolbar-title", "ndpc playground"),
+          img(src("./assets/tool_logo.png"), width := "30px"),
+          span(cls := "toolbar-title", "Natural deduction proof"),
           span(child.text <-- statusText),
           label(
             cls := "theme-switch",
@@ -66,6 +67,10 @@ object Main:
                 }
                 sel.selectedIndex = 0
             }
+          ),
+          div(
+            cls := "toolbar-doc",
+            a(href := "./docs", "Docs")
           )
         )
 

@@ -109,6 +109,14 @@ body {
   margin-right: auto;
 }
 
+.toolbar-doc > a {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--syn-keyword);
+  letter-spacing: 0.04em;
+  margin-right: auto;
+}
+
 .toolbar-btn {
   background: var(--sel-bg);
   color: var(--fg2);
