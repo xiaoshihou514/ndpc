@@ -1,0 +1,271 @@
+@import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
+
+/* ── CSS variables (VSCode Dark defaults) ────────────────────────────── */
+:root {
+  --bg: #1f1f1f;
+  --bg2: #252526;
+  --bg3: #282828;
+  --fg: #d4d4d4;
+  --fg2: #cccccc;
+  --border: #333333;
+  --border2: #454545;
+
+  --syn-comment: #608b4e;
+  --syn-keyword: #569cd6;
+  --syn-op: #d4d4d4;
+  --syn-number: #b5cea8;
+  --syn-type: #569cd6;
+  --syn-punct: #808080;
+
+  --ok: #4ec9b0;
+  --err: #f44747;
+  --err-bg: rgba(244, 71, 71, 0.08);
+
+  --sel-bg: #3c3c3c;
+  --sel-hover: #505050;
+  --indent-mk: #333333;
+  --indent-act: #555555;
+}
+
+/* ── VSCode Light overrides ──────────────────────────────────────────── */
+body.theme-light {
+  --bg: #ffffff;
+  --bg2: #f3f3f3;
+  --bg3: #f0f0f0;
+  --fg: #000000;
+  --fg2: #333333;
+  --border: #e0e0e0;
+  --border2: #cccccc;
+
+  --syn-comment: #008000;
+  --syn-keyword: #007acc;
+  --syn-op: #000000;
+  --syn-number: #098658;
+  --syn-type: #007acc;
+  --syn-punct: #808080;
+
+  --ok: #008000;
+  --err: #c72e0f;
+  --err-bg: rgba(199, 46, 15, 0.08);
+
+  --sel-bg: #e8e8e8;
+  --sel-hover: #d8d8d8;
+  --indent-mk: #dddddd;
+  --indent-act: #bbbbbb;
+}
+
+/* ── Reset & full-screen layout ─────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 40px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.toolbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg2);
+  letter-spacing: 0.04em;
+  margin-right: auto;
+}
+
+.toolbar-btn {
+  background: var(--sel-bg);
+  color: var(--fg2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.toolbar-btn:hover {
+  background: var(--sel-hover);
+}
+
+/* ── Mobile-style theme toggle switch ──────────────────────────────── */
+.theme-switch {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.theme-switch input {
+  display: none;
+}
+.theme-switch-slider {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid #bbb;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  flex-shrink: 0;
+}
+.theme-switch-slider::after {
+  content: "☀";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: 50%;
+  transition:
+    transform 0.2s,
+    background 0.2s;
+}
+.theme-switch input:checked + .theme-switch-slider {
+  background: #111;
+  border-color: #444;
+}
+.theme-switch input:checked + .theme-switch-slider::after {
+  content: "☾";
+  transform: translateX(18px);
+  background: #444;
+  color: #eee;
+}
+
+.toolbar-select {
+  background: var(--sel-bg);
+  color: var(--fg2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.15s;
+}
+.toolbar-select:hover {
+  background: var(--sel-hover);
+}
+
+/* ── Content row ─────────────────────────────────────────────────────── */
+.content-row {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Editor container ────────────────────────────────────────────────── */
+.editor-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.editor-container .cm-editor {
+  height: 100%;
+  overflow: auto;
+}
+
+/* ── Info panel ──────────────────────────────────────────────────────── */
+.info-panel {
+  width: 40em;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 12px 14px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: "Fira Code", monospace;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.info-ok {
+  color: var(--ok);
+  font-weight: 500;
+  padding-top: 4px;
+}
+
+.info-error-location {
+  color: var(--syn-punct);
+  font-size: 11px;
+  font-family: "Fira Code", monospace;
+}
+
+.info-error-message {
+  color: var(--err);
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+/* ── Status indicator ────────────────────────────────────────────────── */
+.status-indicator {
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* ── Indent guide lines ──────────────────────────────────────────────── */
+.cm-indent-markers {
+  --indent-marker-bg-color: var(--indent-mk);
+  --indent-marker-active-bg-color: var(--indent-act);
+}
+
+/* ── Tooltips ────────────────────────────────────────────────────────── */
+.cm-tooltip {
+  font-size: 13px;
+}
+.cm-tooltip-ndpc {
+  padding: 6px 10px;
+  max-width: 420px;
+  line-height: 1.5;
+}
