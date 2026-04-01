@@ -1,10 +1,10 @@
-package ndpc.backend
+package ndpc.cli.backend
 
 import cats.effect.IO
 import cats.syntax.all.*
-import ndpc.{CliRuntime, IORuntime}
+import ndpc.cli.{CliRuntime, IORuntime}
 import ndpc.frontend.CheckedProof
-import ndpc.frontend.checker.pfFromSource
+import ndpc.cli.frontend.checker.pfFromSource
 import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*
 import ndpc.frontend.parser.{Pf, PfScope, Line}

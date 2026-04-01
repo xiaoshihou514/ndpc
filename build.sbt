@@ -10,15 +10,25 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // this allows tasks to be killed with Ctrl+C without exiting SBT
 Global / cancelable := true
 
+// updating to 3.8.x causes compiling failure at native build
+// there were some transitive deps using 2.13 scala native
+val scalaVer = "3.7.4"
+
 ThisBuild / organization := "io.github.xiaoshihou514"
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.8.2"
+ThisBuild / scalaVersion := scalaVer
 ThisBuild / scalacOptions ++= Seq(
   "-feature",
   "-Yexplicit-nulls"
 )
 
-lazy val catsEffectVersion = "3.7.0"
+val parsleyVer = "5.0.0-M16" // update when you are ready
+val osLibVer = "0.11.8"
+val scalatestVer = "3.2.19"
+val declineVer = "2.6.1"
+val catsEffVer = "3.7.0"
+val scalajsDomVer = "2.8.1"
+val laminarVer = "17.2.1"
 
 lazy val graalNativeImage = taskKey[File]("Build a native-image binary from the cli assembly jar")
 lazy val rootNativeLink =
@@ -31,9 +41,9 @@ lazy val core = (project in file("core"))
       resolvers ++= commonResolvers,
       name := "ndpc-core",
       libraryDependencies ++= Seq(
-        "com.github.j-mie6" %% "parsley" % "5.0.0-M16",
-        "com.lihaoyi" %% "os-lib" % "0.11.8" % Test,
-        "org.scalatest" %% "scalatest" % "3.2.19" % Test
+        "com.github.j-mie6" %% "parsley" % parsleyVer,
+        "com.lihaoyi" %% "os-lib" % osLibVer % Test,
+        "org.scalatest" %% "scalatest" % scalatestVer % Test
       ),
       Compile / unmanagedSourceDirectories += baseDirectory.value / "shared" / "src" / "main" / "scala",
       Test / unmanagedSourceDirectories += baseDirectory.value / "shared" / "src" / "test" / "scala",
@@ -47,13 +57,13 @@ lazy val cli = (project in file("cli"))
       resolvers ++= commonResolvers,
       name := "ndpc-cli",
       libraryDependencies ++= Seq(
-        "com.monovore" %% "decline" % "2.5.0",
-        "org.typelevel" %% "cats-effect" % catsEffectVersion,
-        "com.lihaoyi" %% "os-lib" % "0.11.8",
-        "org.scalatest" %% "scalatest" % "3.2.19" % Test
+        "com.monovore" %% "decline" % declineVer,
+        "org.typelevel" %% "cats-effect" % catsEffVer,
+        "com.lihaoyi" %% "os-lib" % osLibVer,
+        "org.scalatest" %% "scalatest" % scalatestVer % Test
       ),
-      Compile / mainClass := Some("ndpc.Main"),
-      assembly / mainClass := Some("ndpc.Main"),
+      Compile / mainClass := Some("ndpc.cli.Main"),
+      assembly / mainClass := Some("ndpc.cli.Main"),
       assembly / assemblyOutputPath := (LocalRootProject / baseDirectory).value / "ndpc.jar",
       assembly / assemblyJarName := "ndpc.jar",
       Test / fork := true,
@@ -62,7 +72,7 @@ lazy val cli = (project in file("cli"))
           val log = streams.value.log
           val jar = (Compile / assembly).value
           val output = (LocalRootProject / baseDirectory).value / "ndpc-graal"
-          val cmd = Seq("native-image", "-jar", jar.getAbsolutePath, output.getAbsolutePath)
+          val cmd = Seq("native-image", "--gc=G1", "-jar", jar.getAbsolutePath, output.getAbsolutePath)
           log.info(cmd.mkString(" "))
           val exit = Process(cmd, baseDirectory.value).!
           if (exit != 0) sys.error("native-image failed")
@@ -78,12 +88,11 @@ lazy val cliNative = (project in file("cli-native"))
     .settings(
       resolvers ++= commonResolvers,
       name := "ndpc-cli-native",
-      scalaVersion := "3.8.2",
       libraryDependencies ++= Seq(
-        "com.github.j-mie6" %%% "parsley" % "5.0.0-M16",
-        "com.monovore" %%% "decline" % "2.5.0",
-        "org.typelevel" %%% "cats-effect" % catsEffectVersion,
-        "com.lihaoyi" %%% "os-lib" % "0.11.6"
+        "com.github.j-mie6" %%% "parsley" % parsleyVer,
+        "com.monovore" %%% "decline" % declineVer,
+        "org.typelevel" %%% "cats-effect" % catsEffVer,
+        "com.lihaoyi" %%% "os-lib" % osLibVer
       ),
       Compile / unmanagedSourceDirectories ++= Seq(
         baseDirectory.value.getParentFile / "core" / "shared" / "src" / "main" / "scala",
@@ -124,9 +133,9 @@ lazy val web = (project in file("web"))
       externalNpm := baseDirectory.value.getParentFile,
       stIgnore ++= List("vite", "@scala-js"),
       libraryDependencies ++= Seq(
-        "com.github.j-mie6" %%% "parsley" % "5.0.0-M16",
-        "org.scala-js" %%% "scalajs-dom" % "2.8.0",
-        "com.raquo" %%% "laminar" % "17.2.1"
+        "com.github.j-mie6" %%% "parsley" % parsleyVer,
+        "org.scala-js" %%% "scalajs-dom" % scalajsDomVer,
+        "com.raquo" %%% "laminar" % laminarVer
       ),
       Compile / unmanagedSourceDirectories += (LocalRootProject / baseDirectory).value / "core" / "shared" / "src" / "main" / "scala"
     )

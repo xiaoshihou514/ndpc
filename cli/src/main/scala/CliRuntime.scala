@@ -1,4 +1,4 @@
-package ndpc
+package ndpc.cli
 
 import cats.effect.IO
 import cats.syntax.all.*

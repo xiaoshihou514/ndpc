@@ -1,9 +1,9 @@
 // Typing in this file is terrible, consider refactoring
-package ndpc.backend
+package ndpc.cli.backend
 
 import cats.effect.IO
 import ndpc.frontend.CheckedProof
-import ndpc.CliRuntime
+import ndpc.cli.CliRuntime
 import ndpc.frontend.expr.formula.*
 import scala.annotation.tailrec
 import ndpc.frontend.parser.*

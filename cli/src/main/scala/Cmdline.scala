@@ -1,4 +1,4 @@
-package ndpc
+package ndpc.cli
 
 sealed trait RunOpt
 case class CheckOpt(val json: Boolean) extends RunOpt

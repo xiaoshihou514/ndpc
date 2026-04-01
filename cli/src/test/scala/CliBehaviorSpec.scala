@@ -1,7 +1,7 @@
 package ndpc
 
 import cats.effect.unsafe.implicits.global
-import ndpc.frontend.checker
+import ndpc.cli.frontend.checker
 
 class CliBehaviorSpec extends UnitSpec {
     private def expected(rel: String): String =

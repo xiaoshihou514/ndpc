@@ -1,7 +1,7 @@
-package ndpc.backend
+package ndpc.cli.backend
 
 import cats.effect.IO
-import ndpc.CliRuntime
+import ndpc.cli.CliRuntime
 import ndpc.frontend.CheckedProof
 import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*

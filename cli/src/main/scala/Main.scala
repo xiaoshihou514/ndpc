@@ -1,10 +1,10 @@
-package ndpc
+package ndpc.cli
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.syntax.all.*
 import com.monovore.decline.*
-import ndpc.backend.*
-import ndpc.frontend.*
+import ndpc.cli.backend.*
+import ndpc.cli.frontend.*
 
 object Main extends IOApp {
     private val inputs = Opts.arguments[String](metavar = "file").map(_.toList)

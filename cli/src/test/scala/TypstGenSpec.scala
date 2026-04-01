@@ -1,7 +1,7 @@
 package ndpc
 
 import cats.effect.unsafe.implicits.global
-import ndpc.backend.typst
+import ndpc.cli.backend.typst
 
 import parsley.Success
 

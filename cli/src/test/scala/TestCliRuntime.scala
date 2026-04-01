@@ -1,10 +1,10 @@
 package ndpc
 
 import cats.effect.{IO, Ref}
-import ndpc.utils.*
 import parsley.Failure
-
 import java.io.FileNotFoundException
+import ndpc.utils.*
+import ndpc.cli.CliRuntime
 
 extension (ss: Vector[String]) def text = ss.mkString("\n")
 

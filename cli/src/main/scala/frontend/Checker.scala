@@ -1,10 +1,11 @@
-package ndpc.frontend
+package ndpc.cli.frontend
 
 import cats.effect.IO
 import cats.syntax.all.*
-import ndpc.{CliRuntime, IORuntime}
+import ndpc.cli.{CliRuntime, IORuntime}
 import ndpc.utils.*
 import parsley.{Result, Success, Failure}
+import ndpc.frontend.{CheckedProof, Checker}
 
 object checker {
     def check(inputs: List[String], toJson: Boolean, runtime: CliRuntime = IORuntime): IO[Int] =
