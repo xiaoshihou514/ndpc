@@ -1,5 +1,5 @@
 resolvers += Resolver.mavenCentral
-resolvers += Resolver.sonatypeRepo("releases")
+resolvers ++= Resolver.sonatypeOssRepos("releases")
 resolvers += Resolver.url(
   "sbt-plugin-releases",
   url("https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/")

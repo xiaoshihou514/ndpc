@@ -33,7 +33,7 @@ private def paren(f: LFormula => String): (LFormula, LFormula) => String = {
     }
 }
 
-trait codegen[A] {
+trait Codegen[A] {
     type Output = Result[NdpcError, (os.Path, String)]
 
     def generate(inputs: Seq[String], opt: A, runtime: CliRuntime = IORuntime): IO[Int] =

@@ -1,5 +1,6 @@
 .scala-build
 .bsp
+.bloop
 .metals
 .vscode/
 .idea/
@@ -18,3 +19,4 @@
 **/target/
 /node_modules/
 /.vite
+/dist

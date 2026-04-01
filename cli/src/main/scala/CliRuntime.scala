@@ -5,7 +5,6 @@ import cats.syntax.all.*
 import ndpc.utils.*
 import parsley.Failure
 
-import java.nio.file.Path
 import scala.io.Source
 
 trait CliRuntime {
@@ -18,7 +17,7 @@ trait CliRuntime {
     def stdoutln(x: Any): IO[Unit]
     def readInput(input: String): IO[String]
     def writeText(path: os.Path, contents: String): IO[Unit]
-    def readPath(path: Path): IO[String]
+    def readPath(path: os.Path): IO[String]
 
     def stderrln(): IO[Unit] = stderrln("")
     def stdoutln(): IO[Unit] = stdoutln("")
@@ -75,8 +74,8 @@ object IORuntime extends CliRuntime {
     override def writeText(path: os.Path, contents: String): IO[Unit] =
         IO.blocking(os.write.over(path, contents))
 
-    override def readPath(path: Path): IO[String] =
-        IO.blocking(os.read(os.Path(path)))
+    override def readPath(path: os.Path): IO[String] =
+        IO.blocking(os.read(path))
 }
 
 val cliRuntime: CliRuntime = IORuntime

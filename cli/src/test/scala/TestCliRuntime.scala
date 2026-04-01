@@ -5,7 +5,6 @@ import ndpc.utils.*
 import parsley.Failure
 
 import java.io.FileNotFoundException
-import java.nio.file.Path
 
 extension (ss: Vector[String]) def text = ss.mkString("\n")
 
@@ -14,7 +13,7 @@ case class TestCliRuntimeState(
     stderr: Vector[String] = Vector.empty,
     writes: Vector[(os.Path, String)] = Vector.empty,
     inputs: Map[String, String] = Map.empty,
-    pathReads: Map[Path, Either[Throwable, String]] = Map.empty
+    pathReads: Map[os.Path, Either[Throwable, String]] = Map.empty
 )
 
 class TestCliRuntime private (ref: Ref[IO, TestCliRuntimeState]) extends CliRuntime {
@@ -34,7 +33,7 @@ class TestCliRuntime private (ref: Ref[IO, TestCliRuntimeState]) extends CliRunt
     override def writeText(path: os.Path, contents: String): IO[Unit] =
         ref.update(state => state.copy(writes = state.writes :+ (path -> contents)))
 
-    override def readPath(path: Path): IO[String] =
+    override def readPath(path: os.Path): IO[String] =
         ref.get.flatMap { state =>
             state.pathReads.get(path) match
                 case Some(Right(contents)) => IO.pure(contents)
@@ -65,7 +64,7 @@ class TestCliRuntime private (ref: Ref[IO, TestCliRuntimeState]) extends CliRunt
 object TestCliRuntime {
     def create(
         inputs: Map[String, String] = Map.empty,
-        pathReads: Map[Path, Either[Throwable, String]] = Map.empty
+        pathReads: Map[os.Path, Either[Throwable, String]] = Map.empty
     ): IO[TestCliRuntime] =
         Ref.of[IO, TestCliRuntimeState](TestCliRuntimeState(inputs = inputs, pathReads = pathReads))
             .map(TestCliRuntime(_))
