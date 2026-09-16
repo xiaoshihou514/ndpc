@@ -116,31 +116,8 @@ object FuzzGens:
         case Exists(_, b)    => List(b)
         case Truth | Falsity => Nil
 
-    // ── BUG-03 shape analysis (empirical) ────────────────────────────────
-    // parsley's precedence combinator treats the FIRST listed operator as the
-    // tightest, so the parser's real precedence (loosest first) is:
-    //   Equiv < Implies < Or < And < forall/exists/Not < Eq
-    // The pretty printer's parenthesizeString instead assumes Implies is looser
-    // than Equiv (prec Implies=1 < Equiv=2), so an Equiv that is a direct child
-    // of an Implies is printed bare and reparses with a different tree:
-    //   pretty(Implies(X, Equiv(A, B)))  =  "X -> A <-> B"
-    //   reparses as                      =  Equiv(Implies(X, A), B)
-    def knownPrecedenceBug(f: LFormula): Boolean =
-        val edgeBad = f match
-            case Implies(l, r) => l.isInstanceOf[Equiv] || r.isInstanceOf[Equiv]
-            case _             => false
-        edgeBad || children(f).exists(knownPrecedenceBug)
-
-    /** BUG-11 (pinned): the parser accepts `T()` / `F()` as a zero-arity PredAp named T or F, but
-      * pretty prints it bare, where it re-parses as Truth / Falsity — formatting silently changes
-      * the meaning of the proof line.
-      */
-    /** Formulas whose pretty-printing does not survive a reparse. */
-    def knownPrintRoundtripBug(f: LFormula): Boolean = knownPrecedenceBug(f)
-
     /** Formulas guaranteed to survive a print/parse roundtrip. */
-    val genRoundtripFormula: Gen[LFormula] =
-        FuzzGens.genFormula(2, safeName).retryUntil(f => !knownPrecedenceBug(f))
+    val genRoundtripFormula: Gen[LFormula] = genFormula(2, safeName)
 
     // ── standalone formula parser (for roundtrip properties) ─────────────
     def parseFormula(s: String) = fully(lexeme(FormulaParser.lformula)).parse(s)

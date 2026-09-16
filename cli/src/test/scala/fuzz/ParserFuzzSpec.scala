@@ -25,10 +25,8 @@ class ParserFuzzSpec extends FuzzSpec:
           "formula roundtrip",
           Prop.forAll(FuzzGens.genLFormula) { f =>
               FuzzGens.parseFormula(f.pretty) match
-                  case Success(g) =>
-                      g == f || FuzzGens.knownPrecedenceBug(f)
-                  case Failure(_) =>
-                      FuzzGens.knownPrecedenceBug(f)
+                  case Success(g) => g == f
+                  case Failure(_) => false
           }
         )
     }

@@ -22,10 +22,11 @@ private def paren(f: LFormula => String): (LFormula, LFormula) => String = {
         case Eq(_, _)      => 5
         case And(_, _)     => 4
         case Or(_, _)      => 3
-        case Equiv(_, _)   => 2
-        case Implies(_, _) => 1
-        case Forall(_, _)  => 0
-        case Exists(_, _)  => 0
+        case Implies(_, _) => 2
+        // Equiv binds loosest (matching the ndp parser and the target languages)
+        case Equiv(_, _)  => 0
+        case Forall(_, _) => 0
+        case Exists(_, _) => 0
     }
 
     { (parent, child) =>

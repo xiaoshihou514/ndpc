@@ -76,10 +76,12 @@ object pretty:
             case Eq(_, _)      => 5
             case And(_, _)     => 4
             case Or(_, _)      => 3
-            case Equiv(_, _)   => 2
-            case Implies(_, _) => 1
-            case Forall(_, _)  => 0
-            case Exists(_, _)  => 0
+            case Implies(_, _) => 2
+            // the parser binds Equiv loosest (parsley lists it last); it must be
+            // treated as looser than every other connective when parenthesizing
+            case Equiv(_, _)  => 0
+            case Forall(_, _) => 0
+            case Exists(_, _) => 0
         }
 
         if precedence(parent) < precedence(child) then child.pretty
