@@ -14,11 +14,12 @@ object Formatter {
             case Failure(reason) => Failure(SyntaxError(reason))
 
     private def findReasonAlign(target: PfScope, iniIndent: Int = 0): Int =
-        2 * iniIndent + target.body.map {
+        val widths = target.body.map {
             case Right(s @ PfScope(_)) => findReasonAlign(s, iniIndent + 1)
             case Left(Pf(concl, _, _)) => concl.pretty.length()
             case _                     => 0
-        }.max
+        }
+        2 * iniIndent + (if widths.isEmpty then 0 else widths.max)
 
     private def formatLine(line: Line, indent: Int, reasonAlign: Int): String =
         line match {

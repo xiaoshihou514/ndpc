@@ -74,9 +74,9 @@ class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
             case Failure(e) => fail(s"rejected: $e")
     }
 
-    "BUG-07 (Formatter.findReasonAlign) an empty proof" should "format without crashing" ignore {
-        // parse("") succeeds with an empty main scope; `.max` on the empty body
-        // list throws UnsupportedOperationException("empty.max").
+    "BUG-07 (Formatter.findReasonAlign) an empty proof" should "format without crashing" in {
+        // fixed: `.max` on the empty body list used to throw
+        // UnsupportedOperationException("empty.max").
         parser.parse("") match
             case Success(ast) => noException should be thrownBy Formatter.formatPure(ast)
             case Failure(e)   => fail(s"empty input should parse to an empty proof: $e")

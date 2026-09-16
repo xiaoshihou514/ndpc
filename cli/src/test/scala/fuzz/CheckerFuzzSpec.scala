@@ -19,7 +19,7 @@ class CheckerFuzzSpec extends FuzzSpec:
                           true
                       case Failure(_) => true
               catch
-                  case e if isKnownParserCrash(e)           => true // BUG-04, in the parser
+                  case e if isKnownParserCrash(e)           => true // BUG-04
                   case e if isKnownCommentNumberingCrash(e) => true // BUG-08
                   case e =>
                       System.err.println(
@@ -39,28 +39,25 @@ class CheckerFuzzSpec extends FuzzSpec:
               try
                   parser.parse(s) match
                       case Success(ast) =>
-                          if ast.main.flatten.isEmpty then true // BUG-07 territory
+                          val formatted = Formatter.formatPure(ast)
+                          val bugAffected = FuzzGens
+                              .allFormulas(ast.main)
+                              .exists(FuzzGens.knownPrintRoundtripBug)
+                          if bugAffected then true
                           else
-                              val formatted = Formatter.formatPure(ast)
-                              val bugAffected = FuzzGens
-                                  .allFormulas(ast.main)
-                                  .exists(FuzzGens.knownPrintRoundtripBug)
-                              if bugAffected then true
-                              else
-                                  parser.parse(formatted) match
-                                      case Success(re) =>
-                                          FuzzGens.pfLines(ast.main) == FuzzGens.pfLines(re.main)
-                                      case Failure(_) =>
-                                          System.err.println(
-                                            s"FORMATTED OUTPUT DOES NOT REPARSE: " +
-                                                FuzzGens.show(formatted)
-                                          )
-                                          false
+                              parser.parse(formatted) match
+                                  case Success(re) =>
+                                      FuzzGens.pfLines(ast.main) == FuzzGens.pfLines(re.main)
+                                  case Failure(_) =>
+                                      System.err.println(
+                                        s"FORMATTED OUTPUT DOES NOT REPARSE: " +
+                                            FuzzGens.show(formatted)
+                                      )
+                                      false
                       case Failure(_) => true
               catch
                   case e if isKnownParserCrash(e)           => true // BUG-04
                   case e if isKnownCommentNumberingCrash(e) => true // BUG-08
-                  case e if isKnownEmptyFormatCrash(e)      => true // BUG-07
                   case e =>
                       System.err.println(
                         s"FORMAT PATH THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +
@@ -79,22 +76,19 @@ class CheckerFuzzSpec extends FuzzSpec:
               try
                   parser.parse(s) match
                       case Success(ast) =>
-                          if ast.main.flatten.isEmpty then true // BUG-07 territory
-                          else
-                              val once = Formatter.formatPure(ast)
-                              parser.parse(once) match
-                                  case Success(re) => Formatter.formatPure(re) == once
-                                  case Failure(_) =>
-                                      System.err.println(
-                                        s"FORMATTED OUTPUT DOES NOT REPARSE: " +
-                                            FuzzGens.show(once)
-                                      )
-                                      false
+                          val once = Formatter.formatPure(ast)
+                          parser.parse(once) match
+                              case Success(re) => Formatter.formatPure(re) == once
+                              case Failure(_) =>
+                                  System.err.println(
+                                    s"FORMATTED OUTPUT DOES NOT REPARSE: " +
+                                        FuzzGens.show(once)
+                                  )
+                                  false
                       case Failure(_) => true
               catch
                   case e if isKnownParserCrash(e)           => true // BUG-04
                   case e if isKnownCommentNumberingCrash(e) => true // BUG-08
-                  case e if isKnownEmptyFormatCrash(e)      => true // BUG-07
                   case e =>
                       System.err.println(
                         s"FORMAT PATH THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +
@@ -125,8 +119,8 @@ class CheckerFuzzSpec extends FuzzSpec:
         checkProp(
           "valid text accepted",
           Prop.forAll(ValidProof.gen) { vp =>
-              // BUG-03 (pinned): proofs containing Equiv-under-Implies print to text
-              // that reparses to a different proof; skip those.
+              // BUG-03/BUG-11 (pinned): proofs containing formulas that do not
+              // survive a print/parse roundtrip are skipped for now.
               if FuzzGens.allFormulas(vp.ast.main).exists(FuzzGens.knownPrintRoundtripBug) then true
               else
                   Checker.checkedFromString(vp.text) match

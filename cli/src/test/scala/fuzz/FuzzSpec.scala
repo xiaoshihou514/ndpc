@@ -53,11 +53,6 @@ abstract class FuzzSpec extends AnyPropSpec:
     protected def isKnownCommentNumberingCrash(e: Throwable): Boolean =
         e.isInstanceOf[IndexOutOfBoundsException]
 
-    /** BUG-07 (pinned): formatting an empty proof crashes (`.max` on empty list). */
-    protected def isKnownEmptyFormatCrash(e: Throwable): Boolean =
-        e.isInstanceOf[UnsupportedOperationException] &&
-            Option(e.getMessage).exists(_.contains("empty.max"))
-
     protected def parseNoThrow(s: String): Boolean =
         try
             parser.parse(s)
