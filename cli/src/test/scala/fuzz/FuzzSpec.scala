@@ -37,25 +37,11 @@ abstract class FuzzSpec extends AnyPropSpec:
                 case other          => s"$other"
             fail(s"$name\n$detail".take(4000))
 
-    /** BUG-04 (pinned): root-scope `tick` lines crash the parser with these exact signatures
-      * instead of producing a parse error.
-      */
-    protected def isKnownParserCrash(e: Throwable): Boolean =
-        e.isInstanceOf[NoSuchElementException] && {
-            val m = Option(e.getMessage).getOrElse("")
-            m == "last of empty list" || m == "head of empty list"
-        }
-
-    /** BUG-08 (pinned): comment/empty lines count towards a line's number but are not stored in the
-      * checker's `lines` vector, so references in proofs with comments misresolve and can crash
-      * with IndexOutOfBoundsException.
-      */
     protected def parseNoThrow(s: String): Boolean =
         try
             parser.parse(s)
             true
         catch
-            case e if isKnownParserCrash(e) => true // BUG-04, see FuzzBugsSpec
-            case e =>
+            case e: Throwable =>
                 System.err.println(s"PARSER THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}")
                 false

@@ -19,7 +19,6 @@ class CheckerFuzzSpec extends FuzzSpec:
                           true
                       case Failure(_) => true
               catch
-                  case e if isKnownParserCrash(e) => true // BUG-04
                   case e =>
                       System.err.println(
                         s"CHECKER THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +
@@ -55,7 +54,6 @@ class CheckerFuzzSpec extends FuzzSpec:
                                       false
                       case Failure(_) => true
               catch
-                  case e if isKnownParserCrash(e) => true // BUG-04
                   case e =>
                       System.err.println(
                         s"FORMAT PATH THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +
@@ -85,7 +83,6 @@ class CheckerFuzzSpec extends FuzzSpec:
                                   false
                       case Failure(_) => true
               catch
-                  case e if isKnownParserCrash(e) => true // BUG-04
                   case e =>
                       System.err.println(
                         s"FORMAT PATH THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +

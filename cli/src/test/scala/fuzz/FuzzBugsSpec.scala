@@ -56,10 +56,10 @@ class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
             case Failure(e) => fail(s"'${f.pretty}' does not reparse: $e")
     }
 
-    "BUG-04 (Parser State.popScopeWithTick) root-scope tick line" should "error, not crash" ignore {
-        // A tick line at indent 0 pops the root scope, leaving scopeStack empty;
-        // the final `scopeStack.last` (or a following line's `scopeStack.head`)
-        // throws NoSuchElementException instead of reporting a parse error.
+    "BUG-04 (Parser State.popScopeWithTick) root-scope tick line" should "error, not crash" in {
+        // fixed: a tick line at indent 0 used to pop the root scope, leaving
+        // scopeStack empty; the final `scopeStack.last` (or a following line's
+        // `scopeStack.head`) threw NoSuchElementException.
         noException should be thrownBy parser.parse("q [tick(1)]\n")
     }
 

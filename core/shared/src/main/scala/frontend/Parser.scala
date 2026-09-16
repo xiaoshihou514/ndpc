@@ -85,9 +85,14 @@ object parser {
 
         def popScopeWithTick(line: Line): State = {
             scopeStack.head.body = scopeStack.head.body :+ Left(line)
-            val t = scopeStack.tail
-            indentLevel -= 2
-            scopeStack = t
+            // never pop the root scope: a top-level tick line stays in the root
+            // (the checker reports it if it is out of place), it must not leave
+            // the scope stack empty
+            if scopeStack.tail.nonEmpty then {
+                val t = scopeStack.tail
+                indentLevel -= 2
+                scopeStack = t
+            }
             this
         }
     }
