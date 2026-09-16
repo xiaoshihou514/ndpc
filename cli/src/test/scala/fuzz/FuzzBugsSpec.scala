@@ -63,15 +63,27 @@ class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
         noException should be thrownBy parser.parse("q [tick(1)]\n")
     }
 
-    "BUG-05 (Lean.scala:360/471/482/547) identity substitutions" should "compile to Lean" ignore {
+    "BUG-05 (Lean.scala:360/471/482/495/547) identity substitutions" should "compile to Lean" in {
         // The checker accepts identity substitutions (isSubstituteOf allows
-        // original == substituted), but the lean backend assumes the substitution
-        // changed something: `ex.diff(...)` returns None and the `val Some(...) =
-        // ... : @unchecked` / `.get` sites crash.
-        Checker.checkedFromString("p [premise]\nexists x. (p) [existsI(1)]\n") match
-            case Success(pf) =>
-                noException should be thrownBy lean.compile(pf, (), IORuntime).unsafeRunSync()
-            case Failure(e) => fail(s"rejected: $e")
+        // original == substituted), but the lean backend used to assume the
+        // substitution changed something: `ex.diff(...)` returned None and the
+        // `val Some(...) = ... : @unchecked` / `.head` / `.get` sites crashed.
+        val proofs = List(
+          "p [premise]\nexists x. (p) [existsI(1)]\n",
+          "forall x. (p) [premise]\np [forallE(1)]\n",
+          "exists x. (p) [premise]\n  p [ass]\n  T [TI]\n  T [tick(3)]\nT [existsE(1, 2, 4)]\n",
+          "forall x. (p -> q) [premise]\np [premise]\nq [forall->E(2, 1)]\n",
+          "a = b [premise]\np(a) [premise]\np(a) [=sub(2, 1)]\n"
+        )
+        proofs.foreach { text =>
+            Checker.checkedFromString(text) match
+                case Success(pf) =>
+                    val out =
+                        try lean.compile(pf, (), IORuntime).unsafeRunSync()
+                        catch case e: Throwable => fail(s"lean threw on:\n$text\n$e")
+                    out.nonEmpty shouldBe true
+                case Failure(e) => fail(s"checker rejected:\n$text\n$e")
+        }
     }
 
     "BUG-07 (Formatter.findReasonAlign) an empty proof" should "format without crashing" in {

@@ -58,18 +58,6 @@ class CodegenFuzzSpec extends FuzzSpec:
                           )
                           false
               catch
-                  // BUG-02/05 (pinned family): the lean backend crashes on several
-                  // checker-valid proofs — premises-only (`body.last`, Lean.scala:226)
-                  // and identity quantifier/equality substitutions
-                  // (Lean.scala:360/471/482/547). Tolerate any NSEE/MatchError raised
-                  // inside the lean backend, nothing else.
-                  case e @ (_: NoSuchElementException | _: MatchError)
-                      if e.getStackTrace
-                          .exists(_.getClassName.startsWith("ndpc.cli.backend.lean")) =>
-                      System.err.println(
-                        s"BUG-02/05 signature: ${e.getClass.getSimpleName}: ${e.getMessage}"
-                      )
-                      true
                   case e: Throwable =>
                       System.err.println(
                         s"CODEGEN PROPERTY THREW ${e.getClass.getName}: ${e.getMessage}\n" +
