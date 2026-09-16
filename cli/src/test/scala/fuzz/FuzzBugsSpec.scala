@@ -33,9 +33,9 @@ class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
             case Failure(e) => fail(s"rejected: $e")
     }
 
-    "BUG-02 (Lean.scala:226 body.last) a premises-only proof" should "compile to Lean" ignore {
-        // pfs.span(Premise|Given) leaves `body` empty; `.last` throws
-        // NoSuchElementException.
+    "BUG-02 (Lean.scala:226 body.last) a premises-only proof" should "compile to Lean" in {
+        // fixed: pfs.span(Premise|Given) left `body` empty and `.last` threw
+        // NoSuchElementException; the result now falls back to the last premise.
         Checker.checkedFromString("p [premise]\nq [given]\n") match
             case Success(pf) =>
                 noException should be thrownBy lean.compile(pf, (), IORuntime).unsafeRunSync()

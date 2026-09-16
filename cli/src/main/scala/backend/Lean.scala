@@ -211,7 +211,7 @@ object lean extends Codegen[Unit] {
 
     override def compile(pf: CheckedProof, _opt: Unit, _runtime: CliRuntime): IO[String] = IO.pure {
         val pfs = pf.main.flatten.collect { case p: Pf => p }.toVector
-        val (premises, body) = pfs.span {
+        val (premises, _) = pfs.span {
             _.rule match
                 case Given | Premise => true
                 case _               => false
@@ -223,7 +223,8 @@ object lean extends Codegen[Unit] {
           pf.globals,
           premises.map(_.concl.asLean),
           proof.map(_.show(2)).mkString("\n"),
-          body.last.concl.asLean
+          // a premises-only proof proves its last premise
+          pfs.last.concl.asLean
         )
     }
 
