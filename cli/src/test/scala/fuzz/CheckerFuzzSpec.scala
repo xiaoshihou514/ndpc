@@ -12,20 +12,13 @@ class CheckerFuzzSpec extends FuzzSpec:
         checkProp(
           "checker no-throw",
           Prop.forAll(FuzzGens.genAnyProofInput) { s =>
-              try
+              guarded("CHECKER", s) {
                   parser.parse(s) match
                       case Success(ast) =>
                           Checker.checkParsed(ast)
                           true
                       case Failure(_) => true
-              catch
-                  case e =>
-                      System.err.println(
-                        s"CHECKER THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +
-                            s"${e.getMessage}\n  at " +
-                            e.getStackTrace.take(5).mkString("\n  at ")
-                      )
-                      false
+              }
           }
         )
     }
@@ -34,7 +27,7 @@ class CheckerFuzzSpec extends FuzzSpec:
         checkProp(
           "format roundtrip",
           Prop.forAll(FuzzGens.genAnyProofInput) { s =>
-              try
+              guarded("FORMAT PATH", s) {
                   parser.parse(s) match
                       case Success(ast) =>
                           val formatted = Formatter.formatPure(ast)
@@ -48,14 +41,7 @@ class CheckerFuzzSpec extends FuzzSpec:
                                   )
                                   false
                       case Failure(_) => true
-              catch
-                  case e =>
-                      System.err.println(
-                        s"FORMAT PATH THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +
-                            s"${e.getMessage}\n  at " +
-                            e.getStackTrace.take(5).mkString("\n  at ")
-                      )
-                      false
+              }
           }
         )
     }
@@ -64,7 +50,7 @@ class CheckerFuzzSpec extends FuzzSpec:
         checkProp(
           "format idempotent",
           Prop.forAll(FuzzGens.genAnyProofInput) { s =>
-              try
+              guarded("FORMAT PATH", s) {
                   parser.parse(s) match
                       case Success(ast) =>
                           val once = Formatter.formatPure(ast)
@@ -77,14 +63,7 @@ class CheckerFuzzSpec extends FuzzSpec:
                                   )
                                   false
                       case Failure(_) => true
-              catch
-                  case e =>
-                      System.err.println(
-                        s"FORMAT PATH THREW on ${FuzzGens.show(s)}: ${e.getClass.getName}: " +
-                            s"${e.getMessage}\n  at " +
-                            e.getStackTrace.take(5).mkString("\n  at ")
-                      )
-                      false
+              }
           }
         )
     }

@@ -37,6 +37,20 @@ abstract class FuzzSpec extends AnyPropSpec:
                 case other          => s"$other"
             fail(s"$name\n$detail".take(4000))
 
+    /** Run a property body, converting any throwable into a compact, logged failure. `input` is
+      * by-name: only evaluated (and shown) on failure.
+      */
+    protected def guarded(tag: String, input: => String)(body: => Boolean): Boolean =
+        try body
+        catch
+            case e: Throwable =>
+                System.err.println(
+                  s"$tag THREW ${e.getClass.getName}: ${e.getMessage}\n" +
+                      s"  on ${FuzzGens.show(input)}\n  at " +
+                      e.getStackTrace.take(5).mkString("\n  at ")
+                )
+                false
+
     protected def parseNoThrow(s: String): Boolean =
         try
             parser.parse(s)

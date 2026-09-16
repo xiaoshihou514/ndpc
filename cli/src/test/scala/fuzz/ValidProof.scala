@@ -89,10 +89,12 @@ object ValidProof:
         yield s"$b$k").retryUntil(n => !used(n))
 
     // ── rule applications ────────────────────────────────────────────────
-    // Each op returns None when not applicable to the current state.
-    private type Op = (St, Int) => Option[Gen[St]]
+    // Simple ops never open a box and do not care about generation depth; box
+    // ops do (nesting is capped). Each op returns None when not applicable.
+    private type SimpleOp = St => Option[Gen[St]]
+    private type BoxOp = (St, Int) => Option[Gen[St]]
 
-    private def premiseLike(rule: Rule): Op = (st, _) =>
+    private def premiseLike(rule: Rule): SimpleOp = st =>
         if st.premisesPhase && st.scopes.length == 1 then
             Some(
               FuzzGens.genRoundtripFormula.map { f =>
@@ -102,10 +104,10 @@ object ValidProof:
             )
         else None
 
-    private def truthOp(st: St, depth: Int): Option[Gen[St]] =
+    private def truthOp(st: St): Option[Gen[St]] =
         Some(Gen.const { val (s2, _) = emit(st, Truth, TruthIntro); s2 })
 
-    private def lemOp(st: St, depth: Int): Option[Gen[St]] =
+    private def lemOp(st: St): Option[Gen[St]] =
         Some(
           FuzzGens.safeName.map { n =>
               val t = PredAp(n, Nil)
@@ -114,7 +116,7 @@ object ValidProof:
           }
         )
 
-    private def reflOp(st: St, depth: Int): Option[Gen[St]] =
+    private def reflOp(st: St): Option[Gen[St]] =
         if st.env.isEmpty then None
         else
             Some(
@@ -125,7 +127,7 @@ object ValidProof:
               }
             )
 
-    private def forallIConstOp(st: St, depth: Int): Option[Gen[St]] =
+    private def forallIConstOp(st: St): Option[Gen[St]] =
         Some(
           freshName(st.env).map { c =>
               val (s2, _) = emit(st, PredAp(c, Nil), ForallIConst)
@@ -133,7 +135,7 @@ object ValidProof:
           }
         )
 
-    private def andIntroOp(st: St, depth: Int): Option[Gen[St]] =
+    private def andIntroOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         Some(
           for
@@ -142,7 +144,7 @@ object ValidProof:
           yield { val (s2, _) = emit(st, And(f1, f2), AndIntro(n1, n2)); s2 }
         )
 
-    private def orIntroOp(st: St, depth: Int): Option[Gen[St]] =
+    private def orIntroOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         Some(
           for
@@ -155,7 +157,7 @@ object ValidProof:
               s2
         )
 
-    private def dnegIntroOp(st: St, depth: Int): Option[Gen[St]] =
+    private def dnegIntroOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         Some(
           Gen.oneOf(v).map { case (n, f) =>
@@ -164,7 +166,7 @@ object ValidProof:
           }
         )
 
-    private def dnegElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def dnegElimOp(st: St): Option[Gen[St]] =
         val v = visible(st).collect { case (n, Not(Not(x))) => (n, x) }
         if v.isEmpty then None
         else
@@ -175,7 +177,7 @@ object ValidProof:
               }
             )
 
-    private def andElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def andElimOp(st: St): Option[Gen[St]] =
         val v = visible(st).collect { case (n, And(l, r)) => (n, l, r) }
         if v.isEmpty then None
         else
@@ -188,7 +190,7 @@ object ValidProof:
                   s2
             )
 
-    private def impliesElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def impliesElimOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val usable = v.flatMap { case (inr, imp) =>
             imp match
@@ -208,7 +210,7 @@ object ValidProof:
               }
             )
 
-    private def equivElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def equivElimOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val usable = v.flatMap { case (enr, eq) =>
             eq match
@@ -228,7 +230,7 @@ object ValidProof:
               }
             )
 
-    private def notElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def notElimOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val usable = v.flatMap { case (nnr, nf) =>
             nf match
@@ -244,7 +246,7 @@ object ValidProof:
               }
             )
 
-    private def falsityIntroOp(st: St, depth: Int): Option[Gen[St]] =
+    private def falsityIntroOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val usable = v.flatMap { case (onr, of) =>
             v.collect { case (nnr, Not(x)) if x == of => (onr, nnr) }
@@ -258,7 +260,7 @@ object ValidProof:
               }
             )
 
-    private def falsityElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def falsityElimOp(st: St): Option[Gen[St]] =
         val v = visible(st).collect { case it @ (_, Falsity) => it }
         if v.isEmpty then None
         else
@@ -271,7 +273,7 @@ object ValidProof:
                   s2.copy(env = s2.env ++ f.names)
             )
 
-    private def equivIntroOp(st: St, depth: Int): Option[Gen[St]] =
+    private def equivIntroOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val usable = for
             case (n1, Implies(a, b)) <- v
@@ -287,7 +289,7 @@ object ValidProof:
               }
             )
 
-    private def mtOp(st: St, depth: Int): Option[Gen[St]] =
+    private def mtOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val usable = for
             case (inr, Implies(a, b)) <- v
@@ -303,7 +305,7 @@ object ValidProof:
               }
             )
 
-    private def symOp(st: St, depth: Int): Option[Gen[St]] =
+    private def symOp(st: St): Option[Gen[St]] =
         val v = visible(st).collect { case it @ (_, Eq(l, r)) => (it, l, r) }
         if v.isEmpty then None
         else
@@ -314,7 +316,7 @@ object ValidProof:
               }
             )
 
-    private def eqSubOp(st: St, depth: Int): Option[Gen[St]] =
+    private def eqSubOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val eqs = v.collect { case it @ (_, _: Eq) => it }
         val origs = v.collect { case it @ (_, f) if !f.isInstanceOf[Eq] => it }
@@ -328,7 +330,7 @@ object ValidProof:
               yield { val (s2, _) = emit(st, concl, EqSub(onr, enr)); s2 }
             )
 
-    private def existsIntroOp(st: St, depth: Int): Option[Gen[St]] =
+    private def existsIntroOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         Some(
           for
@@ -337,7 +339,7 @@ object ValidProof:
           yield { val (s2, _) = emit(st, Exists(x, f), ExistsIntro(n)); s2 }
         )
 
-    private def forallElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def forallElimOp(st: St): Option[Gen[St]] =
         val v = visible(st).collect { case it @ (_, Forall(_, b)) => (it, b) }
         if v.isEmpty then None
         else
@@ -348,7 +350,7 @@ object ValidProof:
               }
             )
 
-    private def forallImpElimOp(st: St, depth: Int): Option[Gen[St]] =
+    private def forallImpElimOp(st: St): Option[Gen[St]] =
         val v = visible(st)
         val usable = v.flatMap { case (inr, imp) =>
             imp match
@@ -366,29 +368,25 @@ object ValidProof:
             )
 
     // ── box-opening rules ────────────────────────────────────────────────
-    private def boxable(depth: Int): Boolean = depth < 2
-
     private def impliesIntroOp(st: St, depth: Int): Option[Gen[St]] =
-        if !boxable(depth) then None
-        else
-            Some(
-              FuzzGens.genRoundtripFormula.flatMap { a =>
-                  val (st1, assNr) = pushBox(st, a)
-                  innerSteps(st1, depth).flatMap { st2 =>
-                      val inner = st2.scopes.head.known
-                      Gen.oneOf(inner.toList).flatMap { case (cnr, cf) =>
-                          val (st3, tickNr) = closeBox(st2, cnr, cf)
-                          val (st4, _) = emit(st3, Implies(a, cf), ImpliesIntro(assNr, tickNr))
-                          Gen.const(st4)
-                      }
+        Some(
+          FuzzGens.genRoundtripFormula.flatMap { a =>
+              val (st1, assNr) = pushBox(st, a)
+              innerSteps(st1, depth).flatMap { st2 =>
+                  val inner = st2.scopes.head.known
+                  Gen.oneOf(inner.toList).flatMap { case (cnr, cf) =>
+                      val (st3, tickNr) = closeBox(st2, cnr, cf)
+                      val (st4, _) = emit(st3, Implies(a, cf), ImpliesIntro(assNr, tickNr))
+                      Gen.const(st4)
                   }
               }
-            )
+          }
+        )
 
     private def notIntroOp(st: St, depth: Int): Option[Gen[St]] =
         // NotIntro: assume φ in a box, derive ⊥ (using a visible ¬φ), conclude ¬φ
         val negs = visible(st).collect { case (nnr, Not(x)) => (nnr, x) }
-        if negs.isEmpty || !boxable(depth) then None
+        if negs.isEmpty then None
         else
             Some(
               Gen.oneOf(negs).flatMap { case (nnr, x) =>
@@ -402,7 +400,7 @@ object ValidProof:
 
     private def pcOp(st: St, depth: Int): Option[Gen[St]] =
         val v = visible(st)
-        if v.isEmpty || !boxable(depth) then None
+        if v.isEmpty then None
         else
             Some(
               Gen.oneOf(v).flatMap { case (fnr, f) =>
@@ -415,35 +413,33 @@ object ValidProof:
             )
 
     private def forallIntroOp(st: St, depth: Int): Option[Gen[St]] =
-        if !boxable(depth) then None
-        else
-            Some(
-              freshName(st.env).flatMap { c =>
-                  val (st1, assNr) = pushBox(st, PredAp(c, Nil))
-                  val maybeInner =
-                      if depth + 1 < 2 then
-                          Gen.oneOf(true, false).flatMap {
-                              case true  => step(st1, depth + 1)
-                              case false => Gen.const(st1)
-                          }
-                      else step(st1, depth + 1)
-                  maybeInner.flatMap { st2 =>
-                      val (cnr, cf) = st2.scopes.head.known.last
-                      freshName(cf.names).flatMap { x =>
-                          val (st3, tickNr) = closeBox(st2, cnr, cf)
-                          val (st4, _) = emit(st3, Forall(x, cf), ForallIntro(assNr, tickNr))
-                          Gen.const(st4)
+        Some(
+          freshName(st.env).flatMap { c =>
+              val (st1, assNr) = pushBox(st, PredAp(c, Nil))
+              val maybeInner =
+                  if depth + 1 < 2 then
+                      Gen.oneOf(true, false).flatMap {
+                          case true  => step(st1, depth + 1)
+                          case false => Gen.const(st1)
                       }
+                  else step(st1, depth + 1)
+              maybeInner.flatMap { st2 =>
+                  val (cnr, cf) = st2.scopes.head.known.last
+                  freshName(cf.names).flatMap { x =>
+                      val (st3, tickNr) = closeBox(st2, cnr, cf)
+                      val (st4, _) = emit(st3, Forall(x, cf), ForallIntro(assNr, tickNr))
+                      Gen.const(st4)
                   }
               }
-            )
+          }
+        )
 
     private def existsElimOp(st: St, depth: Int): Option[Gen[St]] =
         val cands = visible(st).collect {
             case (nr, Exists(x, body)) if !body.names(x) =>
                 (nr, body)
         }
-        if cands.isEmpty || !boxable(depth) then None
+        if cands.isEmpty then None
         else
             Some(
               Gen.oneOf(cands).flatMap { case (enr, body) =>
@@ -457,7 +453,7 @@ object ValidProof:
 
     private def orElimOp(st: St, depth: Int): Option[Gen[St]] =
         val cands = visible(st).collect { case (nr, Or(a, b)) => (nr, a, b) }
-        if cands.isEmpty || !boxable(depth) then None
+        if cands.isEmpty then None
         else
             Some(
               Gen.oneOf(cands).flatMap { case (onr, a, b) =>
@@ -473,7 +469,7 @@ object ValidProof:
             )
 
     // ── the op pool ──────────────────────────────────────────────────────
-    private def allOps: List[(Int, Op)] = List(
+    private def simpleOps: List[(Int, SimpleOp)] = List(
       (2, premiseLike(Premise)),
       (2, premiseLike(Given)),
       (2, truthOp),
@@ -496,7 +492,10 @@ object ValidProof:
       (1, eqSubOp),
       (2, existsIntroOp),
       (2, forallElimOp),
-      (2, forallImpElimOp),
+      (2, forallImpElimOp)
+    )
+
+    private def boxOps: List[(Int, BoxOp)] = List(
       (2, impliesIntroOp),
       (1, notIntroOp),
       (1, pcOp),
@@ -505,10 +504,13 @@ object ValidProof:
       (1, orElimOp)
     )
 
+    /** Box nesting is capped at this generation depth. */
+    private def boxable(depth: Int): Boolean = depth < 2
+
     private def step(st: St, depth: Int): Gen[St] =
-        val candidates = allOps.flatMap { case (w, op) =>
-            op(st, depth).map(g => (w, g))
-        }
+        val candidates = simpleOps.flatMap((w, op) => op(st).map(g => (w, g))) ++
+            (if boxable(depth) then boxOps.flatMap((w, op) => op(st, depth).map(g => (w, g)))
+             else Nil)
         if candidates.isEmpty then Gen.const(st) // cannot happen: truthOp always applies
         else Gen.frequency(candidates*)
 
