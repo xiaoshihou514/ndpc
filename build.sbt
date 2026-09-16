@@ -60,7 +60,10 @@ lazy val cli = (project in file("cli"))
         "com.monovore" %% "decline" % declineVer,
         "org.typelevel" %% "cats-effect" % catsEffVer,
         "com.lihaoyi" %% "os-lib" % osLibVer,
-        "org.scalatest" %% "scalatest" % scalatestVer % Test
+        "org.scalatest" %% "scalatest" % scalatestVer % Test,
+        // fuzz testing
+        "org.scalacheck" %% "scalacheck" % "1.18.1" % Test,
+        "org.scalatestplus" %% "scalacheck-1-18" % "3.2.19.0" % Test
       ),
       Compile / mainClass := Some("ndpc.cli.Main"),
       assembly / mainClass := Some("ndpc.cli.Main"),
