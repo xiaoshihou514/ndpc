@@ -142,27 +142,32 @@ object Checker {
                                 Success(offset + elapsed)
                         }
                     case Left(line) =>
-                        tryVerifyLine(
-                          line,
-                          lineNr + offset,
-                          knowledge union localKnowledge
-                        ) match {
-                            case Failure(reason: String) =>
-                                Failure(
-                                  EnrichedErr(
-                                    reason,
-                                    None,
-                                    lineNr + offset,
-                                    None
-                                  )
-                                )
-                            case Success(vars) =>
-                                env addAll vars
-                                line match
-                                    case p @ Pf(_, _, _) => localKnowledge add p
-                                    case _               => // pass
-                                Success(offset + 1)
-                        }
+                        line match
+                            // comments/empty lines are transparent to rule line
+                            // numbering: lines(n) indexes proof lines only
+                            case _: Comment | Empty => Success(offset)
+                            case _ =>
+                                tryVerifyLine(
+                                  line,
+                                  lineNr + offset,
+                                  knowledge union localKnowledge
+                                ) match {
+                                    case Failure(reason: String) =>
+                                        Failure(
+                                          EnrichedErr(
+                                            reason,
+                                            None,
+                                            lineNr + offset,
+                                            None
+                                          )
+                                        )
+                                    case Success(vars) =>
+                                        env addAll vars
+                                        line match
+                                            case p @ Pf(_, _, _) => localKnowledge add p
+                                            case _               => // pass
+                                        Success(offset + 1)
+                                }
             }
         }
     }

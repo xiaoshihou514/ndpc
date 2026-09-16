@@ -50,9 +50,6 @@ abstract class FuzzSpec extends AnyPropSpec:
       * checker's `lines` vector, so references in proofs with comments misresolve and can crash
       * with IndexOutOfBoundsException.
       */
-    protected def isKnownCommentNumberingCrash(e: Throwable): Boolean =
-        e.isInstanceOf[IndexOutOfBoundsException]
-
     protected def parseNoThrow(s: String): Boolean =
         try
             parser.parse(s)

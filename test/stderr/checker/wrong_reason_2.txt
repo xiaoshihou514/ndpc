@@ -1,5 +1,5 @@
 Semantics error:
-wrong_reason_2.ndp, (line 6):
+wrong_reason_2.ndp, (line 4):
   The following assertion(s) implied by ForallIntro(3,2) does not hold:
     C is a constant
     Conclusion is of form forall ?. A
