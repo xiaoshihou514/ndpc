@@ -19,7 +19,7 @@ object Formatter {
             case Left(Pf(concl, _, _)) => concl.pretty.length()
             case _                     => 0
         }
-        2 * iniIndent + (if widths.isEmpty then 0 else widths.max)
+        2 * iniIndent + widths.maxOption.getOrElse(0)
 
     private def formatLine(line: Line, indent: Int, reasonAlign: Int): String =
         line match {

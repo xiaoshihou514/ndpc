@@ -67,23 +67,23 @@ object pretty:
             case Tick(orig)                     => s"tick($orig)"
         }
 
-    private def parenthesizeString(parent: LFormula, child: LFormula): String = {
-        def precedence(lf: LFormula): Int = lf match {
-            case PredAp(_, _)  => 7
-            case Truth         => 7
-            case Falsity       => 7
-            case Not(_)        => 6
-            case Eq(_, _)      => 5
-            case And(_, _)     => 4
-            case Or(_, _)      => 3
-            case Implies(_, _) => 2
-            // the parser binds Equiv loosest (parsley lists it last); it must be
-            // treated as looser than every other connective when parenthesizing
-            case Equiv(_, _)  => 0
-            case Forall(_, _) => 0
-            case Exists(_, _) => 0
-        }
+    /** Parenthesization precedence, matching the ndp parser: Equiv binds loosest (parsley lists it
+      * last), atoms are tightest. Shared with the codegen backends — do not duplicate this table.
+      */
+    def precedence(lf: LFormula): Int = lf match {
+        case PredAp(_, _)  => 7
+        case Truth         => 7
+        case Falsity       => 7
+        case Not(_)        => 6
+        case Eq(_, _)      => 5
+        case And(_, _)     => 4
+        case Or(_, _)      => 3
+        case Implies(_, _) => 2
+        case Equiv(_, _)   => 0
+        case Forall(_, _)  => 0
+        case Exists(_, _)  => 0
+    }
 
+    private def parenthesizeString(parent: LFormula, child: LFormula): String =
         if precedence(parent) < precedence(child) then child.pretty
         else s"(${child.pretty})"
-    }

@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import ndpc.cli.{CliRuntime, IORuntime}
 import ndpc.frontend.CheckedProof
+import ndpc.frontend.pretty.precedence
 import ndpc.cli.frontend.checker.pfFromSource
 import ndpc.frontend.expr.formula.*
 import ndpc.frontend.expr.rule.*
@@ -12,27 +13,11 @@ import ndpc.utils.NdpcError
 import parsley.{Result, Success, Failure}
 import scala.collection.mutable
 
-// Helper function for parenthesis handling
-private def paren(f: LFormula => String): (LFormula, LFormula) => String = {
-    def precedence(lf: LFormula): Int = lf match {
-        case PredAp(_, _)  => 7
-        case Truth         => 7
-        case Falsity       => 7
-        case Not(_)        => 6
-        case Eq(_, _)      => 5
-        case And(_, _)     => 4
-        case Or(_, _)      => 3
-        case Implies(_, _) => 2
-        // Equiv binds loosest (matching the ndp parser and the target languages)
-        case Equiv(_, _)  => 0
-        case Forall(_, _) => 0
-        case Exists(_, _) => 0
-    }
-
-    { (parent, child) =>
-        if precedence(parent) < precedence(child) then f(child)
-        else s"(${f(child)})"
-    }
+// Helper function for parenthesis handling; precedence is the shared printer
+// table from Pretty (keep it there, do not re-declare it)
+private def paren(f: LFormula => String): (LFormula, LFormula) => String = { (parent, child) =>
+    if precedence(parent) < precedence(child) then f(child)
+    else s"(${f(child)})"
 }
 
 trait Codegen[A] {

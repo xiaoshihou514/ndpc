@@ -10,7 +10,7 @@ import ndpc.frontend.parser.*
 import cats.syntax.all.*
 import ndpc.frontend.pretty
 import ndpc.frontend.expr.rule.*
-import scala.collection.mutable.ReusableBuilder
+import scala.collection.mutable.{ReusableBuilder, Set as MutableSet}
 import scala.annotation.targetName
 
 private def h(x: Any) = s"h$x"
@@ -212,14 +212,13 @@ object lean extends Codegen[Unit] {
     override def compile(pf: CheckedProof, _opt: Unit, _runtime: CliRuntime): IO[String] = IO.pure {
         val pfs = pf.main.flatten.collect { case p: Pf => p }.toVector
         val (premises, _) = pfs.span {
-            _.rule match
-                case Given | Premise => true
-                case _               => false
+            case Pf(_, Given | Premise, _) => true
+            case _                         => false
         }
         given Map[Int, LFormula] = pfs.zipWithIndex.map { (x, i) => (i + 1, x.concl) }.toMap
         // bound variables used as witnesses in identity substitutions; they must be
         // declared as section variables for the generated terms to typecheck
-        val extraVars = scala.collection.mutable.Set[String]()
+        val extraVars = MutableSet[String]()
         val proof = compile(pf.main, 1, extraVars) :+ Exact(pfs.length)
 
         build(
@@ -245,7 +244,7 @@ object lean extends Codegen[Unit] {
     private def compile(
         pfs: PfScope,
         index: Int,
-        extras: scala.collection.mutable.Set[String]
+        extras: MutableSet[String]
     )(using
         lookup: Map[Int, LFormula]
     ): Vector[LeanStmt] = {
@@ -282,7 +281,7 @@ object lean extends Codegen[Unit] {
         expr: LFormula,
         rule: Rule,
         acc: State,
-        extras: scala.collection.mutable.Set[String]
+        extras: MutableSet[String]
     )(using
         lookup: Map[Int, LFormula]
     ): State = {
@@ -512,10 +511,8 @@ object lean extends Codegen[Unit] {
             // have h11 : b = a := h10 a h9
             case ForallImpElim(ass, imp) =>
                 val Forall(x, impBody) = lookup(imp): @unchecked
-                val name = (expr.names -- (impBody.names - x)).toList match
-                    case n :: _ => n
-                    // identity substitution: instantiate at the bound variable itself
-                    case Nil => x
+                // identity substitution: instantiate at the bound variable itself
+                val name = (expr.names -- (impBody.names - x)).headOption.getOrElse(x)
                 acc.lines += Have(now.toString, expr, LeanExpr(List(h(imp), name, h(ass))))
                 acc
 
@@ -567,9 +564,8 @@ object lean extends Codegen[Unit] {
             // have h3 : P B := Eq.subst h1 h2
             case EqSub(orig, eq) =>
                 val Eq(_, r) = lookup(eq): @unchecked
-                val symm = lookup(orig).diff(expr) match
-                    case Some(d) => Some(d == r)
-                    case None    => None // identity substitution: nothing to rewrite
+                // None: identity substitution, nothing to rewrite
+                val symm = lookup(orig).diff(expr).map(_ == r)
                 acc.lines += HaveBy.eqsub(
                   now,
                   expr,
