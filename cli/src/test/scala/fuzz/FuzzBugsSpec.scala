@@ -42,11 +42,11 @@ class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
             case Failure(e) => fail(s"rejected: $e")
     }
 
-    "BUG-03 (Pretty.parenthesizeString) Equiv under Implies" should "print unambiguously" ignore {
-        // The printer assumes Implies binds looser than Equiv, but the parser's
-        // actual precedence is the reverse (Equiv is loosest), so
-        // Implies(X, Equiv(A, B)) prints "X -> A <-> B" which reparses as
-        // Equiv(Implies(X, A), B).
+    "BUG-03 (Pretty.parenthesizeString) Equiv under Implies" should "print unambiguously" in {
+        // fixed: the printer treated Equiv as tighter than Implies, but the
+        // parser's actual precedence is the reverse (Equiv is loosest), so
+        // Implies(X, Equiv(A, B)) printed "X -> A <-> B" which reparses as
+        // Equiv(Implies(X, A), B). Equiv is now always parenthesized.
         val f = Implies(
           Exists("c", Eq(PredAp("c71", Nil), PredAp("R", Nil))),
           Equiv(PredAp("Q", Nil), PredAp("P46", Nil))
@@ -94,14 +94,19 @@ class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
             case Failure(e)   => fail(s"empty input should parse to an empty proof: $e")
     }
 
-    "BUG-08 (Checker.tryVerifyEach) comments must not shift rule line numbers" should "check" ignore {
-        // lineNr accumulates over ALL lines (comments/empties included) but
-        // `lines(n - 1)` indexes the proof-lines-only vector, so in proofs with
-        // comments every reference after the first comment misresolves: valid
-        // proofs are rejected (this repro) or out-of-bounds crashes occur.
-        Checker.checkedFromString("p [premise]\n-- c\nq [premise]\nr [^I(1,3)]\n") match
+    "BUG-08 (Checker.tryVerifyEach) comments must not shift rule line numbers" should "check" in {
+        // fixed: lineNr used to accumulate over ALL lines (comments/empties
+        // included) while `lines(n - 1)` indexes the proof-lines-only vector, so
+        // the accessibility guard used file positions: out-of-range references in
+        // proofs with comments crashed with IndexOutOfBoundsException.
+        Checker.checkedFromString("p [premise]\n-- c\nq [premise]\np ^ q [^I(1,2)]\n") match
             case Success(_) => succeed
             case Failure(e) => fail(s"valid proof rejected: $e")
+
+        // an out-of-range reference must be a clean failure, not a crash
+        Checker.checkedFromString("p [premise]\n-- c\nq [premise]\nq [tick(9)]\n") match
+            case Failure(_) => succeed
+            case Success(_) => fail("out-of-range tick accepted")
     }
 
     "BUG-11 (Pretty / FormulaParser) T() and F() as predicate names" should "print unambiguously" in {

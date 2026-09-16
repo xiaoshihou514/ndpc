@@ -30,19 +30,27 @@ FUZZ_ITER=50000 sbt 'cli/testOnly ndpc.fuzz.CodegenFuzzSpec'  # one spec, very l
 - `FuzzBugsSpec.scala` — minimal reproductions for every bug found so far,
   `ignore`d until fixed (remove the `ignore` prefix when fixing).
 
-## Bugs found so far (see FuzzBugsSpec for repros)
+## Bugs found (all fixed)
 
-| tag | area | symptom |
-|-----|------|---------|
-| BUG-01 | `Checker.tryVerify` | single-premise proof rejected, misleading error |
-| BUG-02 | `Lean.scala:226` | premises-only proof crashes lean codegen (`body.last`) |
-| BUG-03 | `Pretty.parenthesizeString` | `Equiv` under `Implies` prints ambiguously, reparses to a different tree |
-| BUG-04 | `Parser` (scope stack) | root-scope `tick` line crashes the parser (`NoSuchElementException`) |
-| BUG-05 | `Lean.scala:360/471/482/547` | identity quantifier/equality substitutions crash lean codegen |
-| BUG-07 | `Formatter.findReasonAlign` | empty proof crashes the formatter (`.max` on empty) |
-| BUG-08 | `Checker.tryVerifyEach` | comments/empty lines shift line numbers → valid proofs rejected, `IndexOutOfBoundsException` |
-| BUG-11 | `Pretty` + `FormulaParser` | `T()` / `F()` parse as zero-arity predicates but print as `T`/`F` (Truth/Falsity) — formatting changes the proof |
+All of the bugs below were found by this suite. Each one has a minimal
+reproduction test in `FuzzBugsSpec.scala` (now active — they encode the fixed
+behavior), and the fuzz tolerances for them have been removed, so the
+properties are fully strict again.
+
+| tag | area | symptom | fixed in |
+|-----|------|---------|----------|
+| BUG-01 | `Checker.tryVerify` | single-premise proof rejected, misleading error | 6c8c148 |
+| BUG-02 | `Lean.scala:226` | premises-only proof crashed lean codegen (`body.last`) | bc0e17b |
+| BUG-03 | `Pretty.parenthesizeString` | `Equiv` under `Implies` printed ambiguously, reparsed to a different tree | bce432e |
+| BUG-04 | `Parser` (scope stack) | root-scope `tick` line crashed the parser (`NoSuchElementException`) | d0c9a5a |
+| BUG-05 | `Lean.scala:360/471/482/495/547` | identity quantifier/equality substitutions crashed lean codegen | 0462081 |
+| BUG-07 | `Formatter.findReasonAlign` | empty proof crashed the formatter (`.max` on empty) | 229a4b5 |
+| BUG-08 | `Checker.tryVerifyEach` | comments/empty lines shifted line numbers → out-of-range references crashed | 96abc4c |
+| BUG-11 | `Pretty` + `FormulaParser` | `T()` / `F()` parsed as zero-arity predicates but printed as `T`/`F` (Truth/Falsity) | 31bb6a7 |
 
 (No BUG-06: that number was reserved for an `ImpliesElim` argument-order
 investigation that turned out to be only a misleading field name in
 `Rule.ImpliesElim(ass, imp)` — runtime behavior is consistent.)
+
+Regression tests are all active; `FUZZ_ITER=<n> sbt 'cli/testOnly ndpc.fuzz.*'`
+re-runs the property hunt.
