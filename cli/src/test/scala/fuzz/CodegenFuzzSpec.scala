@@ -51,7 +51,6 @@ class CodegenFuzzSpec extends FuzzSpec:
                           runBackend("typst", typst.compile(pf, (), IORuntime)) &&
                           runBackend("lean", lean.compile(pf, (), IORuntime)) &&
                           runBackend("html", html.compile(pf, None, IORuntime))
-                      case Success(_) => false
                       case Failure(err) =>
                           System.err.println(
                             s"checker rejected valid proof:\n${vp.text}\nerror: $err"
