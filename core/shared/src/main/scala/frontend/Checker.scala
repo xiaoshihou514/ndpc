@@ -93,6 +93,9 @@ object Checker {
                     None
                   )
                 )
+            case Vector(Left(head @ Pf(_, Ass | ForallIConst | Given | Premise, _))) =>
+                // a single premise/given line is a complete (trivial) proof
+                tryVerifyEach(input, lineNr)
             case Left(head @ Pf(_, Ass | ForallIConst | Given | Premise, _)) +: _ :+ Left(
                   tail @ Pf(_, _, _)
                 ) =>

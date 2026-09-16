@@ -24,9 +24,9 @@ import parsley.{Failure, Success}
 class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
     private def parseFormula(s: String) = fully(lexeme(FormulaParser.lformula)).parse(s)
 
-    "BUG-01 (Checker.tryVerify) a single-premise proof" should "be accepted" ignore {
-        // tryVerify requires `head +: _ :+ tail`, i.e. at least two lines, so the
-        // trivially valid one-line proof is rejected with a misleading
+    "BUG-01 (Checker.tryVerify) a single-premise proof" should "be accepted" in {
+        // fixed: tryVerify required `head +: _ :+ tail`, i.e. at least two lines,
+        // so the trivially valid one-line proof was rejected with a misleading
         // "did not start with a valid proof" error.
         Checker.checkedFromString("p [premise]\n") match
             case Success(_) => succeed
