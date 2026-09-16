@@ -8,6 +8,33 @@ err() {
     echo -e "\033[0;31m[ERROR] $1\033[0m"
 }
 
+llm() {
+    local prompt="$1"
+    local input
+    input=$(cat)
+
+    local content
+    if [ -n "$input" ]; then
+        content="$prompt
+
+$input"
+    else
+        content="$prompt"
+    fi
+
+    local payload
+    payload=$(jq -n --arg c "$content" '{
+        model: "mimo-v2.5-free",
+        messages: [{role: "user", content: $c}]
+    }')
+
+    curl -sS https://opencode.ai/zen/v1/chat/completions \
+        -H "Content-Type: application/json" \
+	-H "x-session-id: $(uuidgen)" \
+        -d "$payload" \
+        | jq -r '.choices[0].message.content // empty'
+}
+
 set -ex
 
 # make clean
@@ -86,7 +113,7 @@ echo
 
 # 生成英文总结并保存到变量
 en_summary=$(git log "$second_latest_tag..$latest_tag" --pretty=medium --no-merges \
-    | qwen "Summarize the important, non trivial changes in English, keep it very concise, no additional outputs, minimal markdown formatting")
+    | llm "Summarize the important, non trivial changes in English, keep it very concise, no additional outputs, minimal markdown formatting")
 
 # 输出英文总结
 echo "$en_summary"
@@ -94,7 +121,7 @@ echo "$en_summary"
 echo
 
 # 将英文总结翻译为中文（确保内容一致）
-zh_summary=$(echo "$en_summary" | qwen "Translate the above text to Chinese, keep it concise, no additional outputs")
+zh_summary=$(echo "$en_summary" | llm "Translate the above text to Chinese, keep it concise, no additional outputs")
 echo "$zh_summary"
 
 echo
