@@ -135,15 +135,8 @@ object FuzzGens:
       * pretty prints it bare, where it re-parses as Truth / Falsity — formatting silently changes
       * the meaning of the proof line.
       */
-    def knownTFNameBug(f: LFormula): Boolean =
-        val self = f match
-            case PredAp(n, Nil) => n == "T" || n == "F"
-            case _              => false
-        self || children(f).exists(knownTFNameBug)
-
     /** Formulas whose pretty-printing does not survive a reparse. */
-    def knownPrintRoundtripBug(f: LFormula): Boolean =
-        knownPrecedenceBug(f) || knownTFNameBug(f)
+    def knownPrintRoundtripBug(f: LFormula): Boolean = knownPrecedenceBug(f)
 
     /** Formulas guaranteed to survive a print/parse roundtrip. */
     val genRoundtripFormula: Gen[LFormula] =

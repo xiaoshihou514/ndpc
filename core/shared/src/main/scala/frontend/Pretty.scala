@@ -11,7 +11,9 @@ object pretty:
     extension (f: LFormula)
         def pretty: String = f match {
             case PredAp(p, args) =>
-                if args == Nil then p
+                if args == Nil then
+                    // bare T / F would reparse as Truth / Falsity
+                    if p == "T" || p == "F" then s"$p()" else p
                 else s"$p(${args.map(_.pretty).mkString(", ")})"
             case Eq(left, right) => s"${left.pretty} = ${right.pretty}"
             case Truth           => "T"

@@ -104,7 +104,7 @@ class FuzzBugsSpec extends AnyFlatSpec with should.Matchers:
             case Failure(e) => fail(s"valid proof rejected: $e")
     }
 
-    "BUG-11 (Pretty / FormulaParser) T() and F() as predicate names" should "print unambiguously" ignore {
+    "BUG-11 (Pretty / FormulaParser) T() and F() as predicate names" should "print unambiguously" in {
         // `F()` parses as PredAp("F", Nil) (empty arg list), but pretty prints it
         // bare as "F", which reparses as Falsity — formatting silently changes
         // the meaning of the proof line.
