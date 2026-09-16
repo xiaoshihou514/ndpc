@@ -70,7 +70,7 @@ object Main:
           ),
           div(
             cls := "toolbar-doc",
-            a(href := "./docs", "Docs")
+            a(href := "https://xiaoshihou514.github.io/en/ndpc/docs/", "Docs")
           )
         )
 
